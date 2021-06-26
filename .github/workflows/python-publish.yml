@@ -19,12 +19,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Create Version File
-      run: |
-        echo ${{ github.ref }}
-        echo ${{ github.ref }} | sed -nr 's/refs\/tags\/(.*)/\1/p' > VERSION.txt
-        echo -n "VERSION.txt set to: "
-        echo "$(cat VERSION.txt)"
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
