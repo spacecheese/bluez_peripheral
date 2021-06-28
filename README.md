@@ -1,5 +1,8 @@
 # bluez-peripheral
 
+[Documentation](https://bluez-peripheral.readthedocs.io/en/latest/)
+[PyPi](https://pypi.org/project/bluez-peripheral/)
+
 A library for building Bluetooth Low Energy (BLE) peripherals using the Bluez GATT API.
 
 ## Who this Library is For
