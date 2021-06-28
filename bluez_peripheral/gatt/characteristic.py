@@ -7,15 +7,18 @@ from enum import Flag, auto
 from typing import Callable, Union
 
 from .descriptor import descriptor, DescriptorFlags
-from ..uuid import BTUUID as UUID
+from ..uuid import BTUUID
 from ..util import *
 
 
 class CharacteristicReadOptions:
     """Options supplied to characteristic read functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes). Or you have some specific authorization requirements.
-    These map directly to the characteristic read options listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
+    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
     """
+
+    def __init__(self):
+        self.__init__({})
 
     def __init__(self, options):
         self.offset = _getattr_variant(options, "offset", 0)
@@ -25,9 +28,12 @@ class CharacteristicReadOptions:
 
 class CharacteristicWriteOptions:
     """Options supplied to characteristic write functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes). Or you have some specific authorization requirements.
-    These map directly to the characteristic write options listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
+    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
     """
+
+    def __init__(self):
+        self.__init__({})
 
     def __init__(self, options):
         self.offset = _getattr_variant(options, "offset", 0)
@@ -40,7 +46,7 @@ class CharacteristicWriteOptions:
 
 class CharacteristicFlags(Flag):
     """Flags to use when specifying the read/ write routines that can be used when accessing the characteristic.
-    These map directly to the characteristic flags property listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    These are converted to `bluez flags <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_ some of which are not clearly documented.
     """
 
     INVALID = 0
@@ -70,7 +76,7 @@ class CharacteristicFlags(Flag):
     EXTENDED_PROPERTIES = auto()
     """The Characteristic Extended Properties Descriptor exists and contains the values of any extended properties.
     Do not manually set this flag or attempt to define the Characteristic Extended Properties Descriptor. These are automatically 
-    handled when a RELIABLE_WRITE or WRITABLE_AUXILIARIES flag is used.
+    handled when a :class:`CharacteristicFlags.RELIABLE_WRITE` or :class:`CharacteristicFlags.WRITABLE_AUXILIARIES` flag is used.
     """
     RELIABLE_WRITE = auto()
     """The value to be written to the characteristic is verified by transmission back to the client before writing occurs.
@@ -79,45 +85,40 @@ class CharacteristicFlags(Flag):
     """The Characteristic User Description Descriptor exists and is writable by the client.
     """
     ENCRYPT_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRPYT_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRYPT_AUTHENTICATED_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRYPT_AUTHENTICATED_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     SECURE_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     SECURE_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     AUTHORIZE = auto()
-    """Not documented by bluez.
-    """
+    """"""
 
 
 class characteristic(ServiceInterface):
+    """Create a new characteristic with a specified UUID and flags.
+
+    Args:
+        uuid (Union[BTUUID, str]): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
+    """
+
+    # TODO: Add reference to detailed characteristic documentation.
+
     _INTERFACE = "org.bluez.GattCharacteristic1"
 
     def __init__(
         self,
-        uuid: Union[UUID, str],
+        uuid: Union[BTUUID, str],
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
-        # TODO: Add reference to the detailed characteristic documentation.
-        """Create a new characteristic with a specified UUID and flags.
-
-        Args:
-            uuid (Union[UUID, str]): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-            flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute. Defaults to CharacteristicFlags.READ.
-        """
         if uuid is str:
-            uuid = UUID.from_uuid16(uuid)
+            uuid = BTUUID.from_uuid16(uuid)
         self.uuid = uuid
         self.getter_func = None
         self.setter_func = None
@@ -145,7 +146,7 @@ class characteristic(ServiceInterface):
         self,
         setter_func: Callable[["Service", bytes, CharacteristicWriteOptions], None],
     ) -> "characteristic":
-        """A decorator for characteristic value setters. You must define a getter using `__call__()` first."""
+        """A decorator for characteristic value setters. You must define a getter using :class:`characteristic.__init__()()` first."""
         self.setter_func = setter_func
         return self
 
@@ -153,18 +154,18 @@ class characteristic(ServiceInterface):
         self,
         func: Callable[["Service", CharacteristicReadOptions], bytes],
     ):
-        """A decorator for characteristic value getters. You should use this by chaining with `__init__()`."""
+        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`."""
         self.getter_func = func
         return self
 
     def descriptor(
-        self, uuid: Union[UUID, str], flags: DescriptorFlags = DescriptorFlags.READ
+        self, uuid: Union[BTUUID, str], flags: DescriptorFlags = DescriptorFlags.READ
     ) -> "descriptor":
         """Create a new descriptor with the specified UUID and Flags.
 
         Args:
-            uuid (Union[UUID, str]): The UUID of the descriptor.
-            flags (DescriptorFlags, optional): Any descriptor access flags to use. Defaults to DescriptorFlags.READ.
+            uuid (Union[BTUUID, str]): The UUID of the descriptor.
+            flags (DescriptorFlags, optional): Any descriptor access flags to use.
         """
         # Use as a decorator for descriptors that need a getter.
         return descriptor(uuid, self, flags)

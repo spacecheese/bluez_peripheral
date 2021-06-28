@@ -10,8 +10,8 @@ from ..util import *
 
 class DescriptorReadOptions:
     """Options supplied to descriptor read functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 100 bytes). Or you have some specific authorization requirements.
-    These map directly to the descriptor read options listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long descriptor (eg > 100 bytes) or you have some specific authorization requirements.
+    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
     """
 
     def __init__(self, options):
@@ -22,8 +22,8 @@ class DescriptorReadOptions:
 
 class DescriptorWriteOptions:
     """Options supplied to descriptor write functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes). Or you have some specific authorization requirements.
-    These map directly to the descriptor write options listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
+    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
     """
 
     def __init__(self, options):
@@ -35,7 +35,7 @@ class DescriptorWriteOptions:
 
 class DescriptorFlags(Flag):
     """Flags to use when specifying the read/ write routines that can be used when accessing the descriptor.
-    These map directly to the descriptor flags property listed in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    These are converted to `bluez flags <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_ some of which are not clearly documented.
     """
 
     INVALID = 0
@@ -46,30 +46,33 @@ class DescriptorFlags(Flag):
     """Descriptor may be written to.
     """
     ENCRYPT_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRYPT_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRYPT_AUTHENTICATED_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     ENCRYPT_AUTHENTICATED_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     SECURE_READ = auto()
-    """Not documented by bluez.
-    """
+    """"""
     SECURE_WRITE = auto()
-    """Not documented by bluez.
-    """
+    """"""
     AUTHORIZE = auto()
-    """Not documented by bluez.
-    """
+    """"""
 
 
 # Decorator for descriptor getters/ setters.
 class descriptor(ServiceInterface):
+    """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
+
+    Args:
+        uuid (Union[UUID, str]): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        characteristic (characteristic): The parent characteristic to associate this descriptor with.
+        flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
+    """
+
+    # TODO: Add reference to detailed characteristic documentation.
+
     _INTERFACE = "org.bluez.GattDescriptor1"
 
     def __init__(
@@ -78,13 +81,6 @@ class descriptor(ServiceInterface):
         characteristic: "characteristic",  # type: ignore
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
-        """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
-
-        Args:
-            uuid (Union[UUID, str]): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-            characteristic (characteristic): The parent characteristic to associate this descriptor with.
-            flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute. Defaults to DescriptorFlags.READ.
-        """
         if uuid is str:
             uuid = UUID.from_uuid16(uuid)
         self.uuid = uuid

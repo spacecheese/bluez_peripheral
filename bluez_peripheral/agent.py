@@ -9,17 +9,21 @@ from .util import *
 
 
 class AgentCapability(Enum):
+    """The IO Capabilities of the local device supported by the agent.
+    See Tables 5.5 and 5.7 of the `Bluetooth Core Spec Part C. <https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=478726>`_
+    """
+
     KEYBOARD_DISPLAY = 0
-    """Device can use any pairing method.
+    """Any pairing method can be used.
     """
     DISPLAY_ONLY = 1
-    """Device can display a pairing code.
+    """Device has no input but a pairing code can be displayed.
     """
     DISPLAY_YES_NO = 2
-    """Device can display and read the response to a yes/ no pairing prompt.
+    """Device can display and record the response to a yes/ no prompt.
     """
     KEYBOARD_ONLY = 3
-    """Device has no output but can be used to enter a pairing code.
+    """Device has no output but can be used to input a pairing code.
     """
     NO_INPUT_NO_OUTPUT = 4
     """Device has no input/ output capabilities and therefore cannot support MITM protection.
@@ -27,20 +31,20 @@ class AgentCapability(Enum):
 
 
 class BaseAgent(ServiceInterface):
+    """The abstract base agent for all bluez agents. Subclass this if one of the existing agents does not meet your requirements.
+    Alternatively bluez supports several built in agents which can be selected using the bluetoothctl cli.
+
+    Args:
+        capability (AgentCapability): The IO capabilities of the agent.
+    """
+
     _INTERFACE = "org.bluez.Agent1"
     _MANAGER_INTERFACE = "org.bluez.AgentManager1"
-    """The base agent for all bluez agents.
-    """
 
     def __init__(
         self,
         capability: AgentCapability,
     ):
-        """Instance a BaseAgent. You probably should only do this with a subclass.
-
-        Args:
-            capability (AgentCapability): The IO capabilities of the agent.
-        """
         self._capability = capability
 
         self._path = None
@@ -70,9 +74,9 @@ class BaseAgent(ServiceInterface):
         Args:
             bus (MessageBus): The message bus to expose the agent using.
             default (bool, optional): Whether or not the agent should be registered as default.
-            Non-default agents will not be called to respond to incoming pairing requests.
-            The caller requires superuser if this is true. Defaults to True.
-            path (str, optional): The path to expose this message bus on. Defaults to "/com/spacecheese/ble".
+                Non-default agents will not be called to respond to incoming pairing requests.
+                The caller requires superuser if this is true.
+            path (str, optional): The path to expose this message bus on.
         """
         self._path = path
         bus.export(path, self)
@@ -92,12 +96,13 @@ class BaseAgent(ServiceInterface):
 
 
 class TestAgent(BaseAgent):
-    def __init__(self, capability: AgentCapability):
-        """A testing agent that invokes the debugger whenever a method is called. Use this for debugging only.
+    """A testing agent that invokes the debugger whenever a method is called. Use this for debugging only.
 
-        Args:
-            capability (AgentCapability): The IO capability of the agent.
-        """
+    Args:
+        capability (AgentCapability): The IO capability of the agent.
+    """
+
+    def __init__(self, capability: AgentCapability):
         super().__init__(capability)
 
     @method()
@@ -147,8 +152,9 @@ class TestAgent(BaseAgent):
 
 
 class NoIoAgent(BaseAgent):
+    """An agent with no input or output capabilities. All incoming pairing requests from all devices will be accepted unconditionally."""
+
     def __init__(self):
-        """An agent with no input or output capabilities. All incoming pairing requests from all devices will be accepted."""
         super().__init__(AgentCapability.NO_INPUT_NO_OUTPUT)
 
     @method()
@@ -161,16 +167,17 @@ class NoIoAgent(BaseAgent):
 
 
 class YesNoAgent(BaseAgent):
+    """An agent that uses a callback to display a yes/ no prompt in response to an incoming pairing request.
+
+    Args:
+        request_confirmation (Callable[[int], Awaitable[bool]]): The callback called when a pairing request is recived.
+            This should return true if the user indicates that the supplied passcode is correct or false otherwise.
+        cancel (Callable): The callback called when a pairing request is cancelled remotely.
+    """
+
     def __init__(
         self, request_confirmation: Callable[[int], Awaitable[bool]], cancel: Callable
     ):
-        """An agent that uses a callback to display a yes/ no prompt in response to an incoming pairing request.
-
-        Args:
-            request_confirmation (Callable[[int], Awaitable[bool]]): The callback called when a pairing request is recived.
-            This should return true if the user indicates that the supplied passcode is correct or false otherwise.
-            cancel (Callable): The callback called when a pairing request is cancelled remotely.
-        """
         self._request_confirmation = request_confirmation
         self._cancel = cancel
 

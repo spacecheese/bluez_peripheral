@@ -12,6 +12,13 @@ import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
 class Service(ServiceInterface):
+    """Create a bluetooth service with the specified uuid.
+
+    Args:
+        uuid (Union[UUID, str]): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        primary (bool, optional): True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
+    """
+
     _INTERFACE = "org.bluez.GattService1"
 
     def _populate(self):
@@ -25,13 +32,8 @@ class Service(ServiceInterface):
             if not member in self._characteristics:
                 self.add_characteristic(member)
 
+    # TODO: Implement service inclusion
     def __init__(self, uuid: Union[UUID, str], primary: bool = True):
-        """Create a bluetooth service with the specified uuid.
-
-        Args:
-            uuid (Union[UUID, str]): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-            primary (bool, optional): True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
-        """
         # Make sure uuid is a uuid16.
         self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16(uuid)
         self._primary = primary
@@ -107,10 +109,10 @@ class Service(ServiceInterface):
     def Primary(self) -> "b":  # type: ignore
         return self._primary
 
-    # TODO: Implement service inclusion
-
 
 class ServiceCollection:
+    """A collection of services that are registered with the bluez GATT manager as a group."""
+
     _MANAGER_INTERFACE = "org.bluez.GattManager1"
 
     def __init__(self):

@@ -28,27 +28,25 @@ def _snake_to_pascal(s: str) -> str:
 
 
 class Adapter(ProxyObject):
-    pass
-    # TODO: Finish this.
+    @classmethod
+    async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
+        """Get a list of available Bluetooth adapters.
 
+        Args:
+            bus (MessageBus): The message bus used to query bluez.
 
-async def get_adapters(bus: MessageBus) -> Collection[Adapter]:
-    """Get a list of available Bluetooth adapters.
+        Returns:
+            Collection[Adapter]: A list of available bluetooth adapters.
+        """
+        # TODO: Test.
+        adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
 
-    Args:
-        bus (MessageBus): The message bus used to query bluez.
+        adapters = []
+        for node in adapter_nodes:
+            introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
+            proxy = bus.get_proxy_object(
+                "org.bluez", "/org/bluez/" + node.name, introspection
+            )
+            adapters.append(cls(proxy))
 
-    Returns:
-        Collection[Adapter]: A list of available bluetooth adapters.
-    """
-    adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
-
-    adapters = []
-    for node in adapter_nodes:
-        introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
-        proxy = bus.get_proxy_object(
-            "org.bluez", "/org/bluez/" + node.name, introspection
-        )
-        adapters.append(proxy)
-
-    return adapters
+        return adapters

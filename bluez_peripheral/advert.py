@@ -7,70 +7,71 @@ from enum import Enum, Flag, auto
 from typing import Collection, Dict, Union
 import struct
 
-from .uuid import BTUUID as UUID
+from .uuid import BTUUID
 from .util import *
 
 
 class PacketType(Enum):
     BROADCAST = 0
-    """A broadcast type advertisment indicates the relevant service(s) will be broadcast and do not require pairing.
+    """The relevant service(s) will be broadcast and do not require pairing.
     """
     PERIPHERAL = 1
-    """A peripheral type advertisment indicates that the relevant service(s) are associated with a peripheral role.
+    """The relevant service(s) are associated with a peripheral role.
     """
 
 
 class AdvertisingIncludes(Flag):
     NONE = 0
     TX_POWER = auto()
-    """Transmittion power should be included in advertisments.
+    """Transmittion power should be included.
     """
     APPEARANCE = auto()
-    """Device appearance number should be included in advertisments.
+    """Device appearance number should be included.
     """
     LOCAL_NAME = auto()
-    """The local name of this device should be included in advertisments.
+    """The local name of this device should be included.
     """
 
 
 class Advertisement(ServiceInterface):
+    """
+    An advertisment for a particular service or collection of services that can be registered and broadcast to nearby devices.
+
+    Args:
+        localName (str): The device name to advertise.
+        serviceUUIDs (Collection[Union[BTUUID, str]]): A list of service UUIDs advertise.
+        appearance (Union[int, bytes]): The appearance value to advertise. `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
+        timeout (int): The time from registration until this advert is removed.
+        discoverable (bool, optional): Whether or not the device this advert should be general discoverable.
+        packet_type (PacketType, optional): The type of advertising packet requested.
+        manufacturerData (Dict[int, bytes], optional): Any manufacturer specific data to include in the advert.
+        solicitUUIDs (Collection[BTUUID], optional): Array of service UUIDs to attempt to solicit (not widely used).
+        serviceData (Dict[str, bytes], optional): Any service data elements to include.
+        includes (AdvertisingIncludes, optional): Optional fields to request are included in the advertising packet.
+        duration (int, optional): Duration of the advert when multiple adverts are ongoing.
+    """
+
     _INTERFACE = "org.bluez.LEAdvertisement1"
     _MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
 
     def __init__(
         self,
         localName: str,
-        serviceUUIDs: Collection[Union[UUID, str]],
+        serviceUUIDs: Collection[Union[BTUUID, str]],
         appearance: Union[int, bytes],
         timeout: int,
         discoverable: bool = True,
         packet_type: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
-        solicitUUIDs: Collection[UUID] = [],
+        solicitUUIDs: Collection[BTUUID] = [],
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
     ):
-        """
-        An advertisment for a particular service or collection of services that can be registered and broadcast to nearby devices.
-
-        Args:
-            localName (str): The device name to advertise.
-            serviceUUIDs (Collection[Union[UUID, str]]): A list of service UUIDs advertise.
-            appearance (Union[int, bytes]): The appearance value to advertise. `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
-            timeout (int): The time from registration until this advert is removed.
-            discoverable (bool, optional): Whether or not the device this advert should be general discoverable. Defaults to True.
-            packet_type (PacketType, optional): The type of advertising packet requested. Defaults to PacketType.PERIPHERAL.
-            manufacturerData (Dict[int, bytes], optional): Any manufacturer specific data to include in the advert. Defaults to {}.
-            solicitUUIDs (Collection[UUID], optional): Array of service UUIDs to attempt to solicit (not widely used). Defaults to [].
-            serviceData (Dict[str, bytes], optional): Any service data elements to include. Defaults to {}.
-            includes (AdvertisingIncludes, optional): Optional fields to request are included in the advertising packet. Defaults to AdvertisingIncludes.NONE.
-            duration (int, optional): Duration of the advert when multiple adverts are ongoing. Defaults to 2.
-        """
         self._type = packet_type
         # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
-            uuid if type(uuid) is UUID else UUID.from_uuid16(uuid)
+            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16(uuid)
             for uuid in serviceUUIDs
         ]
         self._localName = localName
@@ -99,8 +100,8 @@ class Advertisement(ServiceInterface):
 
         Args:
             bus (MessageBus): The message bus used to communicate with bluez.
-            adapter (Adapter, optional): The adapter to use gathered using `util.get_adapters()`. Defaults to None.
-            path (str, optional): The dbus path to use for registration. Defaults to "/com/spacecheese/ble/advert0".
+            adapter (Adapter, optional): The adapter to use gathered using `util.get_adapters()`.
+            path (str, optional): The dbus path to use for registration.
         """
         # Export this advert to the dbus.
         bus.export(path, self)
