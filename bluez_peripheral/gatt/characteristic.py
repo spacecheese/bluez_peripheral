@@ -65,12 +65,45 @@ class CharacteristicWriteOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self.offset = _getattr_variant(options, "offset", 0)
-        self.type = _getattr_variant(options, "type", None)
-        self.mtu = _getattr_variant(options, "mtu", None)
-        self.device = _getattr_variant(options, "device", None)
-        self.link = _getattr_variant(options, "link", None)
-        self.prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+        self._offset = _getattr_variant(int(options), "offset", 0)
+        type = _getattr_variant(options, "type", None)
+        if not type is None:
+            type = CharacteristicWriteType[type.upper()]
+        self._type = type
+        self._mtu = _getattr_variant(int(options), "mtu", 0)
+        self._device = _getattr_variant(options, "device", None)
+        self._link = _getattr_variant(options, "link", None)
+        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+
+    @property
+    def offset(self):
+        """A byte offset to use when writing to this characteristic."""
+        return self._offset
+
+    @property
+    def type(self):
+        """The type of write operation requested or None."""
+        return self._type
+
+    @property
+    def mtu(self):
+        """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
+        return self._mtu
+
+    @property
+    def device(self):
+        """The path of the remote device on the system dbus or None."""
+        return self._device
+
+    @property
+    def link(self):
+        """The link type."""
+        return self._link
+
+    @property
+    def prepare_authorize(self):
+        """True if prepare authorization request. False otherwise."""
+        return self._prepare_authorize
 
 
 class CharacteristicFlags(Flag):
