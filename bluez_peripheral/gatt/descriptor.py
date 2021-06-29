@@ -132,7 +132,8 @@ class descriptor(ServiceInterface):
 
     # Decorators
     def setter(
-        self, setter_func: Callable[[bytes, DescriptorWriteOptions], None]
+        self,
+        setter_func: Callable[[bytes, DescriptorWriteOptions], None],
     ) -> "descriptor":
         """A decorator for descriptor value setters. You must define a getter first."""
         self.setter_func = setter_func
@@ -140,10 +141,20 @@ class descriptor(ServiceInterface):
 
     def __call__(
         self,
-        func: Callable[[DescriptorReadOptions], bytes],
-    ):
-        """A decorator for descriptor value getters."""
-        self.getter_func = func
+        getter_func: Callable[["Service", DescriptorReadOptions], bytes] = None,
+        setter_func: Callable[["Service", bytes, DescriptorWriteOptions], None] = None,
+    ) -> "descriptor":
+        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`.
+
+        Args:
+            getter_func (Callable[[Service, DescriptorReadOptions], bytes], optional): The getter function for this descriptor.
+            setter_func (Callable[[Service, bytes, DescriptorWriteOptions], None], optional): The setter function for this descriptor. Defaults to None.
+
+        Returns:
+            descriptor: This descriptor
+        """
+        self.getter_func = getter_func
+        self.setter_func = setter_func
         return self
 
     def _set_service(self, service):

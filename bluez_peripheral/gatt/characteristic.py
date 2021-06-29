@@ -214,10 +214,22 @@ class characteristic(ServiceInterface):
 
     def __call__(
         self,
-        func: Callable[["Service", CharacteristicReadOptions], bytes],
-    ):
-        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`."""
-        self.getter_func = func
+        getter_func: Callable[["Service", CharacteristicReadOptions], bytes] = None,
+        setter_func: Callable[
+            ["Service", bytes, CharacteristicWriteOptions], None
+        ] = None,
+    ) -> "characteristic":
+        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`.
+
+        Args:
+            get (Callable[[Service, CharacteristicReadOptions], bytes], optional): The getter function for this characteristic.
+            set (Callable[[Service, bytes, CharacteristicWriteOptions], optional): The setter function for this characteristic.
+
+        Returns:
+            characteristic: This characteristic.
+        """
+        self.getter_func = getter_func
+        self.setter_func = setter_func
         return self
 
     def descriptor(
