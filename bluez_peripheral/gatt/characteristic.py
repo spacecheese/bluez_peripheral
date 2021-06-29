@@ -21,9 +21,38 @@ class CharacteristicReadOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self.offset = _getattr_variant(options, "offset", 0)
-        self.mtu = _getattr_variant(options, "mtu", None)
-        self.device = _getattr_variant(options, "device", None)
+        self._offset = _getattr_variant(int(options), "offset", 0)
+        self._mtu = _getattr_variant(int(options), "mtu", 0)
+        self._device = _getattr_variant(options, "device", None)
+
+    @property
+    def offset(self) -> int:
+        """A byte offset to read the characteristic from until the end."""
+        return self._offset
+
+    @property
+    def mtu(self) -> Union[int, None]:
+        """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
+        return self._mtu
+
+    @property
+    def device(self):
+        """The path of the remote device on the system dbus or None."""
+        return self._device
+
+
+class CharacteristicWriteType(Enum):
+    """Possible value of the :class:`CharacteristicWriteOptions`.type field"""
+
+    COMMAND = 0
+    """Write without response
+    """
+    RESPONSE = 1
+    """Write with response
+    """
+    RELIABLE = 2
+    """Reliable Write
+    """
 
 
 class CharacteristicWriteOptions:

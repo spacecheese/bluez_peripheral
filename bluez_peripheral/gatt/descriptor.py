@@ -27,10 +27,30 @@ class DescriptorWriteOptions:
     """
 
     def __init__(self, options):
-        self.offset = _getattr_variant(options, "offset", 0)
-        self.device = _getattr_variant(options, "device", None)
-        self.link = _getattr_variant(options, "link", None)
-        self.prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+        self._offset = _getattr_variant(options, "offset", 0)
+        self._device = _getattr_variant(options, "device", None)
+        self._link = _getattr_variant(options, "link", None)
+        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+
+    @property
+    def offset(self):
+        """A byte offset to use when writing to this descriptor."""
+        return self._offset
+
+    @property
+    def device(self):
+        """The path of the remote device on the system dbus or None."""
+        return self._device
+
+    @property
+    def link(self):
+        """The link type."""
+        return self._link
+
+    @property
+    def prepare_authorize(self):
+        """True if prepare authorization request. False otherwise."""
+        return self._prepare_authorize
 
 
 class DescriptorFlags(Flag):
