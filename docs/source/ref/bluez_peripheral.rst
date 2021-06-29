@@ -1,10 +1,8 @@
 bluez\_peripheral package
 =========================
 
-Subpackages
------------
-
 .. toctree::
+   :caption: Reference
    :maxdepth: 4
 
    advert

@@ -1,9 +1,10 @@
 # bluez-peripheral
 
 [Documentation](https://bluez-peripheral.readthedocs.io/en/latest/)
+
 [PyPi](https://pypi.org/project/bluez-peripheral/)
 
-A library for building Bluetooth Low Energy (BLE) peripherals using the Bluez GATT API.
+A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals using the Bluez GATT API.
 
 ## Who this Library is For
 
@@ -36,8 +37,7 @@ Note: **Do not attempt to create the Generic Access Service or a Client Characte
 The easiest way to use the library is to create a class describing the service that you wish to provide.
 ```python
 from bluez_peripheral.gatt.service import Service
-from bluez_peripheral.gatt.service import characteristic, CharacteristicFlags as CharFlags
-from bluez_peripheral.gatt.service import descriptor, DescriptorFlags as DescFlags
+from bluez_peripheral.gatt.characteristic import characteristic, CharacteristicFlags as CharFlags
 
 import struct
 
@@ -50,7 +50,7 @@ class HeartRateService(Service):
     def heart_rate_measurement(self, options):
         # This function is called when the characteristic is read.
         # Since this characteristic is notify only this function is a placeholder.
-        # You can generally ignore the options argument (see CharacteristicReadOptions).
+        # You can generally ignore the options argument (see Advanced Characteristics and Descriptors Documentation).
         pass
 
     def update_heart_rate(self, new_rate):
@@ -64,7 +64,10 @@ class HeartRateService(Service):
 ```
 Bluez interfaces with bluez-peripheral using dbus for inter-process communication. For Bluez to start offering your service it needs to be registered on this bus. Additionally if you want devices to pair with your device you need to register an agent to decide how pairing should be completed. Finally you also need to advertise the service to nearby devices.
 ```python
-from ble.util import *
+from bluez_peripheral.util import *
+from bluez_peripheral.gatt.service import ServiceCollection
+from bluez_peripheral.advert import Advertisment
+from bluez_peripheral.agent import NoIoAgent
 import asyncio
 
 async def main():
@@ -96,3 +99,4 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
 ``` 
+For more examples please read the [documentation](https://bluez-peripheral.readthedocs.io/en/latest/).
