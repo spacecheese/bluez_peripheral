@@ -1,3 +1,4 @@
+from dbus_next import DBusError
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
@@ -10,8 +11,7 @@ from ..util import *
 
 class DescriptorReadOptions:
     """Options supplied to descriptor read functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 100 bytes) or you have some specific authorization requirements.
-    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self, options):
@@ -37,8 +37,7 @@ class DescriptorReadOptions:
 
 class DescriptorWriteOptions:
     """Options supplied to descriptor write functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
-    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self, options):
@@ -175,11 +174,29 @@ class descriptor(ServiceInterface):
 
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
-        return self.getter_func(self._service, DescriptorReadOptions(options))
+        try:
+            return self.getter_func(self._service, DescriptorReadOptions(options))
+        except DBusError as e:
+            # Allow DBusErrors to bubble up normally.
+            raise e
+        except Exception as e:
+            # Report any other exception types.
+            print(
+                "Unrecognised exception type when reading descriptor value: \n" + str(e)
+            )
+            raise e
 
     @method()
     def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
-        self.setter_func(self._service, data, DescriptorWriteOptions(options))
+        try:
+            self.setter_func(self._service, data, DescriptorWriteOptions(options))
+        except DBusError as e:
+            raise e
+        except Exception as e:
+            print(
+                "Unrecognised exception type when writing descriptor value: \n" + str(e)
+            )
+            raise e
 
     @dbus_property(PropertyAccess.READ)
     def UUID(self) -> "s":  # type: ignore

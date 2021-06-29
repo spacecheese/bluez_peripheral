@@ -3,7 +3,7 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.aio import MessageBus
 
-from enum import Flag, auto
+from enum import Enum, Flag, auto
 from typing import Callable, Union
 
 from .descriptor import descriptor, DescriptorFlags
@@ -13,8 +13,7 @@ from ..util import *
 
 class CharacteristicReadOptions:
     """Options supplied to characteristic read functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
-    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self):
@@ -57,8 +56,7 @@ class CharacteristicWriteType(Enum):
 
 class CharacteristicWriteOptions:
     """Options supplied to characteristic write functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 100 bytes) or you have some specific authorization requirements.
-    Documentation on these feilds can be found in the `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_.
+    Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self):
@@ -133,7 +131,7 @@ class CharacteristicFlags(Flag):
     Indication requires acknowledgement.
     """
     AUTHENTICATED_SIGNED_WRITES = auto()
-    """Characteristic requires bonding. Values are authenticated using a client signature.
+    """Characteristic requires secure bonding. Values are authenticated using a client signature.
     """
     EXTENDED_PROPERTIES = auto()
     """The Characteristic Extended Properties Descriptor exists and contains the values of any extended properties.
@@ -313,15 +311,30 @@ class characteristic(ServiceInterface):
 
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
-        self._value = self.getter_func(
-            self._service, CharacteristicReadOptions(options)
-        )
-        return self._value
+        try:
+            return self.getter_func(self._service, CharacteristicReadOptions(options))
+        except DBusError as e:
+            # Allow DBusErrors to bubble up normally.
+            raise e
+        except Exception as e:
+            # Report any other exception types.
+            print(
+                "Unrecognised exception type when reading descriptor value: \n" + str(e)
+            )
+            raise e
 
     @method()
     def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
         opts = CharacteristicWriteOptions(options)
-        self.setter_func(self._service, data, opts)
+        try:
+            self.setter_func(self._service, data, opts)
+        except DBusError as e:
+            raise e
+        except Exception as e:
+            print(
+                "Unrecognised exception type when writing descriptor value: \n" + str(e)
+            )
+            raise e
         self._value[opts.offset : opts.offset + len(data)] = data
 
     @method()
