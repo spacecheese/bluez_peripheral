@@ -1,4 +1,4 @@
-from dbus_next import Variant
+from dbus_next import Variant, BusType
 from dbus_next.aio import MessageBus
 
 from typing import Any, Collection, Dict
@@ -25,6 +25,9 @@ def _snake_to_pascal(s: str) -> str:
         pascal += section.lower().capitalize()
 
     return pascal
+
+async def get_message_bus() -> MessageBus:
+    return await MessageBus(bus_type=BusType.SYSTEM).connect()
 
 
 class Adapter(ProxyObject):
