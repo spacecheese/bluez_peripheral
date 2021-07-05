@@ -17,8 +17,6 @@ jobs:
           pip install -r tests/requirements.txt
       - name: Add DBus Config
         run: |
-          cd tests
-          ls
           cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
