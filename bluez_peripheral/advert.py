@@ -40,14 +40,16 @@ class Advertisement(ServiceInterface):
     Args:
         localName (str): The device name to advertise.
         serviceUUIDs (Collection[Union[BTUUID, str]]): A list of service UUIDs advertise.
-        appearance (Union[int, bytes]): The appearance value to advertise. `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
+        appearance (Union[int, bytes]): The appearance value to advertise.
+            `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
         timeout (int): The time from registration until this advert is removed.
         discoverable (bool, optional): Whether or not the device this advert should be general discoverable.
         packet_type (PacketType, optional): The type of advertising packet requested.
         manufacturerData (Dict[int, bytes], optional): Any manufacturer specific data to include in the advert.
         solicitUUIDs (Collection[BTUUID], optional): Array of service UUIDs to attempt to solicit (not widely used).
         serviceData (Dict[str, bytes], optional): Any service data elements to include.
-        includes (AdvertisingIncludes, optional): Optional fields to request are included in the advertising packet.
+        includes (AdvertisingIncludes, optional): Fields that can be optionally included in the advertising packet.
+            Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration (int, optional): Duration of the advert when multiple adverts are ongoing.
     """
 
@@ -94,26 +96,37 @@ class Advertisement(ServiceInterface):
         self,
         bus: MessageBus,
         adapter: Adapter = None,
-        path: str = "/com/spacecheese/ble/advert0",
+        path: str = "/com/spacecheese/bluez_peripheral/advert0",
     ):
         """Register this advert with bluez to start advertising.
 
         Args:
             bus (MessageBus): The message bus used to communicate with bluez.
-            adapter (Adapter, optional): The adapter to use gathered using `util.get_adapters()`.
+            adapter (Adapter, optional): The adapter to use.
             path (str, optional): The dbus path to use for registration.
         """
         # Export this advert to the dbus.
         bus.export(path, self)
 
         if adapter is None:
-            adapter = (await get_adapters(bus))[0]
+            adapter = await Adapter.get_first(bus)
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
-        interface = adapter.get_interface(self._MANAGER_INTERFACE)
+        interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})
 
         bus.unexport(path, self._INTERFACE)
+
+    @classmethod
+    async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
+        interface = adapter._proxy.get_interface(cls._MANAGER_INTERFACE)
+        includes = await interface.get_supported_includes()
+        flags = AdvertisingIncludes.NONE
+        for inc in includes:
+            inc = AdvertisingIncludes[kebab_to_shouting_snake(inc)]
+            # Combine all the included flags.
+            flags |= inc
+        return flags
 
     @method()
     def Release(self):  # type: ignore
@@ -157,15 +170,11 @@ class Advertisement(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def Includes(self) -> "as":  # type: ignore
-        # TODO: Test this.
-        if self._includes == AdvertisingIncludes.NONE:
-            return []
-        else:
-            return [
-                _snake_to_kebab(inc.name)
-                for inc in AdvertisingIncludes
-                if self._includes & inc
-            ]
+        return [
+            snake_to_kebab(inc.name)
+            for inc in AdvertisingIncludes
+            if self._includes & inc
+        ]
 
     @dbus_property(PropertyAccess.READ)
     def Duration(self) -> "q":  # type: ignore

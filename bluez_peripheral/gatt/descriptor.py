@@ -15,9 +15,9 @@ class DescriptorReadOptions:
     """
 
     def __init__(self, options):
-        self._offset = _getattr_variant(options, "offset", 0)
-        self._link = _getattr_variant(options, "link", None)
-        self._device = _getattr_variant(options, "device", None)
+        self._offset = getattr_variant(options, "offset", 0)
+        self._link = getattr_variant(options, "link", None)
+        self._device = getattr_variant(options, "device", None)
 
     @property
     def offset(self):
@@ -41,10 +41,10 @@ class DescriptorWriteOptions:
     """
 
     def __init__(self, options):
-        self._offset = _getattr_variant(options, "offset", 0)
-        self._device = _getattr_variant(options, "device", None)
-        self._link = _getattr_variant(options, "link", None)
-        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+        self._offset = getattr_variant(options, "offset", 0)
+        self._device = getattr_variant(options, "device", None)
+        self._link = getattr_variant(options, "link", None)
+        self._prepare_authorize = getattr_variant(options, "prepare-authorize", False)
 
     @property
     def offset(self):
@@ -103,9 +103,12 @@ class descriptor(ServiceInterface):
         uuid (Union[UUID, str]): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         characteristic (characteristic): The parent characteristic to associate this descriptor with.
         flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
-    """
 
-    # TODO: Add reference to detailed characteristic documentation.
+    See Also:
+        :ref:`quickstart`
+
+        :ref:`characteristics_descriptors`
+    """
 
     _INTERFACE = "org.bluez.GattDescriptor1"
 
@@ -134,7 +137,7 @@ class descriptor(ServiceInterface):
         self,
         setter_func: Callable[[bytes, DescriptorWriteOptions], None],
     ) -> "descriptor":
-        """A decorator for descriptor value setters. You must define a getter first."""
+        """A decorator for descriptor value setters."""
         self.setter_func = setter_func
         return setter_func
 
@@ -143,7 +146,7 @@ class descriptor(ServiceInterface):
         getter_func: Callable[["Service", DescriptorReadOptions], bytes] = None,
         setter_func: Callable[["Service", bytes, DescriptorWriteOptions], None] = None,
     ) -> "descriptor":
-        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`.
+        """A decorator for characteristic value getters.
 
         Args:
             getter_func (Callable[[Service, DescriptorReadOptions], bytes], optional): The getter function for this descriptor.
@@ -210,5 +213,5 @@ class descriptor(ServiceInterface):
     def Flags(self) -> "as":  # type: ignore
         # Return a list of string flag names.
         return [
-            _snake_to_kebab(flag.name) for flag in DescriptorFlags if self.flags & flag
+            snake_to_kebab(flag.name) for flag in DescriptorFlags if self.flags & flag
         ]

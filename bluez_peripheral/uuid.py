@@ -29,7 +29,7 @@ class BTUUID(UUID):
         hex = "0000"
 
         if type(id) is str:
-            match = self._UUID16_RE.search(id)
+            match = cls._UUID16_RE.search(id)
 
             if not match:
                 raise ValueError("id is not a valid UUID16")
@@ -43,6 +43,29 @@ class BTUUID(UUID):
             hex = "{:04X}".format(id)
 
         return cls(cls._UUID16_UUID128_FMT.format(hex))
+
+    @classmethod
+    def from_uuid16_128(cls, id: str) -> "BTUUID":
+        """Converts a 4 or 32 digit hex string to a bluetooth compatible UUID16.
+
+        Raises:
+            ValueError: Raised if the supplied string is not a valid UUID.
+
+        Returns:
+            BTUUID: The resulting UUID.
+        """
+        if len(id) == 4:
+            return cls.from_uuid16(id)
+        else:
+            uuid = cls(id)
+
+            try:
+                # If the result wont convert to a uuid16 then it must be invalid.
+                _ = uuid.uuid16
+            except ValueError:
+                raise ValueError("id is not a valid uuid16")
+
+            return uuid
 
     @property
     def uuid16(self) -> str:

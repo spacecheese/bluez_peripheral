@@ -59,7 +59,7 @@ class BaseAgent(ServiceInterface):
         pass
 
     def _get_capability(self):
-        return _snake_to_pascal(self._capability.name)
+        return snake_to_pascal(self._capability.name)
 
     async def _get_manager_interface(self, bus: MessageBus):
         introspection = await bus.introspect("org.bluez", "/org/bluez")
@@ -82,8 +82,7 @@ class BaseAgent(ServiceInterface):
         bus.export(path, self)
 
         interface = await self._get_manager_interface(bus)
-        test = self._get_capability()
-        await interface.call_register_agent(path, test)
+        await interface.call_register_agent(path, self._get_capability())
 
         if default:
             await interface.call_request_default_agent(self._path)

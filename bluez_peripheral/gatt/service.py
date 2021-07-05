@@ -17,6 +17,8 @@ class Service(ServiceInterface):
     Args:
         uuid (Union[UUID, str]): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         primary (bool, optional): True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
+        includes (Collection[Service], optional): Any services to include in this service.
+            Services must be registered at the time Includes is read to be included.
     """
 
     _INTERFACE = "org.bluez.GattService1"
@@ -32,13 +34,18 @@ class Service(ServiceInterface):
             if not member in self._characteristics:
                 self.add_characteristic(member)
 
-    # TODO: Implement service inclusion
-    def __init__(self, uuid: Union[UUID, str], primary: bool = True):
+    def __init__(
+        self,
+        uuid: Union[UUID, str],
+        primary: bool = True,
+        includes: Collection["Service"] = [],
+    ):
         # Make sure uuid is a uuid16.
         self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16(uuid)
         self._primary = primary
         self._characteristics = []
         self._path = None
+        self._includes = includes
         self._populate()
 
         super().__init__(self._INTERFACE)
@@ -47,7 +54,7 @@ class Service(ServiceInterface):
         """Check if this service is registered with the bluez service manager.
 
         Returns:
-            bool: True if the service is registerd. False otherwise.
+            bool: True if the service is registered. False otherwise.
         """
         return not self._path is None
 
@@ -101,6 +108,34 @@ class Service(ServiceInterface):
 
         self._path = None
 
+    async def register(
+        self,
+        bus: MessageBus,
+        path: str = "/com/spacecheese/bluez_peripheral",
+        adapter: Adapter = None,
+    ):
+        """Register this service as a standalone service.
+        Using this multiple times will cause path conflicts.
+
+        Args:
+            bus (MessageBus): The bus to use when providing this service.
+            path (str, optional): The base dbus path to export this service to.
+            adapter (Adapter, optional): The adapter that will provide this service or None to select the first adapter.
+        """
+        self._collection = ServiceCollection([self])
+        await self._collection.register(bus, path, adapter)
+
+    async def unregister(self):
+        """Unregister this service.
+        You may only use this if the service was registered using :class:`Service.register()`
+        """
+        collection = getattr(self, "_collection", None)
+
+        if collection is None:
+            return
+
+        await collection.unregister()
+
     @dbus_property(PropertyAccess.READ)
     def UUID(self) -> "s":  # type: ignore
         return str(self._uuid)
@@ -109,16 +144,37 @@ class Service(ServiceInterface):
     def Primary(self) -> "b":  # type: ignore
         return self._primary
 
+    @dbus_property(PropertyAccess.READ)
+    def Includes(self) -> "ao":  # type: ignore
+        paths = []
+
+        for service in self._includes:
+            if not service._path is None:
+                paths.append(service._path)
+
+        paths.append(self._path)
+        return paths
+
 
 class ServiceCollection:
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
     _MANAGER_INTERFACE = "org.bluez.GattManager1"
 
-    def __init__(self):
+    def _init(self, services: Collection[Service]):
         self._path = None
         self._adapter = None
-        self._services = []
+        self._services = services
+
+    def __init__(self, services: Collection[Service] = []):
+        """Create a service collection populated with the specified list of services.
+
+        Args:
+            services (Collection[Service]): The services to provide.
+        """
+        self._path = None
+        self._adapter = None
+        self._services = services
 
     def add_service(self, service: Service):
         """Add the specified service to this service collection.
@@ -126,6 +182,11 @@ class ServiceCollection:
         Args:
             service (Service): The service to add.
         """
+        if self.is_registered():
+            raise ValueError(
+                "You may not modify a registered service or service collection."
+            )
+
         self._services.append(service)
 
     def remove_service(self, service: Service):
@@ -134,27 +195,45 @@ class ServiceCollection:
         Args:
             service (Service): The service to remove.
         """
+        if self.is_registered():
+            raise ValueError(
+                "You may not modify a registered service or service collection."
+            )
+
         self._services.remove(service)
 
     async def _get_manager_interface(self):
-        return self._adapter.get_interface(self._MANAGER_INTERFACE)
+        return self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
+
+    def is_registered(self) -> bool:
+        """Check if this service collection is registered with the bluez service manager.
+
+        Returns:
+            bool: True if the service is registered. False otherwise.
+        """
+        return not self._path is None
 
     async def register(
         self,
         bus: MessageBus,
-        path: str = "/com/spacecheese/ble",
-        adapter: ProxyObject = None,
+        path: str = "/com/spacecheese/bluez_peripheral",
+        adapter: Adapter = None,
     ):
         """Register this collection of services with the bluez service manager.
-        Services that are registered may not be modified until they are unregistered.
+        Services and service collections that are registered may not be modified until they are unregistered.
 
         Args:
             bus (MessageBus): The bus to use for registration and management of this service.
-            path (str, optional): The path to use when registering the collection. Defaults to "/com/spacecheese/ble".
-            adapter (ProxyObject, optional): The adapter that should be used to deliver the collection of services. Defaults to None.
+            path (str, optional): The base dbus path to use when registering the collection.
+                Each service will be an automatically numbered child of this base.
+            adapter (ProxyObject, optional): The adapter that should be used to deliver the collection of services.
         """
+        if self.is_registered():
+            return
+
+        self._bus = bus
         self._path = path
-        self._adapter = (await get_adapters(bus))[0] if adapter is None else adapter
+        self._adapter = await Adapter.get_first(bus) if adapter is None else adapter
 
         manager = await self._get_manager_interface()
 
@@ -165,19 +244,23 @@ class ServiceCollection:
             i += 1
 
         # Export an empty interface on the root path so that bluez has an object manager to find.
-        bus.export(self._path, ServiceInterface(path.replace("/", ".")[1:]))
+        bus.export(self._path, ServiceInterface(self._path.replace("/", ".")[1:]))
         await manager.call_register_application(self._path, {})
 
-    async def unregister(self, bus: MessageBus):
-        """Unregister this service using the bluez service manager.
+    async def unregister(self):
+        """Unregister this service using the bluez service manager."""
+        if not self.is_registered():
+            return
 
-        Args:
-            bus (MessageBus): The bus to use when unregistering this service.
-        """
         manager = await self._get_manager_interface()
 
-        manager.call_unregister_application(self._path, {})
+        await manager.call_unregister_application(self._path)
+
         for service in self._services:
-            service._unexport(bus)
+            service._unexport(self._bus)
+        # Unexport the root object manager.
+        self._bus.unexport(self._path)
+
         self._path = None
         self._adapter = None
+        self._bus = None

@@ -20,9 +20,9 @@ class CharacteristicReadOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self._offset = _getattr_variant(int(options), "offset", 0)
-        self._mtu = _getattr_variant(int(options), "mtu", 0)
-        self._device = _getattr_variant(options, "device", None)
+        self._offset = int(getattr_variant(options, "offset", 0))
+        self._mtu = int(getattr_variant(options, "mtu", 0))
+        self._device = getattr_variant(options, "device", None)
 
     @property
     def offset(self) -> int:
@@ -46,7 +46,7 @@ class CharacteristicWriteType(Enum):
     COMMAND = 0
     """Write without response
     """
-    RESPONSE = 1
+    REQUEST = 1
     """Write with response
     """
     RELIABLE = 2
@@ -63,15 +63,15 @@ class CharacteristicWriteOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self._offset = _getattr_variant(int(options), "offset", 0)
-        type = _getattr_variant(options, "type", None)
+        self._offset = int(getattr_variant(options, "offset", 0))
+        type = getattr_variant(options, "type", None)
         if not type is None:
             type = CharacteristicWriteType[type.upper()]
         self._type = type
-        self._mtu = _getattr_variant(int(options), "mtu", 0)
-        self._device = _getattr_variant(options, "device", None)
-        self._link = _getattr_variant(options, "link", None)
-        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+        self._mtu = int(getattr_variant(options, "mtu", 0))
+        self._device = getattr_variant(options, "device", None)
+        self._link = getattr_variant(options, "link", None)
+        self._prepare_authorize = getattr_variant(options, "prepare-authorize", False)
 
     @property
     def offset(self):
@@ -166,9 +166,12 @@ class characteristic(ServiceInterface):
     Args:
         uuid (Union[BTUUID, str]): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
-    """
 
-    # TODO: Add reference to detailed characteristic documentation.
+    See Also:
+        :ref:`quickstart`
+
+        :ref:`characteristics_descriptors`
+    """
 
     _INTERFACE = "org.bluez.GattCharacteristic1"
 
@@ -188,7 +191,7 @@ class characteristic(ServiceInterface):
         self._service_path = None
         self._descriptors = []
         self._service = None
-        self._value = bytes()
+        self._value = bytearray()
 
         super().__init__(self._INTERFACE)
 
@@ -199,14 +202,14 @@ class characteristic(ServiceInterface):
             new_value (bytes): The new value of the property to send to any subscribers.
         """
         if self._notify:
-            self.emit_properties_changed({"Value": new_value})
+            self.emit_properties_changed({"Value": new_value}, ["Value"])
 
     # Decorators
     def setter(
         self,
         setter_func: Callable[["Service", bytes, CharacteristicWriteOptions], None],
     ) -> "characteristic":
-        """A decorator for characteristic value setters. You must define a getter using :class:`characteristic.__init__()()` first."""
+        """A decorator for characteristic value setters."""
         self.setter_func = setter_func
         return self
 
@@ -217,7 +220,7 @@ class characteristic(ServiceInterface):
             ["Service", bytes, CharacteristicWriteOptions], None
         ] = None,
     ) -> "characteristic":
-        """A decorator for characteristic value getters. You should use this by chaining with :class:`characteristic.__init__()`.
+        """A decorator for characteristic value getters.
 
         Args:
             get (Callable[[Service, CharacteristicReadOptions], bytes], optional): The getter function for this characteristic.
@@ -335,7 +338,7 @@ class characteristic(ServiceInterface):
                 "Unrecognised exception type when writing descriptor value: \n" + str(e)
             )
             raise e
-        self._value[opts.offset : opts.offset + len(data)] = data
+        self._value[opts.offset : opts.offset + len(data)] = bytearray(data)
 
     @method()
     def StartNotify(self):
@@ -379,7 +382,7 @@ class characteristic(ServiceInterface):
 
         # Return a list of set string flag names.
         return [
-            _snake_to_kebab(flag.name)
+            snake_to_kebab(flag.name)
             for flag in CharacteristicFlags
             if self.flags & flag
         ]
