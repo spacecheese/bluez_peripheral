@@ -4,6 +4,8 @@
 
 [PyPi](https://pypi.org/project/bluez-peripheral/)
 
+[GitHub](https://github.com/spacecheese/bluez_peripheral)
+
 A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals using the Bluez GATT API.
 
 ## Who this Library is For
@@ -50,7 +52,9 @@ class HeartRateService(Service):
     def heart_rate_measurement(self, options):
         # This function is called when the characteristic is read.
         # Since this characteristic is notify only this function is a placeholder.
-        # You can generally ignore the options argument (see Advanced Characteristics and Descriptors Documentation).
+        # You don't need this function Python 3.9+ (See PEP 614).
+        # You can generally ignore the options argument 
+        # (see Advanced Characteristics and Descriptors Documentation).
         pass
 
     def update_heart_rate(self, new_rate):
@@ -58,15 +62,14 @@ class HeartRateService(Service):
         flags = 0
 
         # Bluetooth data is little endian.
-        rate = struct.pack("<BB", flags, rate)
-        heart_rate_measurement.changed(rate)
+        rate = struct.pack("<BB", flags, new_rate)
+        self.heart_rate_measurement.changed(rate)
 
 ```
 Bluez interfaces with bluez-peripheral using dbus for inter-process communication. For Bluez to start offering your service it needs to be registered on this bus. Additionally if you want devices to pair with your device you need to register an agent to decide how pairing should be completed. Finally you also need to advertise the service to nearby devices.
 ```python
 from bluez_peripheral.util import *
-from bluez_peripheral.gatt.service import ServiceCollection
-from bluez_peripheral.advert import Advertisment
+from bluez_peripheral.advert import Advertisement
 from bluez_peripheral.agent import NoIoAgent
 import asyncio
 
@@ -75,28 +78,24 @@ async def main():
     bus = await get_message_bus()
 
     service = HeartRateService()
-    services = ServiceCollection([service])
-    await services.register()
+    await service.register(bus)
 
     # An agent is required to handle pairing 
     agent = NoIoAgent()
     # This script needs superuser for this to work.
     await agent.register(bus)
 
-    adapter = (await get_adapters(bus))[0]
-    # TODO: Improve this.
-    adapter_interface = adapter.get_interface("org.bluez.Adapter1")
-    await adapter_interface.set_alias("Heart Monitor")
+    adapter = await Adapter.get_first(bus)
 
-    # TODO: Improve this.
-    advert = Advertisment("Heart Monitor", ["180D"], 0x0340, 60)
+    # Start an advert that will last for 60 seconds.
+    advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
     await advert.register(bus, adapter)
 
     # Handle any dbus requests.
     await bus.wait_for_disconnect()
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-``` 
+    asyncio.run(main())
+```
+To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group.
 For more examples please read the [documentation](https://bluez-peripheral.readthedocs.io/en/latest/).
