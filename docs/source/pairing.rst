@@ -32,7 +32,7 @@ You can select an agent with given capability by using the following command in 
 
     bluetoothctl agent <capability>
 
-This approach is not recomended
+This approach is not recomended since the bluez agents seem to be slightly unreliable.
 
 .. _bluez_peripheral agent:
 

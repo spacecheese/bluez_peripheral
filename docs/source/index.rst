@@ -1,3 +1,5 @@
+.. _quickstart:
+
 bluez-peripheral Quickstart
 ===========================
 
@@ -29,11 +31,12 @@ These classes behave in much the same way as the built-in `property class <https
       # This is a write only characteristic.
       @characteristic("BEF1", CharFlags.WRITE)
       def my_writeonly_characteristic(self, options):
-         # Currently you still need to define a characteristic read function, if 
-         # you're using decorators, even if your characteristic is not writable.
-         # TODO: Confirm when this will change.
+         # This function is a placeholder.
+         # In Python 3.9+ you don't need this function (See PEP 614)
          pass
 
+      # In Python 3.9+:
+      # @characteristic("BEF1", CharFlags.WRITE).setter
       # Define a characteristic writing function like so.
       @my_readonly_characteristic.setter
       def my_writeonly_characteristic(self, value, options):
@@ -61,8 +64,7 @@ Once you've defined your service you need to add it to a service collection whic
 
    # Instance and register your service.
    service = MyService()
-   services = ServiceCollection([service])
-   await services.register()
+   await service.register(bus)
 
 At this point your service would work but without anything knowing it exists you can't test it.
 You need to advertise your service to allow other devices to connect to it.
@@ -72,8 +74,10 @@ You need to advertise your service to allow other devices to connect to it.
    from bluez_peripheral.advert import Advertisment
 
    my_service_ids = ["BEEF"] # The services that we're advertising.
-   my_appearance = 0 # The appearance of my service. See https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf
-   my_timeout = 60 # Advert should last 60 seconds before ending (assuming other local services aren't being advertised).
+   my_appearance = 0 # The appearance of my service. 
+   # See https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf
+   my_timeout = 60 # Advert should last 60 seconds before ending (assuming other local 
+   # services aren't being advertised).
    advert = Advertisment("My Device Name", my_service_ids, my_appearance, my_timeout)
 
 
@@ -87,7 +91,6 @@ and see your service (`nRF Connect for Mobile <https://www.nordicsemi.com/Produc
 
    characteristics_descriptors
    pairing
-   terminology
 
 .. toctree::
    :maxdepth: 4

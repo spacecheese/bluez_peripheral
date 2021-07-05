@@ -1,3 +1,5 @@
+.. _characteristics_descriptors:
+
 Characteristics/ Descriptors
 ============================
 
