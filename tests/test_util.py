@@ -10,6 +10,8 @@ class TestUtil(IsolatedAsyncioTestCase):
         self._bus = await get_message_bus()
         self._adapter = await get_first_adapter_or_skip(self._bus)
 
+        bluez_available_or_skip(self._bus)
+
     async def asyncTearDown(self) -> None:
         self._bus.disconnect()
 

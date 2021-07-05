@@ -75,6 +75,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
         await advert.register(self._bus_manager.bus, adapter)
 
     async def test_real(self):
+        await bluez_available_or_skip(self._client_bus)
         adapter = await get_first_adapter_or_skip(self._client_bus)
 
         advert = Advertisement(
