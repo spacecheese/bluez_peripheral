@@ -86,11 +86,13 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 )
             ).get_interface("org.bluez.GattCharacteristic1")
             resp = await interface.call_read_value(opts)
+            cache = await interface.get_value()
 
             assert resp.decode("utf-8") == "Test Message"
             assert last_opts.offset == 0
             assert last_opts.mtu == 128
             assert last_opts.device == "blablabla/.hmm"
+            assert cache == resp
 
         service = TestService()
         adapter = MockAdapter(inspector)

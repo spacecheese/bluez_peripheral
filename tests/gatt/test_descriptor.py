@@ -4,10 +4,10 @@ import re
 
 from dbus_next.signature import Variant
 
-from tests.util import BusManager, MockAdapter, get_attrib
+from tests.util import *
 
 from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.gatt.characteristic import characteristic
+from bluez_peripheral.gatt.characteristic import CharacteristicFlags, characteristic
 from bluez_peripheral.gatt.descriptor import DescriptorFlags, descriptor
 from bluez_peripheral.gatt.service import Service
 
@@ -19,9 +19,9 @@ class TestService(Service):
     def __init__(self):
         super().__init__("180A")
 
-    @characteristic("2A37")
+    @characteristic("2A37", CharacteristicFlags.RELIABLE_WRITE)
     def some_char(self, _):
-        pass
+        return bytes("Some Other Test Message", "utf-8")
 
     @some_char.descriptor("2A38")
     def read_only_desc(self, opts):
@@ -62,7 +62,7 @@ class TestDescriptor(IsolatedAsyncioTestCase):
 
             i = 0
             for name in child_names:
-                assert re.match(r"^descriptor0{0,2}" + str(i) + "$", name)
+                assert re.match(r"^desc0{0,2}" + str(i) + "$", name)
                 i += 1
 
         service = TestService()
@@ -133,3 +133,10 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+
+    async def test_real(self):
+        await bluez_available_or_skip(self._client_bus)
+        await get_first_adapter_or_skip(self._client_bus)
+
+        service = TestService()
+        await service.register(self._client_bus, self._path)
