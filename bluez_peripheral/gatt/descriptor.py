@@ -164,7 +164,7 @@ class descriptor(ServiceInterface):
 
     # DBus
     def _get_path(self) -> str:
-        return self._characteristic_path + "/descriptor{:d}".format(self._num)
+        return self._characteristic_path + "/desc{:d}".format(self._num)
 
     def _export(self, bus: MessageBus, characteristic_path: str, num: int):
         self._characteristic_path = characteristic_path
