@@ -4,7 +4,7 @@ from dbus_next.aio import MessageBus
 from typing import Any, Collection, Dict
 
 from dbus_next.aio.proxy_object import ProxyObject
-from dbus_next.errors import InvalidIntrospectionError
+from dbus_next.errors import DBusError
 
 
 def getattr_variant(object: Dict[str, Variant], key: str, default: Any):
@@ -49,7 +49,7 @@ async def is_bluez_available(bus: MessageBus) -> bool:
     try:
         await bus.introspect("org.bluez", "/org/bluez")
         return True
-    except InvalidIntrospectionError:
+    except DBusError:
         return False
 
 
