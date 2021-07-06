@@ -315,7 +315,10 @@ class characteristic(ServiceInterface):
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            return self.getter_func(self._service, CharacteristicReadOptions(options))
+            self._value = self.getter_func(
+                self._service, CharacteristicReadOptions(options)
+            )
+            return self._value
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
@@ -370,15 +373,8 @@ class characteristic(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def Flags(self) -> "as":  # type: ignore
-        if (
-            self.flags | CharacteristicFlags.RELIABLE_WRITE
-            or self.flags | CharacteristicFlags.WRITABLE_AUXILIARIES
-        ):
-            # Add the extended properties flag if required.
-            self.flags |= CharacteristicFlags.EXTENDED_PROPERTIES
-        else:
-            # Clear the extended properties flag if it is otherwise set.
-            self.flags &= ~CharacteristicFlags.EXTENDED_PROPERTIES
+        # Clear the extended properties flag (bluez doesn't seem to like this flag even though its in the docs).
+        self.flags &= ~CharacteristicFlags.EXTENDED_PROPERTIES
 
         # Return a list of set string flag names.
         return [
@@ -389,4 +385,4 @@ class characteristic(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def Value(self) -> "ay":  # type: ignore
-        return self._value
+        return bytes(self._value)
