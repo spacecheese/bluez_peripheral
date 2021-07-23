@@ -6,7 +6,7 @@
 
 [GitHub](https://github.com/spacecheese/bluez_peripheral)
 
-A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals using the Bluez GATT API.
+A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals/ servers using the Bluez GATT API.
 
 ## Who this Library is For
 
@@ -22,7 +22,7 @@ A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripher
 ## GATT Overview
 
 GATT is a BLE protocol that allows you to offer services to other devices. 
-You can find a list of existing services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/) (you can largely ignore profiles when working with BLE). You should refer to the "Service Characteristics" in these specifications for the purposes of this library.
+You can find a list of standardised services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/) (you can largely ignore profiles when working with BLE). You should refer to the "Service Characteristics" in these specifications for the purposes of this library.
 
 ![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-5/images/peripheral-structure.png)
 

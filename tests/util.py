@@ -8,8 +8,6 @@ from dbus_next.introspection import Node
 from bluez_peripheral.util import *
 from bluez_peripheral.uuid import BTUUID
 
-import tracemalloc
-
 
 class BusManager:
     def __init__(self, name="com.spacecheese.test"):
