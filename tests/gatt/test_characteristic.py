@@ -1,5 +1,6 @@
 from bluez_peripheral.gatt.descriptor import descriptor
 from unittest import IsolatedAsyncioTestCase
+from threading import Event
 from ..util import *
 import re
 
@@ -45,8 +46,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         self._path = "/com/spacecheese/bluez_peripheral/test_characteristic"
 
     async def asyncTearDown(self):
-        self._bus_manager.close()
         self._client_bus.disconnect()
+        self._bus_manager.close()
 
     async def test_structure(self):
         async def inspector(path):
@@ -136,8 +137,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         await service.register(self._bus_manager.bus, self._path, adapter)
 
     async def test_notify_no_start(self):
-        lock = Lock()
-        lock.acquire()
+        property_changed = Event()
 
         async def inspector(path):
             interface = (
@@ -151,7 +151,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             ).get_interface("org.freedesktop.DBus.Properties")
 
             def on_properties_changed(_0, _1, _2):
-                lock.release()
+                property_changed.set()
 
             interface.on_properties_changed(on_properties_changed)
 
@@ -162,14 +162,13 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
         # Expect a timeout since start notify has not been called.
-        if lock.acquire(timeout=0.01):
+        if property_changed.wait(timeout=0.1):
             raise Exception(
                 "The characteristic signalled a notification before StartNotify() was called."
             )
 
     async def test_notify_start(self):
-        lock = Lock()
-        lock.acquire()
+        property_changed = Event()
 
         async def inspector(path):
             proxy = await get_attrib(
@@ -189,7 +188,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 assert len(values) == 1
                 assert values["Value"].value.decode("utf-8") == "Test Notify Value"
                 assert "Value" in invalid_props
-                lock.release()
+                property_changed.set()
+                
 
             properties_interface.on_properties_changed(on_properties_changed)
             await char_interface.call_start_notify()
@@ -203,14 +203,13 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         await asyncio.sleep(0.01)
 
         # Block until the properties changed notification propagates.
-        if not lock.acquire(blocking=False):
+        if not property_changed.wait(timeout=0.1):
             raise TimeoutError(
                 "The characteristic did not send a notification in time."
             )
 
     async def test_notify_stop(self):
-        lock = Lock()
-        lock.acquire()
+        property_changed = Event()
 
         async def inspector(path):
             proxy = await get_attrib(
@@ -224,7 +223,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             char_interface = proxy.get_interface("org.bluez.GattCharacteristic1")
 
             def on_properties_changed(_0, _1, _2):
-                lock.release()
+                property_changed.set()
 
             property_interface.on_properties_changed(on_properties_changed)
 
@@ -238,7 +237,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
         # Expect a timeout since start notify has not been called.
-        if lock.acquire(timeout=0.01):
+        if property_changed.wait(timeout=0.01):
             raise Exception(
                 "The characteristic signalled a notification before after StopNotify() was called."
             )

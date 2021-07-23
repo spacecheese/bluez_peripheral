@@ -1,6 +1,6 @@
 from typing import Tuple
 import asyncio
-from threading import Thread, Lock
+from threading import Thread, Event
 from unittest.case import SkipTest
 
 from dbus_next.introspection import Node
@@ -8,10 +8,12 @@ from dbus_next.introspection import Node
 from bluez_peripheral.util import *
 from bluez_peripheral.uuid import BTUUID
 
+import tracemalloc
+
 
 class BusManager:
     def __init__(self, name="com.spacecheese.test"):
-        lock = Lock()
+        bus_ready = Event()
         self.name = name
 
         async def operate_bus_async():
@@ -19,24 +21,20 @@ class BusManager:
             self.bus = await get_message_bus()
             await self.bus.request_name(name)
 
-            # Unlock when the bus is ready.
-            lock.release()
+            bus_ready.set()
 
             await self.bus.wait_for_disconnect()
 
         def operate_bus():
             asyncio.run(operate_bus_async())
 
-        lock.acquire()
         self._thread = Thread(target=operate_bus)
         self._thread.start()
 
-        # Block until the bus is ready.
-        lock.acquire()
+        bus_ready.wait()
 
     def close(self):
         self.bus.disconnect()
-        self._thread.join()
 
 
 async def get_first_adapter_or_skip(bus: MessageBus) -> Adapter:

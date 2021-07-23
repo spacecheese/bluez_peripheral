@@ -30,8 +30,8 @@ class TestService(IsolatedAsyncioTestCase):
         self._path = "/com/spacecheese/bluez_peripheral/test_service"
 
     async def asyncTearDown(self):
-        self._bus_manager.close()
         self._client_bus.disconnect()
+        self._bus_manager.close()
 
     async def test_structure(self):
         async def inspector(path):
