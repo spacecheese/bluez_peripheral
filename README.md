@@ -6,14 +6,13 @@
 
 [GitHub](https://github.com/spacecheese/bluez_peripheral)
 
-A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals/ servers using the Bluez GATT API.
+A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripherals/ servers using the Bluez (Linux) GATT API.
 
 ## Who this Library is For
 
 - Developers using Python and Linux (and Bluez).
 - Wishing to develop a bluetooth compatible peripheral (ie. something that other devices connect to).
 - With low bandwidth requirements (ie. not streaming audio).
-- Where performance is not a priority.
 
 ## Installation
 
