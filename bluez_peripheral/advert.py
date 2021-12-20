@@ -83,7 +83,10 @@ class Advertisement(ServiceInterface):
         )
         self._timeout = timeout
 
-        self._manufacturerData = manufacturerData
+        self._manufacturerData = {}
+        for key, value in manufacturerData.items():
+            self._manufacturerData[key] = Variant("ay", value)
+
         self._solicitUUIDs = solicitUUIDs
         self._serviceData = serviceData
         self._discoverable = discoverable
@@ -153,7 +156,7 @@ class Advertisement(ServiceInterface):
         return self._timeout
 
     @dbus_property(PropertyAccess.READ)
-    def ManufacturerData(self) -> "a{qay}":  # type: ignore
+    def ManufacturerData(self) -> "a{qv}":  # type: ignore
         return self._manufacturerData
 
     @dbus_property(PropertyAccess.READ)
