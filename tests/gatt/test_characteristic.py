@@ -187,7 +187,6 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 assert interface == "org.bluez.GattCharacteristic1"
                 assert len(values) == 1
                 assert values["Value"].value.decode("utf-8") == "Test Notify Value"
-                assert "Value" in invalid_props
                 property_changed.set()
                 
 
