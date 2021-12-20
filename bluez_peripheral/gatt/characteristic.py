@@ -202,7 +202,7 @@ class characteristic(ServiceInterface):
             new_value (bytes): The new value of the property to send to any subscribers.
         """
         if self._notify:
-            self.emit_properties_changed({"Value": new_value}, ["Value"])
+            self.emit_properties_changed({"Value": new_value}, [])
 
     # Decorators
     def setter(
