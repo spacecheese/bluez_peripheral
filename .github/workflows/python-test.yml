@@ -8,11 +8,14 @@ jobs:
     container: sphinxdoc/sphinx:latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run Sphinx
-        run: |
+      - run: |
           pip3 install sphinx_rtd_theme
           cd docs
+      - name: Build Docs
+        run: |
           make html
+      - name: Check Links
+        run: |
           make linkcheck
   test:
     runs-on: ubuntu-latest
