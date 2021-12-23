@@ -6,7 +6,7 @@ bluez-peripheral Quickstart
 This documentation assumes that you are vaguely familiar with the structure of a BLE GATT service (See the `README <https://github.com/spacecheese/bluez_peripheral>`_).
 In bluez-peripheral classes are used to define services. 
 Your services should contain methods decorated with the characteristic and descriptor classes.
-These classes behave in much the same way as the built-in `property class <https://docs.python.org/library/functions.html#property>`_.
+You can use these decorators the same way as the built-in `property class <https://docs.python.org/library/functions.html#property>`_.
 
 .. code-block:: python
 

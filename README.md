@@ -16,6 +16,7 @@ A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripher
 
 ## Installation
 
+Install bluez (eg. `sudo apt-get install bluez`)
 `pip install bluez-peripheral`
 
 ## GATT Overview
@@ -33,7 +34,10 @@ Characteristics may operate in a number of modes depending on their purpose. By 
 
 ## Usage
 
-Note: **Do not attempt to create the Generic Access Service or a Client Characteristic Configuration descriptor**. These are both handled automatically by Bluez and attempting to define them will result in errors.
+There are a few important things you need to remember when using this library:
+
+- **Do not attempt to create the Generic Access Service or a Client Characteristic Configuration Descriptor** (if you don't know what this means don't worry). These are both handled automatically by Bluez and attempting to define them will result in errors.
+- Services are not implicitly threaded. **If you register a service in your main thread blocking that thread will stop your service (and particularly notifications) from working**. Therefore you must frequently yeild to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
 
 The easiest way to use the library is to create a class describing the service that you wish to provide.
 ```python
@@ -58,6 +62,7 @@ class HeartRateService(Service):
 
     def update_heart_rate(self, new_rate):
         # Call this when you get a new heartrate reading.
+        # Note that notification is asynchronous (you must await something at some point after calling this).
         flags = 0
 
         # Bluetooth data is little endian.
@@ -90,11 +95,16 @@ async def main():
     advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
     await advert.register(bus, adapter)
 
-    # Handle any dbus requests.
+    while True:
+        # Update the heart rate.
+        service.update_heart_rate(120)
+        # Handle dbus requests.
+        await asyncio.sleep(5)
+
     await bus.wait_for_disconnect()
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group.
+To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
 For more examples please read the [documentation](https://bluez-peripheral.readthedocs.io/en/latest/).
