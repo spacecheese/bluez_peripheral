@@ -3,6 +3,15 @@ name: Test Python Package
 on: [ pull_request, workflow_dispatch ]
 
 jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+    container: sphinxdoc/sphinx-latest
+    steps:
+      - run: |
+        pip3 install sphinx_rtd_theme
+        cd docs
+        make html
+        make linkcheck
   test:
     runs-on: ubuntu-latest
     steps:
