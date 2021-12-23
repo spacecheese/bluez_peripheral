@@ -17,6 +17,7 @@ A bluez-peripheral is a library for building Bluetooth Low Energy (BLE) peripher
 ## Installation
 
 Install bluez (eg. `sudo apt-get install bluez`)
+
 `pip install bluez-peripheral`
 
 ## GATT Overview
