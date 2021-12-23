@@ -95,7 +95,12 @@ async def main():
     advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
     await advert.register(bus, adapter)
 
-    # Handle any dbus requests.
+    while True:
+        # Update the heart rate.
+        service.update_heart_rate(120)
+        # Handle dbus requests.
+        await asyncio.sleep(5)
+
     await bus.wait_for_disconnect()
 
 if __name__ == "__main__":
