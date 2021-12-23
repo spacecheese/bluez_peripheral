@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     container: sphinxdoc/sphinx:latest
     steps:
+      - uses: actions/checkout@v2
       - name: Run Sphinx
         run: |
           pip3 install sphinx_rtd_theme
