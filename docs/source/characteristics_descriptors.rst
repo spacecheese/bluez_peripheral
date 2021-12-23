@@ -5,13 +5,11 @@ Characteristics/ Descriptors
 
 You should read the :doc:`quickstart guide <index>` before reading this. 
 If you were looking for a characteristic reference you can find it :doc:`here <ref/gatt/characteristic>`. 
-**Characteristics are designed to work the same way as the built-in property class.**
+
+Characteristics are designed to work the same way as the built-in property class.
 A list of Bluetooth SIG recognised characteristics, services and descriptors is 
 `available on their website <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_.
-
-Characteristic and descriptor function are assumed to be members of a service class by type hints.
-Though it is possible manually invoke the characteristic and descriptor decorators on a function that is not a member of a service it is not recomended.
-**If you do this with a method your** :class:`self` **argument will be the associated service or None.**
+These are reccommended over creating a custom characteristic where possible since other devices may already support them.
 
 Exceptions
 ----------
@@ -34,18 +32,17 @@ Read/ Write Options
 -------------------
 
 bluez_peripheral does not check the validity of these options and only assigns them default values for convenience.
-Normally you can ignore these options hoever one notable exeption to this is when the size of you characteristic exceeds the negotated mtu of your connection with the remote device.
-In this case bluez will read your characteristic in bits by using the offset option.
-The Bluetooth specification requires that all devices support, at least, an MTU of 48 bytes.
-A default of 672 bytes is also specified, though in my testing with the Raspberry Pi 128 bytes seems a more typical number.
+Normally you can ignore these options hoever one notable exeption to this is when the size of you characteristic exceeds the negotated Minimum Transfer Unit (MTU) of your connection with the remote device.
+In this case bluez will read your characteristic multiple times (using the offset option to break it up).
+This can be a problem if your characteristic exceeds 48 bytes in length (this is the minimum allowed by the Bluetooth specification) although in general 
+most devices have a larger default MTU (on the Raspberry Pi this appears to be 128 bytes).
 
 You may also choose to use these options to enforce authentication/ authorization.
-Within this library this behaviour is untested and I'm not entirely sure if you need to manually implement this or whether simply setting the relevant flags ensures security. 
-If you happen to experiment with this a github issue with your findings would be greatly appreciated.
+The behaviour of these options is untested so if you experiment with these or have experience working with them a Github issue would be greatly appreciated.
 
 Undocumented Flags
 ------------------
 
 Some operation mode flags are currently undocumented in the reference.
-The behaviour of these flags is not clearly defined by bluez and the terminology used differs slightly from that in the Bluetooth Core Spec.
+The behaviour of these flags is not clearly defined by the bluez documentation and the terminology used differs slightly from that in the Bluetooth Specifications.
 If you have any insight into the functionality of these flags a Github issue would be greatly appreciated.

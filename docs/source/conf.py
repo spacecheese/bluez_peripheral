@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import datetime
 
 sys.path.insert(0, os.path.abspath("../../"))
 
@@ -19,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 # -- Project information -----------------------------------------------------
 
 project = "bluez-peripheral"
-copyright = "2021, spacecheese"
+copyright = "{}, spacecheese".format(datetime.now().year)
 author = "spacecheese"
 
 
