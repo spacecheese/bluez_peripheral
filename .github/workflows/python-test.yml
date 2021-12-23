@@ -5,7 +5,7 @@ on: [ pull_request, workflow_dispatch ]
 jobs:
   test-docs:
     runs-on: ubuntu-latest
-    container: sphinxdoc/sphinx-latest
+    container: sphinxdoc/sphinx:latest
     steps:
       - name: Run Sphinx
         run: |
