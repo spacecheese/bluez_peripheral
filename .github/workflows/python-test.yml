@@ -7,11 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     container: sphinxdoc/sphinx-latest
     steps:
-      - run: |
-        pip3 install sphinx_rtd_theme
-        cd docs
-        make html
-        make linkcheck
+      - name: Run Sphinx
+        run: |
+          pip3 install sphinx_rtd_theme
+          cd docs
+          make html
+          make linkcheck
   test:
     runs-on: ubuntu-latest
     steps:
