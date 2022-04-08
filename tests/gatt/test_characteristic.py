@@ -1,7 +1,7 @@
 from bluez_peripheral.gatt.descriptor import descriptor
 from unittest import IsolatedAsyncioTestCase
 from threading import Event
-from ..util import *
+from tests.util import *
 import re
 
 from bluez_peripheral.util import get_message_bus

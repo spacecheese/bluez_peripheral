@@ -41,7 +41,7 @@ class Service(ServiceInterface):
         includes: Collection["Service"] = [],
     ):
         # Make sure uuid is a uuid16.
-        self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16(uuid)
+        self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16_128(uuid)
         self._primary = primary
         self._characteristics = []
         self._path = None

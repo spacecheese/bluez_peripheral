@@ -73,7 +73,7 @@ class Advertisement(ServiceInterface):
         self._type = packet_type
         # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
-            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16(uuid)
+            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16_128(uuid)
             for uuid in serviceUUIDs
         ]
         self._localName = localName
@@ -141,7 +141,9 @@ class Advertisement(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def ServiceUUIDs(self) -> "as":  # type: ignore
-        return [id.uuid16 for id in self._serviceUUIDs]
+        return [
+            id.uuid16 if not id.uuid16 is None else str(id) for id in self._serviceUUIDs
+        ]
 
     @dbus_property(PropertyAccess.READ)
     def LocalName(self) -> "s":  # type: ignore

@@ -181,7 +181,7 @@ class characteristic(ServiceInterface):
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
         if uuid is str:
-            uuid = BTUUID.from_uuid16(uuid)
+            uuid = BTUUID.from_uuid16_128(uuid)
         self.uuid = uuid
         self.getter_func = None
         self.setter_func = None
