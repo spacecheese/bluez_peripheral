@@ -1,7 +1,7 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.case import SkipTest
 
-from .util import *
+from tests.util import *
 
 from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.advert import Advertisement, PacketType, AdvertisingIncludes

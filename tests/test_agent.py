@@ -1,6 +1,6 @@
 from unittest import IsolatedAsyncioTestCase
 
-from .util import *
+from tests.util import *
 
 from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.agent import AgentCapability, BaseAgent
