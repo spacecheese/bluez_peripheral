@@ -73,7 +73,7 @@ class Advertisement(ServiceInterface):
         self._type = packet_type
         # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
-            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16(uuid)
+            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16_128(uuid)
             for uuid in serviceUUIDs
         ]
         self._localName = localName

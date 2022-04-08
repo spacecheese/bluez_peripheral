@@ -119,7 +119,7 @@ class descriptor(ServiceInterface):
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
         if uuid is str:
-            uuid = UUID.from_uuid16(uuid)
+            uuid = UUID.from_uuid16_128(uuid)
         self.uuid = uuid
         self.getter_func = None
         self.setter_func = None
