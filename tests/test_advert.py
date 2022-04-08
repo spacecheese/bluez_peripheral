@@ -74,6 +74,31 @@ class TestAdvert(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
         await advert.register(self._bus_manager.bus, adapter)
 
+    async def test_uuid128(self):
+        advert = Advertisement(
+            "Improv Test",
+            [BTUUID("00467768-6228-2272-4663-277478268000")],
+            0x0340,
+            2,
+        )
+
+        async def inspector(path):
+            introspection = await self._client_bus.introspect(
+                self._bus_manager.name, path
+            )
+            proxy_object = self._client_bus.get_proxy_object(
+                self._bus_manager.name, path, introspection
+            )
+            interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+
+            assert [id.lower() for id in await interface.get_service_uui_ds()] == [
+                "00467768-6228-2272-4663-277478268000",
+            ]
+            print(await interface.get_service_uui_ds())
+
+        adapter = MockAdapter(inspector)
+        await advert.register(self._bus_manager.bus, adapter)
+
     async def test_real(self):
         await bluez_available_or_skip(self._client_bus)
         adapter = await get_first_adapter_or_skip(self._client_bus)
