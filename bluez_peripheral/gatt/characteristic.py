@@ -315,10 +315,10 @@ class characteristic(ServiceInterface):
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            self._value = self.getter_func(
+            self._value = bytearray(self.getter_func(
                 self._service, CharacteristicReadOptions(options)
-            )
-            return self._value
+            ))
+            return bytes(self._value)
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
