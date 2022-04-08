@@ -68,18 +68,15 @@ class BTUUID(UUID):
             return uuid
 
     @property
-    def uuid16(self) -> str:
+    def uuid16(self) -> Union[str, None]:
         """Converts the UUID16 to a 4 digit string representation.
 
-        Raises:
-            ValueError: Raised if this UUID is not a valid UUID16.
-
         Returns:
-            str: The UUID representation.
+            Union[str, None]: The UUID representation or None if self is not a valid UUID16.
         """
         match = self._UUID16_UUID128_RE.search(str(self))
 
         if not match:
-            raise ValueError("self is not a uuid16")
+            return None
 
         return match.group(1)

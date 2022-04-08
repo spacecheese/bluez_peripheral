@@ -141,7 +141,9 @@ class Advertisement(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def ServiceUUIDs(self) -> "as":  # type: ignore
-        return [id.uuid16 for id in self._serviceUUIDs]
+        return [
+            id.uuid16 if not id.uuid16 is None else str(id) for id in self._serviceUUIDs
+        ]
 
     @dbus_property(PropertyAccess.READ)
     def LocalName(self) -> "s":  # type: ignore
