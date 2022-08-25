@@ -180,7 +180,7 @@ class characteristic(ServiceInterface):
         uuid: Union[BTUUID, str],
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
-        if uuid is str:
+        if type(uuid) is str:
             uuid = BTUUID.from_uuid16_128(uuid)
         self.uuid = uuid
         self.getter_func = None
