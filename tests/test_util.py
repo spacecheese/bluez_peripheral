@@ -1,8 +1,7 @@
 from unittest import IsolatedAsyncioTestCase
-
 from tests.util import *
-
 from bluez_peripheral.util import *
+import time
 
 
 class TestUtil(IsolatedAsyncioTestCase):
@@ -24,10 +23,12 @@ class TestUtil(IsolatedAsyncioTestCase):
 
     async def test_alias_set(self):
         await self._adapter.set_alias("Some test name")
+        time.sleep(0.1)
         assert await self._adapter.get_alias() == "Some test name"
 
     async def test_alias_clear(self):
         await self._adapter.set_alias("")
+        time.sleep(0.1)
         assert await self._adapter.get_alias() == await self._adapter.get_name()
 
     async def test_powered(self):
