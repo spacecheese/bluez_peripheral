@@ -118,7 +118,7 @@ class descriptor(ServiceInterface):
         characteristic: "characteristic",  # type: ignore
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
-        if uuid is str:
+        if type(uuid) is str:
             uuid = UUID.from_uuid16_128(uuid)
         self.uuid = uuid
         self.getter_func = None
