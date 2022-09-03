@@ -1,10 +1,11 @@
+import asyncio
+
 from dbus_next import Variant, BusType
 from dbus_next.aio import MessageBus
-
-from typing import Any, Collection, Dict
-
 from dbus_next.aio.proxy_object import ProxyObject
 from dbus_next.errors import DBusError
+
+from typing import Any, Collection, Dict
 
 
 def getattr_variant(object: Dict[str, Variant], key: str, default: Any):
@@ -52,6 +53,31 @@ async def is_bluez_available(bus: MessageBus) -> bool:
     except DBusError:
         return False
 
+class Device:
+    """A device discovered by an adapter."""
+
+    _INTERFACE = "org.bluez.Device1"
+    _device_interface = None
+
+    def __init__(self, proxy: ProxyObject):
+        self._proxy = proxy
+        self._device_interface = proxy.get_interface(self._INTERFACE)
+    
+    async def pair(self):
+        await self._device_interface.call_pair()
+
+    async def connect(self):
+        await self._device_interface.call_connect()
+
+    async def disconnect(self):
+        await self._device_interface.call_disconnect()
+
+    async def set_trusted(self, val: bool):
+        await self._device_interface.set_trusted(val)
+
+    async def get_trusted(self) -> bool:
+        return await self._device_interface.get_trusted()
+
 
 class Adapter:
     """A bluetooth adapter."""
@@ -62,6 +88,12 @@ class Adapter:
     def __init__(self, proxy: ProxyObject):
         self._proxy = proxy
         self._adapter_interface = proxy.get_interface(self._INTERFACE)
+
+    def __eq__(self, other: "Adapter"):
+        return self._proxy.path == other._proxy.path
+
+    def __ne__(self, other: "Adapter"):
+        return not (self == other)
 
     async def get_address(self) -> str:
         """Read the bluetooth address of this device."""
@@ -90,6 +122,47 @@ class Adapter:
         """Turn this adapter on or off."""
         await self._adapter_interface.set_powered(val)
 
+    async def get_discoverable(self) -> bool:
+        """Get the discoverablity of this adapter."""
+        return await self._adapter_interface.get_discoverable()
+
+    async def set_discoverable(self, val: bool):
+        """Make this device visible (or invisible) to nearby devices."""
+        return await self._adapter_interface.set_discoverable(val)
+
+    async def get_discovering(self) -> bool:
+        """Check if this adapter is searching for nearby devices."""
+        return await self._adapter_interface.get_discovering()
+
+    async def set_discovering(self, val: bool):
+        """Set the adapter to search (or stop searching) for nearby devices."""
+        if val:
+            await self._adapter_interface.call_start_discovery()
+        else:
+            await self._adapter_interface.call_stop_discovery()
+
+    async def get_pairable(self) -> bool:
+        """Determine if this device is pairable."""
+        return await self._adapter_interface.get_pairable()
+
+    async def set_pairable(self, val: bool):
+        """Enable or disable pairing with this device."""
+        return await self._adapter_interface.set_pairable(val)
+
+    async def get_devices(self) -> Collection[Device]:
+        bus = self._proxy.bus
+        device_nodes = (await bus.introspect("org.bluez", self._proxy.path)).nodes
+        
+        devices = []
+        for node in device_nodes:
+            introspection = await bus.introspect("org.bluez", self._proxy.path + "/" + node.name)
+            proxy = bus.get_proxy_object(
+                "org.bluez", "/org/bluez/" + node.name, introspection
+            )
+            devices.append(Device(proxy))
+
+        return devices
+
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
         """Get a list of available Bluetooth adapters.
@@ -100,7 +173,12 @@ class Adapter:
         Returns:
             Collection[Adapter]: A list of available bluetooth adapters.
         """
-        adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
+        adapter_nodes = None
+        try:
+            adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez", 1)).nodes
+        except (asyncio.TimeoutError):
+            # Bluez aparrently fails to respond to introspection requests when no bluetooth devices are active.
+            return []
 
         adapters = []
         for node in adapter_nodes:
