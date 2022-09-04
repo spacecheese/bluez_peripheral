@@ -70,6 +70,9 @@ class Device:
     async def pair(self):
         await self._device_interface.call_pair()
 
+    async def get_paired(self):
+        return await self._device_interface.get_paired()
+
     async def connect(self):
         await self._device_interface.call_connect()
 
@@ -83,7 +86,19 @@ class Device:
         return await self._device_interface.get_trusted()
 
     async def get_uuids(self) -> Collection[UUID]:
-        return await self._device_interface.get()
+        return await self._device_interface.get_uuids()
+
+    async def get_address(self) -> int:
+        return await self._device_interface.get_address()
+
+    async def get_connected(self) -> bool:
+        return await self._device_interface.get_connected()
+
+    async def get_trusted(self) -> bool:
+        return await self._device_interface.get_trusted()
+
+    async def set_trusted(self, val: bool):
+        await self._device_interface.set_trusted(val)
 
 
 class Adapter:
