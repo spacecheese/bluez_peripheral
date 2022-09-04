@@ -2,6 +2,7 @@
 Install the test dependencies
 ```bash
 pip install -r requirements.txt
+apt install bluez-tests
 ```
 Add the dbus config to allow the test process access to the bluetooth daemon.
 > This has serious security implications so only do this if you know what you are doing.

@@ -164,7 +164,7 @@ class characteristic(ServiceInterface):
     """Create a new characteristic with a specified UUID and flags.
 
     Args:
-        uuid (str | bytes | UUID | UUID16 | int): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid (str | bytes | UUID | UUID16 | int): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_.
         flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
 
     See Also:

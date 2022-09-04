@@ -100,7 +100,7 @@ class descriptor(ServiceInterface):
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
 
     Args:
-        uuid (str | bytes | UUID | UUID16 | int): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid (str | bytes | UUID | UUID16 | int): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_.
         characteristic (characteristic): The parent characteristic to associate this descriptor with.
         flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
 

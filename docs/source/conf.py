@@ -29,7 +29,7 @@ author = "spacecheese"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinxcontrib.spelling"]
+extensions = ["sphinx.ext.napoleon", "sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinxcontrib.spelling"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -55,3 +55,12 @@ html_theme = "sphinx_rtd_theme"
 # -- Options for spelling checker --------------------------------------------
 spelling_lang = "en_UK"
 tokenizer_lang = "en_UK"
+
+# -- Intersphinx -------------------------------------------------------------
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'dbus_next': ('https://python-dbus-next.readthedocs.io/en/latest', None)
+}
+
+
+nitpicky = True
