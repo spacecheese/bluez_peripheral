@@ -42,6 +42,13 @@ class TestUUID16(unittest.TestCase):
         uuid = UUID16(int=0x0000123400001000800000805F9B34FB)
         assert uuid.uuid == UUID("00001234-0000-1000-8000-00805F9B34FB")
 
+    def test_parse_uuid(self):
+        uuid = UUID("00001234-0000-1000-8000-00805F9B34FB")
+        assert type(UUID16.parse_uuid(uuid)) is UUID16
+
+        uuid = UUID("00011234-0000-1000-8000-00805F9B34FB")
+        assert type(UUID16.parse_uuid(uuid)) is UUID
+
     def test_from_uuid(self):
         with self.assertRaises(ValueError):
             uuid = UUID16(uuid=uuid1())
@@ -49,15 +56,15 @@ class TestUUID16(unittest.TestCase):
         uuid = UUID16(uuid=UUID("00001234-0000-1000-8000-00805F9B34FB"))
         assert uuid.uuid == UUID("00001234-0000-1000-8000-00805F9B34FB")
 
-    def test_is_uuid_valid(self):
+    def test_is_in_range(self):
         uuid = UUID("00001234-0000-1000-8000-00805F9B34FB")
-        assert UUID16.is_uuid_valid(uuid) == True
+        assert UUID16.is_in_range(uuid) == True
 
         uuid = UUID("00011234-0000-1000-8000-00805F9B34FB")
-        assert UUID16.is_uuid_valid(uuid) == False
+        assert UUID16.is_in_range(uuid) == False
 
         uuid = UUID("00001234-0000-1000-8000-00805F9B34FC")
-        assert UUID16.is_uuid_valid(uuid) == True
+        assert UUID16.is_in_range(uuid) == True
 
     def test_int(self):
         uuid = UUID16(uuid=UUID("00001234-0000-1000-8000-00805F9B34FB"))

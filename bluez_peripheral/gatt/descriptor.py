@@ -4,8 +4,8 @@ from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
 
 from enum import Flag, auto
-from typing import Union, Callable
-from ..uuid import BTUUID as UUID
+from typing import Callable, Union
+from ..uuid16 import UUID16
 from ..util import *
 
 
@@ -114,13 +114,11 @@ class descriptor(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[UUID, str],
+        uuid: Union[str, bytes, UUID, UUID16, int],
         characteristic: "characteristic",  # type: ignore
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
-        if type(uuid) is str:
-            uuid = UUID.from_uuid16_128(uuid)
-        self.uuid = uuid
+        self.uuid = UUID16.parse_uuid(uuid)
         self.getter_func = None
         self.setter_func = None
         self.characteristic = characteristic
