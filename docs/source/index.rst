@@ -52,7 +52,7 @@ You can use these decorators the same way as the built-in `property class <https
          # Descriptors also need to handle bytes.
          return bytes("This characteristic is completely pointless!", "utf-8")
 
-Once you've defined your service you need to add it to a service collection which can then be registed with bluez.
+Once you've defined your service you need to add it to a service collection which can then be registered with bluez.
 
 .. code-block:: python
 
