@@ -1,7 +1,7 @@
 import builtins
 
 from uuid import UUID
-from typing import Optional
+from typing import Optional, Union
 
 
 class UUID16:
@@ -81,7 +81,7 @@ class UUID16:
         return True
 
     @classmethod
-    def parse_uuid(cls, uuid: str | bytes | int | UUID) -> UUID | "UUID16":
+    def parse_uuid(cls, uuid: str | bytes | int | UUID) -> Union[UUID, "UUID16"]:
         if type(uuid) is UUID:
             if cls.is_in_range(uuid):
                 return UUID16(uuid=uuid)
