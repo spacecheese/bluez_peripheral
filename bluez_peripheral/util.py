@@ -162,9 +162,10 @@ class Adapter:
         
         devices = []
         for node in device_nodes:
-            introspection = await bus.introspect("org.bluez", self._proxy.path + "/" + node.name)
+            path = self._proxy.path + "/" + node.name
+            introspection = await bus.introspect("org.bluez", path)
             proxy = bus.get_proxy_object(
-                "org.bluez", "/org/bluez/" + node.name, introspection
+                "org.bluez", path, introspection
             )
             devices.append(Device(proxy))
 
