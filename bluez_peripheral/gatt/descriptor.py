@@ -11,7 +11,7 @@ from ..util import *
 
 class DescriptorReadOptions:
     """Options supplied to descriptor read functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
+    Generally you can ignore these unless you have a long descriptor (ie. > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self, options):
@@ -37,7 +37,7 @@ class DescriptorReadOptions:
 
 class DescriptorWriteOptions:
     """Options supplied to descriptor write functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
+    Generally you can ignore these unless you have a long descriptor (ie. > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self, options):

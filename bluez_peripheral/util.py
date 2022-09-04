@@ -130,7 +130,7 @@ class Adapter:
         await self._adapter_interface.set_powered(val)
 
     async def get_discoverable(self) -> bool:
-        """Get the discoverablity of this adapter."""
+        """Get the discoverability of this adapter."""
         return await self._adapter_interface.get_discoverable()
 
     async def set_discoverable(self, val: bool):

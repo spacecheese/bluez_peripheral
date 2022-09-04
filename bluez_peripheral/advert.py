@@ -1,5 +1,4 @@
 from dbus_next.aio import MessageBus
-from dbus_next.aio.proxy_object import ProxyInterface
 from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 
@@ -23,7 +22,7 @@ class PacketType(Enum):
 class AdvertisingIncludes(Flag):
     NONE = 0
     TX_POWER = auto()
-    """Transmittion power should be included.
+    """Transmission power should be included.
     """
     APPEARANCE = auto()
     """Device appearance number should be included.
@@ -35,22 +34,22 @@ class AdvertisingIncludes(Flag):
 
 class Advertisement(ServiceInterface):
     """
-    An advertisment for a particular service or collection of services that can be registered and broadcast to nearby devices.
+    An advertisement for a particular service or collection of services that can be registered and broadcast to nearby devices.
 
     Args:
         localName (str): The device name to advertise.
-        serviceUUIDs (Collection[str | bytes | UUID | UUID16 | int ]): A list of service UUIDs advertise.
+        serviceUUIDs (Collection[str | bytes | uuid.UUID | UUID16 | int ]): A list of service UUIDs advertise.
         appearance (int | bytes): The appearance value to advertise.
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
         timeout (int): The time from registration until this advert is removed.
-        discoverable (bool, optional): Whether or not the device this advert should be general discoverable.
-        packet_type (PacketType, optional): The type of advertising packet requested.
-        manufacturerData (Dict[int, bytes], optional): Any manufacturer specific data to include in the advert.
-        solicitUUIDs (Collection[BTUUID], optional): Array of service UUIDs to attempt to solicit (not widely used).
-        serviceData (Dict[str, bytes], optional): Any service data elements to include.
-        includes (AdvertisingIncludes, optional): Fields that can be optionally included in the advertising packet.
+        discoverable (bool): Whether or not the device this advert should be general discoverable.
+        packet_type (PacketType): The type of advertising packet requested.
+        manufacturerData (Dict[int, bytes]): Any manufacturer specific data to include in the advert.
+        solicitUUIDs (Collection[UUID16]): Array of service UUIDs to attempt to solicit (not widely used).
+        serviceData (Dict[str, bytes]): Any service data elements to include.
+        includes (AdvertisingIncludes): Fields that can be optionally included in the advertising packet.
             Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
-        duration (int, optional): Duration of the advert when multiple adverts are ongoing.
+        duration (int): Duration of the advert when multiple adverts are ongoing.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"

@@ -7,6 +7,6 @@ bluez\_peripheral package
 
    advert
    agent
-   uuid
+   uuid16
    util
    gatt/gatt

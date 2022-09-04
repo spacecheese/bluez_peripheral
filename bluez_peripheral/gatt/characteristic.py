@@ -13,7 +13,7 @@ from ..util import *
 
 class CharacteristicReadOptions:
     """Options supplied to characteristic read functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
+    Generally you can ignore these unless you have a long characteristic (ie. > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self):
@@ -56,7 +56,7 @@ class CharacteristicWriteType(Enum):
 
 class CharacteristicWriteOptions:
     """Options supplied to characteristic write functions.
-    Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
+    Generally you can ignore these unless you have a long characteristic (ie. > 48 bytes) or you have some specific authorization requirements.
     """
 
     def __init__(self):
@@ -111,7 +111,7 @@ class CharacteristicFlags(Flag):
 
     INVALID = 0
     BROADCAST = auto()
-    """Characteristic value may be broadcast as a part of advertisments.
+    """Characteristic value may be broadcast as a part of advertisements.
     """
     READ = auto()
     """Characteristic value may be read.

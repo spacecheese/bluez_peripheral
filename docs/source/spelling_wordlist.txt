@@ -3,3 +3,14 @@ quickstart
 bluetooth
 uuid
 getters
+getter
+discoverable
+discoverability
+cli
+passcode
+bluetoothctl
+Unregister
+hostname
+indicatable
+pairable
+ie

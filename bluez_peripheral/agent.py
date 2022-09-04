@@ -169,7 +169,7 @@ class YesNoAgent(BaseAgent):
     """An agent that uses a callback to display a yes/ no prompt in response to an incoming pairing request.
 
     Args:
-        request_confirmation (Callable[[int], Awaitable[bool]]): The callback called when a pairing request is recived.
+        request_confirmation (Callable[[int], Awaitable[bool]]): The callback called when a pairing request is received.
             This should return true if the user indicates that the supplied passcode is correct or false otherwise.
         cancel (Callable): The callback called when a pairing request is cancelled remotely.
     """
