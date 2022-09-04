@@ -4,10 +4,9 @@ from dbus_next.service import ServiceInterface, dbus_property
 from dbus_next.aio import MessageBus
 
 from .characteristic import characteristic
-from ..uuid import BTUUID as UUID
+from ..uuid16 import UUID16
 from ..util import *
 
-from typing import Union
 import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
@@ -15,7 +14,7 @@ class Service(ServiceInterface):
     """Create a bluetooth service with the specified uuid.
 
     Args:
-        uuid (Union[UUID, str]): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid (str | bytes | UUID | UUID16 | int): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         primary (bool, optional): True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
         includes (Collection[Service], optional): Any services to include in this service.
             Services must be registered at the time Includes is read to be included.
@@ -36,12 +35,12 @@ class Service(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[UUID, str],
+        uuid: str | bytes | UUID | UUID16 | int,
         primary: bool = True,
         includes: Collection["Service"] = [],
     ):
         # Make sure uuid is a uuid16.
-        self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16_128(uuid)
+        self._uuid = UUID16.parse_uuid(uuid)
         self._primary = primary
         self._characteristics = []
         self._path = None

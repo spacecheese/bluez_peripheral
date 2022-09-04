@@ -4,10 +4,10 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 
 from enum import Enum, Flag, auto
-from typing import Collection, Dict, Union
+from typing import Collection, Dict
 import struct
 
-from .uuid import BTUUID
+from .uuid16 import UUID16
 from .util import *
 
 
@@ -39,8 +39,8 @@ class Advertisement(ServiceInterface):
 
     Args:
         localName (str): The device name to advertise.
-        serviceUUIDs (Collection[Union[BTUUID, str]]): A list of service UUIDs advertise.
-        appearance (Union[int, bytes]): The appearance value to advertise.
+        serviceUUIDs (Collection[str | bytes | UUID | UUID16 | int ]): A list of service UUIDs advertise.
+        appearance (int | bytes): The appearance value to advertise.
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
         timeout (int): The time from registration until this advert is removed.
         discoverable (bool, optional): Whether or not the device this advert should be general discoverable.
@@ -59,22 +59,20 @@ class Advertisement(ServiceInterface):
     def __init__(
         self,
         localName: str,
-        serviceUUIDs: Collection[Union[BTUUID, str]],
-        appearance: Union[int, bytes],
+        serviceUUIDs: Collection[str | bytes | UUID | UUID16 | int],
+        appearance: int | bytes,
         timeout: int,
         discoverable: bool = True,
         packet_type: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
-        solicitUUIDs: Collection[BTUUID] = [],
+        solicitUUIDs: Collection[str | bytes | UUID | UUID16 | int] = [],
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
     ):
         self._type = packet_type
-        # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
-            uuid if type(uuid) is BTUUID else BTUUID.from_uuid16_128(uuid)
-            for uuid in serviceUUIDs
+            UUID16.parse_uuid(uuid) for uuid in serviceUUIDs
         ]
         self._localName = localName
         # Convert the appearance to a uint16 if it isn't already an int.
@@ -87,7 +85,9 @@ class Advertisement(ServiceInterface):
         for key, value in manufacturerData.items():
             self._manufacturerData[key] = Variant("ay", value)
 
-        self._solicitUUIDs = solicitUUIDs
+        self._solicitUUIDs = [
+            UUID16.parse_uuid(uuid) for uuid in solicitUUIDs
+        ]
         self._serviceData = serviceData
         self._discoverable = discoverable
         self._includes = includes
@@ -141,9 +141,7 @@ class Advertisement(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def ServiceUUIDs(self) -> "as":  # type: ignore
-        return [
-            id.uuid16 if not id.uuid16 is None else str(id) for id in self._serviceUUIDs
-        ]
+        return [str(id) for id in self._serviceUUIDs]
 
     @dbus_property(PropertyAccess.READ)
     def LocalName(self) -> "s":  # type: ignore
@@ -163,7 +161,7 @@ class Advertisement(ServiceInterface):
 
     @dbus_property(PropertyAccess.READ)
     def SolicitUUIDs(self) -> "as":  # type: ignore
-        return [id.uuid16 for id in self._solicitUUIDs]
+        return [str(id) for id in self._solicitUUIDs]
 
     @dbus_property(PropertyAccess.READ)
     def ServiceData(self) -> "a{say}":  # type: ignore

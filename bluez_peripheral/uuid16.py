@@ -57,7 +57,7 @@ class UUID16:
             fields[0] = time_low
             self._uuid = UUID(fields=fields)
         else:
-            if UUID16.is_uuid_valid(uuid):
+            if UUID16.is_in_range(uuid):
                 self._uuid = uuid
             else:
                 raise ValueError(
@@ -65,7 +65,7 @@ class UUID16:
                 )
 
     @classmethod
-    def is_uuid_valid(cls, uuid: UUID) -> bool:
+    def is_in_range(cls, uuid: UUID) -> bool:
         """Determines if a supplied uuid128 is in the allowed uuid16 range.
 
         Returns:
@@ -79,6 +79,31 @@ class UUID16:
                 return False
 
         return True
+
+    @classmethod
+    def parse_uuid(cls, uuid: str | bytes | int | UUID) -> UUID | "UUID16":
+        if type(uuid) is UUID:
+            if cls.is_in_range(uuid):
+                return UUID16(uuid=uuid)
+            return uuid
+
+        if type(uuid) is str:
+            try:
+                return UUID16(hex=uuid)
+            except:
+                return UUID(hex=uuid)
+
+        if type(uuid) is bytes:
+            try:
+                return UUID16(bytes=uuid)
+            except:
+                return UUID(bytes=uuid)
+
+        if type(uuid) is int:
+            try:
+                return UUID16(int=uuid)
+            except:
+                return UUID(int=uuid)
 
     @property
     def uuid(self) -> UUID:

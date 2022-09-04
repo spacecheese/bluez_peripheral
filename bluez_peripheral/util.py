@@ -7,6 +7,8 @@ from dbus_next.errors import DBusError
 
 from typing import Any, Collection, Dict
 
+from uuid import UUID
+
 
 def getattr_variant(object: Dict[str, Variant], key: str, default: Any):
     if key in object:
@@ -80,8 +82,8 @@ class Device:
     async def get_trusted(self) -> bool:
         return await self._device_interface.get_trusted()
 
-    async def get_uuids(self) -> Collection[BTUUID]:
-        
+    async def get_uuids(self) -> Collection[UUID]:
+        return await self._device_interface.get()
 
 
 class Adapter:

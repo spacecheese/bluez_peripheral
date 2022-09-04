@@ -4,8 +4,8 @@ from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
 
 from enum import Flag, auto
-from typing import Union, Callable
-from ..uuid import BTUUID as UUID
+from typing import Callable
+from ..uuid16 import UUID16
 from ..util import *
 
 
@@ -100,7 +100,7 @@ class descriptor(ServiceInterface):
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
 
     Args:
-        uuid (Union[UUID, str]): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid (str | bytes | UUID | UUID16 | int): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         characteristic (characteristic): The parent characteristic to associate this descriptor with.
         flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
 
@@ -114,13 +114,11 @@ class descriptor(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[UUID, str],
+        uuid: str | bytes | UUID | UUID16 | int,
         characteristic: "characteristic",  # type: ignore
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
-        if type(uuid) is str:
-            uuid = UUID.from_uuid16_128(uuid)
-        self.uuid = uuid
+        self.uuid = UUID16.parse_uuid(uuid)
         self.getter_func = None
         self.setter_func = None
         self.characteristic = characteristic

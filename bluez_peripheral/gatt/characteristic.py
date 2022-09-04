@@ -4,10 +4,10 @@ from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.aio import MessageBus
 
 from enum import Enum, Flag, auto
-from typing import Callable, Union
+from typing import Callable, Optional
 
 from .descriptor import descriptor, DescriptorFlags
-from ..uuid import BTUUID
+from ..uuid16 import UUID16
 from ..util import *
 
 
@@ -30,7 +30,7 @@ class CharacteristicReadOptions:
         return self._offset
 
     @property
-    def mtu(self) -> Union[int, None]:
+    def mtu(self) -> Optional[int]:
         """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
         return self._mtu
 
@@ -164,7 +164,7 @@ class characteristic(ServiceInterface):
     """Create a new characteristic with a specified UUID and flags.
 
     Args:
-        uuid (Union[BTUUID, str]): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid (str | bytes | UUID | UUID16 | int): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
 
     See Also:
@@ -177,12 +177,10 @@ class characteristic(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[BTUUID, str],
+        uuid: str | bytes | UUID | UUID16 | int,
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
-        if type(uuid) is str:
-            uuid = BTUUID.from_uuid16_128(uuid)
-        self.uuid = uuid
+        self.uuid = UUID16.parse_uuid(uuid)
         self.getter_func = None
         self.setter_func = None
         self.flags = flags
@@ -234,12 +232,12 @@ class characteristic(ServiceInterface):
         return self
 
     def descriptor(
-        self, uuid: Union[BTUUID, str], flags: DescriptorFlags = DescriptorFlags.READ
+        self, uuid: str | bytes | UUID | UUID16 | int, flags: DescriptorFlags = DescriptorFlags.READ
     ) -> "descriptor":
         """Create a new descriptor with the specified UUID and Flags.
 
         Args:
-            uuid (Union[BTUUID, str]): The UUID of the descriptor.
+            uuid (str | bytes | UUID | UUID16 | int): The UUID of the descriptor.
             flags (DescriptorFlags, optional): Any descriptor access flags to use.
         """
         # Use as a decorator for descriptors that need a getter.
@@ -315,9 +313,9 @@ class characteristic(ServiceInterface):
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            self._value = bytearray(self.getter_func(
-                self._service, CharacteristicReadOptions(options)
-            ))
+            self._value = bytearray(
+                self.getter_func(self._service, CharacteristicReadOptions(options))
+            )
             return bytes(self._value)
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
