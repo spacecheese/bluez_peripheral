@@ -54,3 +54,4 @@ html_theme = "sphinx_rtd_theme"
 
 # -- Options for spelling checker --------------------------------------------
 spelling_lang = "en_UK"
+tokenizer_lang = "en_UK"
