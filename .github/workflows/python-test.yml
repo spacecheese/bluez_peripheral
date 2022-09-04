@@ -4,13 +4,14 @@ on: [ pull_request, workflow_dispatch ]
 
 jobs:
   test-docs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container: sphinxdoc/sphinx:latest
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
         run: |
-          apt-get install enchant-2
+          apt-get update
+          apt-get install -y enchant-2
           python -m pip install --upgrade pip
           pip install -r docs/requirements.txt
       - name: Build Docs
@@ -19,7 +20,7 @@ jobs:
           make html
           make linkcheck
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -28,6 +29,7 @@ jobs:
           python-version: '3.9.x'
       - name: Install dependencies
         run: |
+          apt-get update
           python -m pip install --upgrade pip
           pip install -r tests/requirements.txt
       - name: Add DBus Config
