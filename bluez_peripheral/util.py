@@ -54,7 +54,9 @@ async def is_bluez_available(bus: MessageBus) -> bool:
         return False
 
 class Device:
-    """A device discovered by an adapter."""
+    """A device discovered by an adapter.
+    Warning: This interface is experimental.
+    """
 
     _INTERFACE = "org.bluez.Device1"
     _device_interface = None
@@ -77,6 +79,9 @@ class Device:
 
     async def get_trusted(self) -> bool:
         return await self._device_interface.get_trusted()
+
+    async def get_uuids(self) -> Collection[BTUUID]:
+        
 
 
 class Adapter:
