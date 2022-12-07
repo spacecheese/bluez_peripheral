@@ -1,0 +1,12 @@
+Name          bluetoothctl              D-Bus
+Unpair        remote                    org.bluez.Adapter1.RemoveDevice
+
+
+
+ConnectProfile is for conventional bluetooth (ie not BTLE)
+Python pairing does not seem to discover BTLE attributes- devices appear but have no characteristics
+
+Clear bluetooth cache:
+sudo rm -rf /var/lib/bluetooth/*
+
+
