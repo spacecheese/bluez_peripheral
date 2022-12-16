@@ -126,6 +126,11 @@ class CharacteristicFlags(Flag):
     """Characteristic may be subscribed to in order to provide notification when its value changes.
     Notification does not require acknowledgement.
     """
+    ENCRYPT_NOTIFY = auto()
+    """[Experimental, should work with Bluez 5.66]
+    The communicating devices have to be paired for the client to be able to subscribe to notifications.
+    After pairing the devices share a bond and the communication is encrypted.
+    """
     INDICATE = auto()
     """Characteristic may be subscribed to in order to provide indication when its value changes.
     Indication requires acknowledgement.
@@ -182,15 +187,16 @@ class characteristic(ServiceInterface):
     def __init__(
         self,
         uuid: Union[BTUUID, str],
-        flags: CharacteristicFlags = CharacteristicFlags.READ,
+        flags: Union[CharacteristicFlags, list[CharacteristicFlags]] = [CharacteristicFlags.READ],
     ):
         if type(uuid) is str:
             uuid = BTUUID.from_uuid16_128(uuid)
         self.uuid = uuid
         self.getter_func = None
         self.setter_func = None
+        if type(flags) is CharacteristicFlags:
+            flags = [flags]
         self.flags = flags
-
         self._notify = False
         self._service_path = None
         self._descriptors = []
@@ -316,6 +322,14 @@ class characteristic(ServiceInterface):
 
         self._service_path = None
 
+    def _has_notification_flags(self) -> bool:
+        """Check if any notification flags are set on the characteristic."""
+        notification_flags = [CharacteristicFlags.NOTIFY, CharacteristicFlags.ENCRYPT_NOTIFY]
+        for flag in self.flags:
+            if flag in notification_flags:
+                return True
+        return False
+
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
@@ -349,23 +363,23 @@ class characteristic(ServiceInterface):
 
     @method()
     def StartNotify(self):
-        if not self.flags | CharacteristicFlags.NOTIFY:
+        if self._has_notification_flags():
+            self._notify = True
+        else:
             raise DBusError(
                 "org.bluez.Error.NotSupported",
                 "The characteristic does not support notification.",
             )
-
-        self._notify = True
 
     @method()
     def StopNotify(self):
-        if not self.flags | CharacteristicFlags.NOTIFY:
+        if self._has_notification_flags():
+            self._notify = False
+        else:
             raise DBusError(
                 "org.bluez.Error.NotSupported",
                 "The characteristic does not support notification.",
             )
-
-        self._notify = False
 
     @dbus_property(PropertyAccess.READ)
     def UUID(self) -> "s":  # type: ignore
@@ -378,14 +392,10 @@ class characteristic(ServiceInterface):
     @dbus_property(PropertyAccess.READ)
     def Flags(self) -> "as":  # type: ignore
         # Clear the extended properties flag (bluez doesn't seem to like this flag even though its in the docs).
-        self.flags &= ~CharacteristicFlags.EXTENDED_PROPERTIES
+        self.flags = [flag for flag in self.flags if flag != CharacteristicFlags.EXTENDED_PROPERTIES]
 
         # Return a list of set string flag names.
-        return [
-            snake_to_kebab(flag.name)
-            for flag in CharacteristicFlags
-            if self.flags & flag
-        ]
+        return [snake_to_kebab(flag.name) for flag in CharacteristicFlags if flag in self.flags]
 
     @dbus_property(PropertyAccess.READ)
     def Value(self) -> "ay":  # type: ignore
