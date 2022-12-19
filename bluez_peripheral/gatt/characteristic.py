@@ -145,9 +145,13 @@ class CharacteristicFlags(Flag):
     """The Characteristic User Description Descriptor exists and is writable by the client.
     """
     ENCRYPT_READ = auto()
-    """"""
-    ENCRPYT_WRITE = auto()
-    """"""
+    """The communicating devices have to be paired for the client to be able to read the characteristic.
+    After pairing the devices share a bond and the communication is encrypted.
+    """
+    ENCRYPT_WRITE = auto()
+    """The communicating devices have to be paired for the client to be able to write the characteristic.
+    After pairing the devices share a bond and the communication is encrypted.
+    """
     ENCRYPT_AUTHENTICATED_READ = auto()
     """"""
     ENCRYPT_AUTHENTICATED_WRITE = auto()
