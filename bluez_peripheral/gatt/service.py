@@ -3,13 +3,12 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, dbus_property
 from dbus_next.aio import MessageBus
 
+import inspect
+from uuid import UUID
+
 from .characteristic import characteristic
 from ..uuid16 import UUID16
 from ..util import *
-
-from uuid import UUID
-from typing import Union
-import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
 class Service(ServiceInterface):

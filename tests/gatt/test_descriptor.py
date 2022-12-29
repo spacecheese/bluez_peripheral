@@ -54,7 +54,11 @@ class TestDescriptor(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             char = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180A", char_uuid="2A37"
+                self._client_bus, 
+                self._bus_manager.name, 
+                path, 
+                UUID16("180A"), 
+                UUID16("2A37")
             )
 
             child_names = [path.split("/")[-1] for path in char.child_paths]
@@ -83,9 +87,9 @@ class TestDescriptor(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A37",
-                    desc_uuid="2A38",
+                    UUID16("180A"),
+                    UUID16("2A37"),
+                    UUID16("2A38"),
                 )
             ).get_interface("org.bluez.GattDescriptor1")
             resp = await interface.call_read_value(opts)
@@ -115,9 +119,9 @@ class TestDescriptor(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A37",
-                    desc_uuid="2A39",
+                    UUID16("180A"),
+                    UUID16("2A37"),
+                    UUID16("2A39"),
                 )
             ).get_interface("org.bluez.GattDescriptor1")
             await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
