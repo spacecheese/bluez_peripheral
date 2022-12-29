@@ -63,14 +63,14 @@ class Advertisement(ServiceInterface):
         appearance: Union[int, bytes],
         timeout: int,
         discoverable: bool = True,
-        packet_type: PacketType = PacketType.PERIPHERAL,
+        packetType: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
         solicitUUIDs: Collection[BTUUID] = [],
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
     ):
-        self._type = packet_type
+        self._type = packetType
         # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
             uuid if type(uuid) is BTUUID else BTUUID.from_uuid16_128(uuid)
