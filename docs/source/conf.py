@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/../../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -40,12 +40,13 @@ exclude_patterns = []
 
 # -- Napoleon ----------------------------------------------------------------
 napoleon_numpy_docstring = False
-napoleon_preprocess_types = True
 
 # -- Intersphinx -------------------------------------------------------------
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "dbus_next": ("https://python-dbus-next.readthedocs.io/en/latest/", None),
+    # Add a backup inv to fix mapping of dbus_next.aio.proxy_object.ProxyObject and dbus_next.aio.message_bus.MessageBus
+    "dbus_next_alias": (os.path.abspath(os.path.dirname(__file__)), "dbus_next.inv")
 }
 
 
