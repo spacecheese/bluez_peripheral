@@ -14,6 +14,7 @@ from bluez_peripheral.gatt.service import Service
 
 last_opts = None
 write_notify_char_val = None
+write_only_char_val = None
 
 
 class TestService(Service):
@@ -24,6 +25,13 @@ class TestService(Service):
     def read_only_char(self, opts):
         global last_opts
         last_opts = opts
+        return bytes("Test Message", "utf-8")
+
+    @characteristic("3A37", CharacteristicFlags.READ)
+    async def async_read_only_char(self, opts):
+        global last_opts
+        last_opts = opts
+        await asyncio.sleep(0.05)
         return bytes("Test Message", "utf-8")
 
     # Not testing other characteristic flags since their functionality is handled by bluez.
@@ -37,6 +45,18 @@ class TestService(Service):
         last_opts = opts
         global write_notify_char_val
         write_notify_char_val = val
+
+    @characteristic("3A38", CharacteristicFlags.WRITE)
+    async def aysnc_write_only_char(self, _):
+        pass
+
+    @aysnc_write_only_char.setter
+    async def aysnc_write_only_char(self, val, opts):
+        global last_opts
+        last_opts = opts
+        global write_only_char_val
+        write_only_char_val = val
+        await asyncio.sleep(0.05)
 
 
 class TestCharacteristic(IsolatedAsyncioTestCase):
@@ -95,6 +115,21 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             assert last_opts.device == "blablabla/.hmm"
             assert cache == resp
 
+            interface = (
+                await get_attrib(
+                    self._client_bus,
+                    self._bus_manager.name,
+                    path,
+                    "180A",
+                    char_uuid="3A37",
+                )
+            ).get_interface("org.bluez.GattCharacteristic1")
+            resp = await interface.call_read_value(opts)
+            cache = await interface.get_value()
+
+            assert resp.decode("utf-8") == "Test Message"
+            assert cache == resp
+
         service = TestService()
         adapter = MockAdapter(inspector)
 
@@ -130,6 +165,19 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             assert last_opts.prepare_authorize == False
 
             assert write_notify_char_val.decode("utf-8") == "Test Write Value"
+
+            interface = (
+                await get_attrib(
+                    self._client_bus,
+                    self._bus_manager.name,
+                    path,
+                    "180A",
+                    char_uuid="3A38",
+                )
+            ).get_interface("org.bluez.GattCharacteristic1")
+            await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
+
+            assert write_only_char_val.decode("utf-8") == "Test Write Value"
 
         service = TestService()
         adapter = MockAdapter(inspector)
