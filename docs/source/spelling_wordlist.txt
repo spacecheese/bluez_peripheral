@@ -12,3 +12,6 @@ indicatable
 eg
 unregister
 hostname
+dbus
+gatt
+util
