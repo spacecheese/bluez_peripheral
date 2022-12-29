@@ -18,13 +18,13 @@ class BTUUID(UUID):
         """Converts an integer or 4 digit hex string to a Bluetooth compatible UUID16.
 
         Args:
-            id (Union[str, int]): The UUID representation to convert.
+            id: The UUID representation to convert.
 
         Raises:
             ValueError: Raised if the supplied UUID16 is not valid.
 
         Returns:
-            BTUUID: The resulting UUID.
+            The resulting UUID.
         """
         hex = "0000"
 
@@ -52,7 +52,7 @@ class BTUUID(UUID):
             ValueError: Raised if the supplied string is not a valid UUID.
 
         Returns:
-            BTUUID: The resulting UUID.
+            The resulting UUID.
         """
         if len(id) == 4:
             return cls.from_uuid16(id)
@@ -72,7 +72,7 @@ class BTUUID(UUID):
         """Converts the UUID16 to a 4 digit string representation.
 
         Returns:
-            Union[str, None]: The UUID representation or None if self is not a valid UUID16.
+            The UUID representation or None if self is not a valid UUID16.
         """
         match = self._UUID16_UUID128_RE.search(str(self))
 

@@ -101,9 +101,9 @@ class descriptor(ServiceInterface):
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
 
     Args:
-        uuid (Union[UUID, str]): The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-        characteristic (characteristic): The parent characteristic to associate this descriptor with.
-        flags (DescriptorFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
+        uuid: The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        characteristic: The parent characteristic to associate this descriptor with.
+        flags: Flags defining the possible read/ write behaviour of the attribute.
 
     See Also:
         :ref:`quickstart`
@@ -157,11 +157,11 @@ class descriptor(ServiceInterface):
         """A decorator for characteristic value getters.
 
         Args:
-            getter_func (Union[Callable[["Service", DescriptorReadOptions], bytes], Callable[["Service", DescriptorReadOptions], Awaitable[bytes]]]): The getter function for this descriptor.
-            setter_func (Union[Callable[["Service", bytes, DescriptorWriteOptions], None], Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]]]): The setter function for this descriptor. Defaults to None.
+            getter_func: The getter function for this descriptor.
+            setter_func: The setter function for this descriptor. Defaults to None.
 
         Returns:
-            descriptor: This descriptor
+            This descriptor
         """
         self.getter_func = getter_func
         self.setter_func = setter_func
