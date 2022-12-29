@@ -4,7 +4,7 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 
 from enum import Enum, Flag, auto
-from typing import Collection, Dict, Union
+from typing import Collection, Dict, Union, Callable, Optional
 import struct
 
 from .uuid import BTUUID
@@ -51,10 +51,13 @@ class Advertisement(ServiceInterface):
         includes (AdvertisingIncludes, optional): Fields that can be optionally included in the advertising packet.
             Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration (int, optional): Duration of the advert when multiple adverts are ongoing.
+        releaseCallback (Optional[Callable[[], None], None], optional): A function to call when the advert release function is called.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
     _MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
+
+    _defaultPathAdvertCount = 0
 
     def __init__(
         self,
@@ -69,6 +72,7 @@ class Advertisement(ServiceInterface):
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
+        releaseCallback: Optional[Callable[[], None]] = None,
     ):
         self._type = packetType
         # Convert any string uuids to uuid16.
@@ -92,6 +96,7 @@ class Advertisement(ServiceInterface):
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
+        self.releaseCallback = releaseCallback
 
         super().__init__(self._INTERFACE)
 
@@ -99,7 +104,7 @@ class Advertisement(ServiceInterface):
         self,
         bus: MessageBus,
         adapter: Adapter = None,
-        path: str = "/com/spacecheese/bluez_peripheral/advert0",
+        path: Optional[str] = None,
     ):
         """Register this advert with bluez to start advertising.
 
@@ -108,6 +113,16 @@ class Advertisement(ServiceInterface):
             adapter (Adapter, optional): The adapter to use.
             path (str, optional): The dbus path to use for registration.
         """
+        # Generate a unique path name for this advert if one isn't already given.
+        if path is None:
+            path = "/com/spacecheese/bluez_peripheral/advert" + str(
+                Advertisement._defaultPathAdvertCount
+            )
+            Advertisement._defaultPathAdvertCount += 1
+
+        self._exportBus = bus
+        self._exportPath = path
+
         # Export this advert to the dbus.
         bus.export(path, self)
 
@@ -117,8 +132,6 @@ class Advertisement(ServiceInterface):
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})
-
-        bus.unexport(path, self._INTERFACE)
 
     @classmethod
     async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
@@ -133,7 +146,10 @@ class Advertisement(ServiceInterface):
 
     @method()
     def Release(self):  # type: ignore
-        return
+        self._exportBus.unexport(self._exportPath, self._INTERFACE)
+
+        if self.releaseCallback is not None:
+            self.releaseCallback()
 
     @dbus_property(PropertyAccess.READ)
     def Type(self) -> "s":  # type: ignore
