@@ -16,6 +16,7 @@ jobs:
       - name: Build Docs
         run: |
           cd docs
+          make clean
           make html
           make linkcheck
   test:
