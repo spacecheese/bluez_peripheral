@@ -171,7 +171,7 @@ class YesNoAgent(BaseAgent):
     Args:
         request_confirmation: The callback called when a pairing request is received.
             This should return true if the user indicates that the supplied passcode is correct or false otherwise.
-        cancel: The callback called when a pairing request is cancelled remotely.
+        cancel: The callback called when a pairing request is canceled remotely.
     """
 
     def __init__(

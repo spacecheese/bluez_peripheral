@@ -124,11 +124,11 @@ class CharacteristicFlags(Flag):
     """
     NOTIFY = auto()
     """Characteristic may be subscribed to in order to provide notification when its value changes.
-    Notification does not require acknowledgement.
+    Notification does not require acknowledgment.
     """
     INDICATE = auto()
     """Characteristic may be subscribed to in order to provide indication when its value changes.
-    Indication requires acknowledgement.
+    Indication requires acknowledgment.
     """
     AUTHENTICATED_SIGNED_WRITES = auto()
     """Characteristic requires secure bonding. Values are authenticated using a client signature.
@@ -169,7 +169,7 @@ class characteristic(ServiceInterface):
 
     Args:
         uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-        flags: Flags defining the possible read/ write behaviour of the attribute.
+        flags: Flags defining the possible read/ write behavior of the attribute.
 
     See Also:
         :ref:`quickstart`
