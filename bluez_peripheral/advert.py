@@ -23,7 +23,7 @@ class PacketType(Enum):
 class AdvertisingIncludes(Flag):
     NONE = 0
     TX_POWER = auto()
-    """Transmittion power should be included.
+    """Transmission power should be included.
     """
     APPEARANCE = auto()
     """Device appearance number should be included.
@@ -35,22 +35,22 @@ class AdvertisingIncludes(Flag):
 
 class Advertisement(ServiceInterface):
     """
-    An advertisment for a particular service or collection of services that can be registered and broadcast to nearby devices.
+    An advertisement for a particular service or collection of services that can be registered and broadcast to nearby devices.
 
     Args:
-        localName (str): The device name to advertise.
-        serviceUUIDs (Collection[Union[BTUUID, str]]): A list of service UUIDs advertise.
-        appearance (Union[int, bytes]): The appearance value to advertise.
+        localName: The device name to advertise.
+        serviceUUIDs: A list of service UUIDs advertise.
+        appearance: The appearance value to advertise.
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
-        timeout (int): The time from registration until this advert is removed.
-        discoverable (bool, optional): Whether or not the device this advert should be general discoverable.
-        packet_type (PacketType, optional): The type of advertising packet requested.
-        manufacturerData (Dict[int, bytes], optional): Any manufacturer specific data to include in the advert.
-        solicitUUIDs (Collection[BTUUID], optional): Array of service UUIDs to attempt to solicit (not widely used).
-        serviceData (Dict[str, bytes], optional): Any service data elements to include.
-        includes (AdvertisingIncludes, optional): Fields that can be optionally included in the advertising packet.
+        timeout: The time from registration until this advert is removed.
+        discoverable: Whether or not the device this advert should be generally discoverable.
+        packet_type: The type of advertising packet requested.
+        manufacturerData: Any manufacturer specific data to include in the advert.
+        solicitUUIDs: Array of service UUIDs to attempt to solicit (not widely used).
+        serviceData: Any service data elements to include.
+        includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
-        duration (int, optional): Duration of the advert when multiple adverts are ongoing.
+        duration: Duration of the advert when multiple adverts are ongoing.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
@@ -104,9 +104,9 @@ class Advertisement(ServiceInterface):
         """Register this advert with bluez to start advertising.
 
         Args:
-            bus (MessageBus): The message bus used to communicate with bluez.
-            adapter (Adapter, optional): The adapter to use.
-            path (str, optional): The dbus path to use for registration.
+            bus: The message bus used to communicate with bluez.
+            adapter: The adapter to use.
+            path: The dbus path to use for registration.
         """
         # Export this advert to the dbus.
         bus.export(path, self)

@@ -2,4 +2,13 @@ bluez
 quickstart
 bluetooth
 uuid
+getter
 getters
+discoverable
+bluetoothctl
+cli
+passcode
+indicatable
+eg
+unregister
+hostname
