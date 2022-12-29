@@ -41,7 +41,6 @@ exclude_patterns = []
 # -- Napoleon ----------------------------------------------------------------
 napoleon_numpy_docstring = False
 napoleon_preprocess_types = True
-napoleon_type_aliases = {"MessageBus": "dbus_next.aio.MessageBus"}
 
 # -- Intersphinx -------------------------------------------------------------
 intersphinx_mapping = {
