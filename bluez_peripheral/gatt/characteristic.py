@@ -111,7 +111,7 @@ class CharacteristicFlags(Flag):
 
     INVALID = 0
     BROADCAST = auto()
-    """Characteristic value may be broadcast as a part of advertisments.
+    """Characteristic value may be broadcast as a part of advertisements.
     """
     READ = auto()
     """Characteristic value may be read.
@@ -168,8 +168,8 @@ class characteristic(ServiceInterface):
     """Create a new characteristic with a specified UUID and flags.
 
     Args:
-        uuid (Union[BTUUID, str]): The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-        flags (CharacteristicFlags, optional): Flags defining the possible read/ write behaviour of the attribute.
+        uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        flags: Flags defining the possible read/ write behaviour of the attribute.
 
     See Also:
         :ref:`quickstart`
@@ -203,7 +203,7 @@ class characteristic(ServiceInterface):
         """Call this function when the value of a notifiable or indicatable property changes to alert any subscribers.
 
         Args:
-            new_value (bytes): The new value of the property to send to any subscribers.
+            new_value: The new value of the property to send to any subscribers.
         """
         if self._notify:
             self.emit_properties_changed({"Value": new_value}, [])
@@ -227,11 +227,11 @@ class characteristic(ServiceInterface):
         """A decorator for characteristic value getters.
 
         Args:
-            get (Callable[[Service, CharacteristicReadOptions], bytes], optional): The getter function for this characteristic.
-            set (Callable[[Service, bytes, CharacteristicWriteOptions], optional): The setter function for this characteristic.
+            get: The getter function for this characteristic.
+            set: The setter function for this characteristic.
 
         Returns:
-            characteristic: This characteristic.
+            This characteristic.
         """
         self.getter_func = getter_func
         self.setter_func = setter_func
@@ -243,8 +243,8 @@ class characteristic(ServiceInterface):
         """Create a new descriptor with the specified UUID and Flags.
 
         Args:
-            uuid (Union[BTUUID, str]): The UUID of the descriptor.
-            flags (DescriptorFlags, optional): Any descriptor access flags to use.
+            uuid: The UUID of the descriptor.
+            flags: Any descriptor access flags to use.
         """
         # Use as a decorator for descriptors that need a getter.
         return descriptor(uuid, self, flags)
@@ -258,11 +258,11 @@ class characteristic(ServiceInterface):
         for desc in self._descriptors:
             desc._set_service(service)
 
-    def add_descriptor(self, desc: descriptor):
+    def add_descriptor(self, desc: "descriptor"):
         """Associate the specified descriptor with this characteristic.
 
         Args:
-            desc (descriptor): The descriptor to associate.
+            desc: The descriptor to associate.
 
         Raises:
             ValueError: Raised when the containing service is currently registered and thus cannot be modified.
@@ -276,11 +276,11 @@ class characteristic(ServiceInterface):
         # Make sure that any descriptors have the correct service set at all times.
         desc._set_service(self._service)
 
-    def remove_descriptor(self, desc: descriptor):
+    def remove_descriptor(self, desc: "descriptor"):
         """Remove the specified descriptor from this characteristic.
 
         Args:
-            desc (descriptor): The descriptor to remove.
+            desc: The descriptor to remove.
 
         Raises:
             ValueError: Raised when the containing service is currently registered and thus cannot be modified.
@@ -319,9 +319,9 @@ class characteristic(ServiceInterface):
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            self._value = bytearray(self.getter_func(
-                self._service, CharacteristicReadOptions(options)
-            ))
+            self._value = bytearray(
+                self.getter_func(self._service, CharacteristicReadOptions(options))
+            )
             return bytes(self._value)
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.

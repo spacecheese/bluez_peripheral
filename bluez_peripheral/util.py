@@ -41,10 +41,10 @@ async def is_bluez_available(bus: MessageBus) -> bool:
     """Checks if bluez is registered on the system dbus.
 
     Args:
-        bus (MessageBus): The system dbus to use.
+        bus: The system dbus to use.
 
     Returns:
-        bool: True if bluez is found. False otherwise.
+        True if bluez is found. False otherwise.
     """
     try:
         await bus.introspect("org.bluez", "/org/bluez")
@@ -95,10 +95,10 @@ class Adapter:
         """Get a list of available Bluetooth adapters.
 
         Args:
-            bus (MessageBus): The message bus used to query bluez.
+            bus: The message bus used to query bluez.
 
         Returns:
-            Collection[Adapter]: A list of available bluetooth adapters.
+            A list of available bluetooth adapters.
         """
         adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
 
@@ -117,13 +117,13 @@ class Adapter:
         """Gets the first adapter listed by bluez.
 
         Args:
-            bus (MessageBus): The bus to use for adapter discovery.
+            bus: The bus to use for adapter discovery.
 
         Raises:
             ValueError: Raised when no bluetooth adapters are available.
 
         Returns:
-            Adapter: The resulting adapter.
+            The resulting adapter.
         """
         adapters = await cls.get_all(bus)
         if len(adapters) > 0:

@@ -11,14 +11,14 @@ Agents
 ------
 
 An agent is a program that bluez uses to interface with the user during pairing.
-bluez uses agents to determine what pairing mode should be used based on their indicated input/ output capabilites.
+bluez uses agents to determine what pairing mode should be used based on their indicated input/ output capabilities.
 
 Selecting an Agent
 ------------------
 
 There are three sources of potential agents:
 
-* Use a :ref:`bluez built in agent <bluez agent>` (Not recomended)
+* Use a :ref:`bluez built in agent <bluez agent>` (Not recommended)
 * Use a :ref:`bluez_peripheral built in agent <bluez_peripheral agent>` (NoInputNoOutput or YesNoInput only)
 * Use a :ref:`custom agent <custom agent>`
 
@@ -32,7 +32,7 @@ You can select an agent with given capability by using the following command in 
 
     bluetoothctl agent <capability>
 
-This approach is not recomended since the bluez agents seem to be slightly unreliable.
+This approach is not recommended since the bluez agents seem to be slightly unreliable.
 
 .. _bluez_peripheral agent:
 
@@ -56,8 +56,8 @@ Without root permission you do not have permission to set the default agent whic
 Custom Agents
 -------------
 
-You can write a custom agent by subclassing the :class:`bluez_peripheral.agent.BaseAgent` in the same way as the built in agents.
-The recomended approach is first to instance and register the :class:`bluez_peripheral.agent.TestAgent` with your chosen capability setting.
+You can write a custom agent by sub-classing the :class:`bluez_peripheral.agent.BaseAgent` in the same way as the built in agents.
+The recommended approach is first to instance and register the :class:`bluez_peripheral.agent.TestAgent` with your chosen capability setting.
 
 .. code-block:: python
 
@@ -66,6 +66,6 @@ The recomended approach is first to instance and register the :class:`bluez_peri
     agent = TestAgent()
     await agent.register(bus)
 
-Once you've registered this agent, assuming that you are broadcasting a valid advertisment, you may connect to your peripheral from another device.
+Once you've registered this agent, assuming that you are broadcasting a valid advertisement, you may connect to your peripheral from another device.
 During the pairing process the test agent will encounter breakpoints whenever one of its methods is called.
 To implement your agent you should check which methods are called during the pairing process then implement them as required using the test agent as a template.
