@@ -63,5 +63,5 @@ html_theme = "sphinx_rtd_theme"
 # html_static_path = ["_static"]
 
 # -- Options for spelling checker --------------------------------------------
-spelling_lang = "en_UK"
-tokenizer_lang = "en_UK"
+spelling_lang = "en_US"
+tokenizer_lang = "en_US"

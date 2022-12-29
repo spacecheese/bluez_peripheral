@@ -103,7 +103,7 @@ class descriptor(ServiceInterface):
     Args:
         uuid: The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         characteristic: The parent characteristic to associate this descriptor with.
-        flags: Flags defining the possible read/ write behaviour of the attribute.
+        flags: Flags defining the possible read/ write behavior of the attribute.
 
     See Also:
         :ref:`quickstart`

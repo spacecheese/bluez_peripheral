@@ -6,17 +6,17 @@ jobs:
   test-docs:
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9.x'
           cache: 'pip'
-      - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r docs/requirements.txt
-          sudo apt-get update && sudo apt-get install -y enchant-2
+          sudo apt-get update && sudo apt-get install -y enchant-2 aspell-en
       - name: Build Docs
         run: |
           cd docs
