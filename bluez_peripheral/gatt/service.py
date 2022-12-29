@@ -15,7 +15,7 @@ class Service(ServiceInterface):
     """Create a bluetooth service with the specified uuid.
 
     Args:
-        uuid: The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
         primary: True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
         includes: Any services to include in this service.
             Services must be registered at the time Includes is read to be included.
