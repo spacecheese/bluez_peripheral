@@ -52,7 +52,8 @@ class HeartRateService(Service):
         # Base 16 service UUID, This should be a primary service.
         super().__init__("180D", True)
 
-    @characteristic("2A37", CharFlags.NOTIFY)
+    # Characteristics and Descriptors can have multiple flags set at once.
+    @characteristic("2A37", CharFlags.NOTIFY | CharFlags.READ)
     def heart_rate_measurement(self, options):
         # This function is called when the characteristic is read.
         # Since this characteristic is notify only this function is a placeholder.

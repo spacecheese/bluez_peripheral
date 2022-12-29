@@ -15,9 +15,9 @@ class Service(ServiceInterface):
     """Create a bluetooth service with the specified uuid.
 
     Args:
-        uuid (Union[UUID, str]): The UUID of this service. A full list of recognised values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
-        primary (bool, optional): True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
-        includes (Collection[Service], optional): Any services to include in this service.
+        uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        primary: True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
+        includes: Any services to include in this service.
             Services must be registered at the time Includes is read to be included.
     """
 
@@ -62,7 +62,7 @@ class Service(ServiceInterface):
         """Add the specified characteristic to this service declaration.
 
         Args:
-            char (characteristic): The characteristic to add.
+            char: The characteristic to add.
 
         Raises:
             ValueError: Raised when the service is registered with the bluez service manager and thus cannot be modified.
@@ -78,7 +78,7 @@ class Service(ServiceInterface):
         """Remove the specified characteristic from this service declaration.
 
         Args:
-            char (characteristic): The characteristic to remove.
+            char: The characteristic to remove.
 
         Raises:
             ValueError: Raised if the service is registered with the bluez service manager and thus cannot be modified.
@@ -118,9 +118,9 @@ class Service(ServiceInterface):
         Using this multiple times will cause path conflicts.
 
         Args:
-            bus (MessageBus): The bus to use when providing this service.
-            path (str, optional): The base dbus path to export this service to.
-            adapter (Adapter, optional): The adapter that will provide this service or None to select the first adapter.
+            bus: The bus to use when providing this service.
+            path: The base dbus path to export this service to.
+            adapter: The adapter that will provide this service or None to select the first adapter.
         """
         self._collection = ServiceCollection([self])
         await self._collection.register(bus, path, adapter)
@@ -170,7 +170,7 @@ class ServiceCollection:
         """Create a service collection populated with the specified list of services.
 
         Args:
-            services (Collection[Service]): The services to provide.
+            services: The services to provide.
         """
         self._path = None
         self._adapter = None
@@ -180,7 +180,7 @@ class ServiceCollection:
         """Add the specified service to this service collection.
 
         Args:
-            service (Service): The service to add.
+            service: The service to add.
         """
         if self.is_registered():
             raise ValueError(
@@ -193,7 +193,7 @@ class ServiceCollection:
         """Remove the specified service from this collection.
 
         Args:
-            service (Service): The service to remove.
+            service: The service to remove.
         """
         if self.is_registered():
             raise ValueError(
@@ -209,7 +209,7 @@ class ServiceCollection:
         """Check if this service collection is registered with the bluez service manager.
 
         Returns:
-            bool: True if the service is registered. False otherwise.
+            True if the service is registered. False otherwise.
         """
         return not self._path is None
 
@@ -223,10 +223,10 @@ class ServiceCollection:
         Services and service collections that are registered may not be modified until they are unregistered.
 
         Args:
-            bus (MessageBus): The bus to use for registration and management of this service.
-            path (str, optional): The base dbus path to use when registering the collection.
+            bus: The bus to use for registration and management of this service.
+            path: The base dbus path to use when registering the collection.
                 Each service will be an automatically numbered child of this base.
-            adapter (ProxyObject, optional): The adapter that should be used to deliver the collection of services.
+            adapter: The adapter that should be used to deliver the collection of services.
         """
         if self.is_registered():
             return

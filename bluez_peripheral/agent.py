@@ -35,7 +35,7 @@ class BaseAgent(ServiceInterface):
     Alternatively bluez supports several built in agents which can be selected using the bluetoothctl cli.
 
     Args:
-        capability (AgentCapability): The IO capabilities of the agent.
+        capability: The IO capabilities of the agent.
     """
 
     _INTERFACE = "org.bluez.Agent1"
@@ -72,11 +72,11 @@ class BaseAgent(ServiceInterface):
         """Expose this agent on the specified message bus and register it with the bluez agent manager.
 
         Args:
-            bus (MessageBus): The message bus to expose the agent using.
-            default (bool, optional): Whether or not the agent should be registered as default.
+            bus: The message bus to expose the agent using.
+            default: Whether or not the agent should be registered as default.
                 Non-default agents will not be called to respond to incoming pairing requests.
                 The caller requires superuser if this is true.
-            path (str, optional): The path to expose this message bus on.
+            path: The path to expose this message bus on.
         """
         self._path = path
         bus.export(path, self)
@@ -98,7 +98,7 @@ class TestAgent(BaseAgent):
     """A testing agent that invokes the debugger whenever a method is called. Use this for debugging only.
 
     Args:
-        capability (AgentCapability): The IO capability of the agent.
+        capability: The IO capability of the agent.
     """
 
     def __init__(self, capability: AgentCapability):
@@ -169,9 +169,9 @@ class YesNoAgent(BaseAgent):
     """An agent that uses a callback to display a yes/ no prompt in response to an incoming pairing request.
 
     Args:
-        request_confirmation (Callable[[int], Awaitable[bool]]): The callback called when a pairing request is recived.
+        request_confirmation: The callback called when a pairing request is received.
             This should return true if the user indicates that the supplied passcode is correct or false otherwise.
-        cancel (Callable): The callback called when a pairing request is cancelled remotely.
+        cancel: The callback called when a pairing request is canceled remotely.
     """
 
     def __init__(
