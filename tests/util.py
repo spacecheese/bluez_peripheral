@@ -1,11 +1,12 @@
-from typing import Tuple
 import asyncio
+from uuid import UUID
+from typing import Tuple
 from threading import Thread, Event
 from unittest.case import SkipTest
 
 from dbus_next.introspection import Node
 
-from bluez_peripheral.util import *
+from bluez_peripheral.util import get_message_bus, is_bluez_available, MessageBus, Adapter
 from bluez_peripheral.uuid16 import UUID16
 
 
@@ -84,7 +85,7 @@ async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, st
         elif "org.bluez.GattDescriptor1" in interface_names:
             uuid = await proxy.get_interface("org.bluez.GattDescriptor1").get_uuid()
 
-        if UUID16.from_uuid16_128(uuid) == target_uuid:
+        if UUID16(uuid) == target_uuid:
             return introspection, node_path
 
     raise ValueError(

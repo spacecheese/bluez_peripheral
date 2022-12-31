@@ -1,4 +1,3 @@
-from bluez_peripheral.gatt.descriptor import descriptor
 from unittest import IsolatedAsyncioTestCase
 from threading import Event
 from tests.util import *
@@ -11,7 +10,10 @@ from bluez_peripheral.gatt.characteristic import (
     CharacteristicWriteType,
     characteristic,
 )
+from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service
+
+from dbus_next import Variant
 
 last_opts = None
 write_notify_char_val = None
@@ -53,7 +55,10 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             service = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180A"
+                self._client_bus, 
+                self._bus_manager.name, 
+                path, 
+                UUID16("180A")
             )
 
             child_names = [path.split("/")[-1] for path in service.child_paths]
