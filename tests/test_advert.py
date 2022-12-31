@@ -2,9 +2,10 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.case import SkipTest
 
 from tests.util import *
-
 from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.advert import Advertisement, PacketType, AdvertisingIncludes
+
+from uuid import UUID
 
 
 class TestAdvert(IsolatedAsyncioTestCase):
@@ -77,7 +78,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
     async def test_uuid128(self):
         advert = Advertisement(
             "Improv Test",
-            [BTUUID("00467768-6228-2272-4663-277478268000")],
+            [UUID("00467768-6228-2272-4663-277478268000")],
             0x0340,
             2,
         )
