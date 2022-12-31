@@ -16,6 +16,22 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/../../'))
 
+# See https://github.com/sphinx-doc/sphinx/issues/5603
+def add_intersphinx_aliases_to_inv(app):
+    from sphinx.ext.intersphinx import InventoryAdapter
+    inventories = InventoryAdapter(app.builder.env)
+
+    for alias, target in app.config.intersphinx_aliases.items():
+        alias_domain, alias_name = alias
+        target_domain, target_name = target
+        try:
+            found = inventories.main_inventory[target_domain][target_name]
+            try:
+                inventories.main_inventory[alias_domain][alias_name] = found
+            except KeyError:
+                continue
+        except KeyError:
+            continue
 
 # -- Project information -----------------------------------------------------
 
@@ -28,7 +44,7 @@ author = "spacecheese"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinxcontrib.spelling", "sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.napoleon"]
+extensions = ["sphinxcontrib.spelling", "sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.napoleon", "sphinx_inline_tabs", "m2r2"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -38,6 +54,8 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+nitpicky = True
+
 # -- Napoleon ----------------------------------------------------------------
 napoleon_numpy_docstring = False
 
@@ -45,9 +63,23 @@ napoleon_numpy_docstring = False
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "dbus_next": ("https://python-dbus-next.readthedocs.io/en/latest/", None),
-    # Add a backup inv to fix mapping of dbus_next.aio.proxy_object.ProxyObject and dbus_next.aio.message_bus.MessageBus
-    "dbus_next_alias": (os.path.abspath(os.path.dirname(__file__)), "dbus_next.inv")
 }
+
+# Fix resolution of MessageBus class to where docs actually are.
+intersphinx_aliases = {
+    ('py:class', 'dbus_next.aio.message_bus.MessageBus'):
+        ('py:class', 'dbus_next.aio.MessageBus'),
+    ('py:class', 'dbus_next.aio.proxy_object.ProxyObject'):
+        ('py:class', 'dbus_next.aio.ProxyObject'),
+    ('py:class', 'dbus_next.errors.DBusError'):
+        ('py:class', 'dbus_next.DBusError'),
+    ('py:class', 'dbus_next.signature.Variant'):
+        ('py:class', 'dbus_next.Variant'),
+}
+
+def setup(app):
+    app.add_config_value('intersphinx_aliases', {}, 'env')
+    app.connect('builder-inited', add_intersphinx_aliases_to_inv)
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -55,7 +87,7 @@ intersphinx_mapping = {
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 
 # # Add any paths that contain custom static files (such as style sheets) here,
 # # relative to this directory. They are copied after the builtin static files,
