@@ -9,7 +9,7 @@ from typing import Callable, Optional, Union
 
 from .descriptor import descriptor, DescriptorFlags
 from ..uuid16 import UUID16
-from ..util import *
+from ..util import _snake_to_kebab, _getattr_variant
 
 
 class CharacteristicReadOptions:
@@ -21,9 +21,9 @@ class CharacteristicReadOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self._offset = int(getattr_variant(options, "offset", 0))
-        self._mtu = int(getattr_variant(options, "mtu", 0))
-        self._device = getattr_variant(options, "device", None)
+        self._offset = int(_getattr_variant(options, "offset", 0))
+        self._mtu = int(_getattr_variant(options, "mtu", 0))
+        self._device = _getattr_variant(options, "device", None)
 
     @property
     def offset(self) -> int:
@@ -64,15 +64,15 @@ class CharacteristicWriteOptions:
         self.__init__({})
 
     def __init__(self, options):
-        self._offset = int(getattr_variant(options, "offset", 0))
-        type = getattr_variant(options, "type", None)
+        self._offset = int(_getattr_variant(options, "offset", 0))
+        type = _getattr_variant(options, "type", None)
         if not type is None:
             type = CharacteristicWriteType[type.upper()]
         self._type = type
-        self._mtu = int(getattr_variant(options, "mtu", 0))
-        self._device = getattr_variant(options, "device", None)
-        self._link = getattr_variant(options, "link", None)
-        self._prepare_authorize = getattr_variant(options, "prepare-authorize", False)
+        self._mtu = int(_getattr_variant(options, "mtu", 0))
+        self._device = _getattr_variant(options, "device", None)
+        self._link = _getattr_variant(options, "link", None)
+        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
 
     @property
     def offset(self):
@@ -381,7 +381,7 @@ class characteristic(ServiceInterface):
 
         # Return a list of set string flag names.
         return [
-            snake_to_kebab(flag.name)
+            _snake_to_kebab(flag.name)
             for flag in CharacteristicFlags
             if self.flags & flag
         ]

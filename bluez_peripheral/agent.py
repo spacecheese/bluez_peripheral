@@ -5,7 +5,7 @@ from dbus_next import DBusError
 from typing import Awaitable, Callable
 from enum import Enum
 
-from .util import *
+from .util import _snake_to_pascal
 
 
 class AgentCapability(Enum):
@@ -59,7 +59,7 @@ class BaseAgent(ServiceInterface):
         pass
 
     def _get_capability(self):
-        return snake_to_pascal(self._capability.name)
+        return _snake_to_pascal(self._capability.name)
 
     async def _get_manager_interface(self, bus: MessageBus):
         introspection = await bus.introspect("org.bluez", "/org/bluez")

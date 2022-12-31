@@ -1,3 +1,4 @@
+from dbus_next import Variant
 from dbus_next.aio import MessageBus
 from dbus_next.aio.proxy_object import ProxyInterface
 from dbus_next.constants import PropertyAccess
@@ -9,7 +10,7 @@ import struct
 from uuid import UUID
 
 from .uuid16 import UUID16
-from .util import *
+from .util import _snake_to_kebab, _kebab_to_shouting_snake, Adapter
 
 
 class PacketType(Enum):
@@ -127,7 +128,7 @@ class Advertisement(ServiceInterface):
         includes = await interface.get_supported_includes()
         flags = AdvertisingIncludes.NONE
         for inc in includes:
-            inc = AdvertisingIncludes[kebab_to_shouting_snake(inc)]
+            inc = AdvertisingIncludes[_kebab_to_shouting_snake(inc)]
             # Combine all the included flags.
             flags |= inc
         return flags
@@ -175,7 +176,7 @@ class Advertisement(ServiceInterface):
     @dbus_property(PropertyAccess.READ)
     def Includes(self) -> "as":  # type: ignore
         return [
-            snake_to_kebab(inc.name)
+            _snake_to_kebab(inc.name)
             for inc in AdvertisingIncludes
             if self._includes & inc
         ]

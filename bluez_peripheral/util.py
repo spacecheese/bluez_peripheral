@@ -7,22 +7,22 @@ from dbus_next.aio.proxy_object import ProxyObject
 from dbus_next.errors import DBusError
 
 
-def getattr_variant(object: Dict[str, Variant], key: str, default: Any):
+def _getattr_variant(object: Dict[str, Variant], key: str, default: Any):
     if key in object:
         return object[key].value
     else:
         return default
 
 
-def snake_to_kebab(s: str) -> str:
+def _snake_to_kebab(s: str) -> str:
     return s.lower().replace("_", "-")
 
 
-def kebab_to_shouting_snake(s: str) -> str:
+def _kebab_to_shouting_snake(s: str) -> str:
     return s.upper().replace("-", "_")
 
 
-def snake_to_pascal(s: str) -> str:
+def _snake_to_pascal(s: str) -> str:
     split = s.split("_")
 
     pascal = ""

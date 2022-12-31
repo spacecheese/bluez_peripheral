@@ -8,7 +8,7 @@ from enum import Flag, auto
 from typing import Callable, Union
 
 from ..uuid16 import UUID16
-from ..util import *
+from ..util import _snake_to_kebab, _getattr_variant
 
 
 class DescriptorReadOptions:
@@ -17,9 +17,9 @@ class DescriptorReadOptions:
     """
 
     def __init__(self, options):
-        self._offset = getattr_variant(options, "offset", 0)
-        self._link = getattr_variant(options, "link", None)
-        self._device = getattr_variant(options, "device", None)
+        self._offset = _getattr_variant(options, "offset", 0)
+        self._link = _getattr_variant(options, "link", None)
+        self._device = _getattr_variant(options, "device", None)
 
     @property
     def offset(self):
@@ -43,10 +43,10 @@ class DescriptorWriteOptions:
     """
 
     def __init__(self, options):
-        self._offset = getattr_variant(options, "offset", 0)
-        self._device = getattr_variant(options, "device", None)
-        self._link = getattr_variant(options, "link", None)
-        self._prepare_authorize = getattr_variant(options, "prepare-authorize", False)
+        self._offset = _getattr_variant(options, "offset", 0)
+        self._device = _getattr_variant(options, "device", None)
+        self._link = _getattr_variant(options, "link", None)
+        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
 
     @property
     def offset(self):
@@ -213,5 +213,5 @@ class descriptor(ServiceInterface):
     def Flags(self) -> "as":  # type: ignore
         # Return a list of string flag names.
         return [
-            snake_to_kebab(flag.name) for flag in DescriptorFlags if self.flags & flag
+            _snake_to_kebab(flag.name) for flag in DescriptorFlags if self.flags & flag
         ]
