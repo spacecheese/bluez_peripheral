@@ -8,10 +8,10 @@ class UUID16:
     """A container for BLE uuid16 values.
 
     Args:
-        hex (Optional[str]): A hexadecimal representation of a uuid16 or compatible uuid128.
-        bytes (Optional[bytes]): A 16-bit or 128-bit value representing a uuid16 or compatible uuid128.
-        int (Optional[int]): A numeric value representing a uuid16 (if < 2^16) or compatible uuid128.
-        uuid (Optional[UUID]): A compatible uuid128.
+        hex: A hexadecimal representation of a uuid16 or compatible uuid128.
+        bytes: A 16-bit or 128-bit value representing a uuid16 or compatible uuid128.
+        int: A numeric value representing a uuid16 (if < 2^16) or compatible uuid128.
+        uuid: A compatible uuid128.
     """
 
     # 0000****--0000-1000-8000-00805F9B34FB
@@ -68,8 +68,8 @@ class UUID16:
     def is_in_range(cls, uuid: UUID) -> bool:
         """Determines if a supplied uuid128 is in the allowed uuid16 range.
 
-        Returns:
-            bool: True if the uuid is in range, False otherwise.
+        Returns: 
+            True if the uuid is in range, False otherwise.
         """
         if uuid.fields[0] & 0xFFFF0000 != cls._FIELDS[0]:
             return False
