@@ -5,6 +5,7 @@ from dbus_next.aio import MessageBus
 
 import inspect
 from uuid import UUID
+from typing import Union
 
 from .characteristic import characteristic
 from ..uuid16 import UUID16
