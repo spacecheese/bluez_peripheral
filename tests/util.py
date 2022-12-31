@@ -6,7 +6,7 @@ from unittest.case import SkipTest
 from dbus_next.introspection import Node
 
 from bluez_peripheral.util import *
-from bluez_peripheral.uuid import BTUUID
+from bluez_peripheral.uuid16 import UUID16
 
 
 class BusManager:
@@ -84,11 +84,11 @@ async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, st
         elif "org.bluez.GattDescriptor1" in interface_names:
             uuid = await proxy.get_interface("org.bluez.GattDescriptor1").get_uuid()
 
-        if BTUUID.from_uuid16_128(uuid) == BTUUID.from_uuid16(target_uuid):
+        if UUID16(uuid) == UUID16(target_uuid):
             return introspection, node_path
 
     raise ValueError(
-        "The attribute with uuid '" + target_uuid + "' could not be found."
+        "The attribute with uuid '" + str(target_uuid) + "' could not be found."
     )
 
 

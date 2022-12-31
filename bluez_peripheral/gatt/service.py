@@ -7,6 +7,7 @@ from .characteristic import characteristic
 from ..uuid16 import UUID16
 from ..util import *
 
+from uuid import UUID
 import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
