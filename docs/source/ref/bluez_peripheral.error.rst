@@ -1,7 +1,7 @@
-bluez\_peripheral.errors module
+bluez\_peripheral.error module
 ===============================
 
-.. automodule:: bluez_peripheral.errors
+.. automodule:: bluez_peripheral.error
    :members:
    :undoc-members:
    :show-inheritance:

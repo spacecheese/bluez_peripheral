@@ -10,6 +10,7 @@ from typing import Callable, Optional, Union
 from .descriptor import descriptor, DescriptorFlags
 from ..uuid16 import UUID16
 from ..util import _snake_to_kebab, _getattr_variant
+from ..error import NotSupportedError
 
 
 class CharacteristicReadOptions:
@@ -349,20 +350,14 @@ class characteristic(ServiceInterface):
     @method()
     def StartNotify(self):
         if not self.flags | CharacteristicFlags.NOTIFY:
-            raise DBusError(
-                "org.bluez.Error.NotSupported",
-                "The characteristic does not support notification.",
-            )
+            raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = True
 
     @method()
     def StopNotify(self):
         if not self.flags | CharacteristicFlags.NOTIFY:
-            raise DBusError(
-                "org.bluez.Error.NotSupported",
-                "The characteristic does not support notification.",
-            )
+            raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = False
 

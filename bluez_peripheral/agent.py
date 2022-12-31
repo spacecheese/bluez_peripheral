@@ -6,6 +6,7 @@ from typing import Awaitable, Callable
 from enum import Enum
 
 from .util import _snake_to_pascal
+from .error import RejectedError
 
 
 class AgentCapability(Enum):
@@ -185,9 +186,7 @@ class YesNoAgent(BaseAgent):
     @method()
     async def RequestConfirmation(self, device: "o", passkey: "u"):  # type: ignore
         if not await self._request_confirmation(passkey):
-            raise DBusError(
-                "org.bluez.Error.Rejected", "The supplied passkey was rejected."
-            )
+            raise RejectedError("The supplied passkey was rejected.")
 
     @method()
     def Cancel(self):  # type: ignore
