@@ -8,6 +8,7 @@ from ..uuid16 import UUID16
 from ..util import *
 
 from uuid import UUID
+from typing import Union
 import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
@@ -36,7 +37,7 @@ class Service(ServiceInterface):
 
     def __init__(
         self,
-        uuid: str | bytes | UUID | UUID16 | int,
+        uuid: Union[str, bytes, UUID, UUID16, int],
         primary: bool = True,
         includes: Collection["Service"] = [],
     ):
