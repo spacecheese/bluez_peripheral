@@ -22,7 +22,13 @@ jobs:
           cd docs
           make clean
           make html
+      - name: Spelling Check
+        if: always()
+        run: |
           make spelling
+      - name: Link 
+        if: always()
+        run: |
           make linkcheck
   test:
     runs-on: ubuntu-22.04
