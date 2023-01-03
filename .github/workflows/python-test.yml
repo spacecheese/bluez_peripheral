@@ -11,12 +11,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9.x'
-          cache: 'pipenv'
+          cache: 'pip'
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
           sudo apt-get update && sudo apt-get install -y enchant-2 aspell-en
-          curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
       - name: Build Docs
         run: |
           cd docs
@@ -32,11 +32,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9.x'
-          cache: 'pipenv'
+          cache: 'pip'
       - name: Install dependencies
         run: |
-          curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements.txt
       - name: Add DBus Config
         run: |
           sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
@@ -51,11 +51,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9.x'
-          cache: 'pipenv'
+          cache: 'pip'
       - name: Install dependencies
         run: |
-          curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black
       - name: Check Formatting
         run: |
           python -m black --check bluez_peripheral
