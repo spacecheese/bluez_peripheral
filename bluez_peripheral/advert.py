@@ -73,9 +73,7 @@ class Advertisement(ServiceInterface):
         duration: int = 2,
     ):
         self._type = packet_type
-        self._serviceUUIDs = [
-            UUID16.parse_uuid(uuid) for uuid in serviceUUIDs
-        ]
+        self._serviceUUIDs = [UUID16.parse_uuid(uuid) for uuid in serviceUUIDs]
         self._localName = localName
         # Convert the appearance to a uint16 if it isn't already an int.
         self._appearance = (
@@ -87,9 +85,7 @@ class Advertisement(ServiceInterface):
         for key, value in manufacturerData.items():
             self._manufacturerData[key] = Variant("ay", value)
 
-        self._solicitUUIDs = [
-            UUID16.parse_uuid(uuid) for uuid in solicitUUIDs
-        ]
+        self._solicitUUIDs = [UUID16.parse_uuid(uuid) for uuid in solicitUUIDs]
         self._serviceData = serviceData
         self._discoverable = discoverable
         self._includes = includes

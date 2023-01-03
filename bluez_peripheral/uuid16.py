@@ -50,7 +50,6 @@ class UUID16:
                 time_low = int
             else:
                 uuid = UUID(int=int)
-                
 
         if time_low is not None:
             fields = [f for f in self._FIELDS]
@@ -60,15 +59,13 @@ class UUID16:
             if UUID16.is_in_range(uuid):
                 self._uuid = uuid
             else:
-                raise ValueError(
-                    "the supplied uuid128 was out of range"
-                )
+                raise ValueError("the supplied uuid128 was out of range")
 
     @classmethod
     def is_in_range(cls, uuid: UUID) -> bool:
         """Determines if a supplied uuid128 is in the allowed uuid16 range.
 
-        Returns: 
+        Returns:
             True if the uuid is in range, False otherwise.
         """
         if uuid.fields[0] & 0xFFFF0000 != cls._FIELDS[0]:
@@ -82,6 +79,7 @@ class UUID16:
 
     @classmethod
     def parse_uuid(cls, uuid: Union[str, bytes, int, UUID]) -> Union[UUID, "UUID16"]:
+        """Attempts to convert a provided value to a UUID16. If this fails, conversion falls back to a 128-bit UUID."""
         if type(uuid) is UUID:
             if cls.is_in_range(uuid):
                 return UUID16(uuid=uuid)
@@ -107,26 +105,22 @@ class UUID16:
 
     @property
     def uuid(self) -> UUID:
-        """Returns the full uuid128 corresponding to this uuid16.
-        """
+        """Returns the full uuid128 corresponding to this uuid16."""
         return self._uuid
 
     @property
     def int(self) -> int:
-        """Returns the 16-bit integer value corresponding to this uuid16.
-        """
+        """Returns the 16-bit integer value corresponding to this uuid16."""
         return self._uuid.time_low & 0xFFFF
 
     @property
     def bytes(self) -> bytes:
-        """Returns a two byte value corresponding to this uuid16.
-        """
+        """Returns a two byte value corresponding to this uuid16."""
         return self.int.to_bytes(2, byteorder="big")
 
     @property
     def hex(self) -> str:
-        """Returns a 4 character hex string representing this uuid16.
-        """
+        """Returns a 4 character hex string representing this uuid16."""
         return self.bytes.hex()
 
     def __eq__(self, __o: object) -> bool:

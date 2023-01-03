@@ -5,8 +5,8 @@ from typing import Collection
 from unittest import IsolatedAsyncioTestCase
 
 from bluez_peripheral.uuid16 import UUID16
-from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.gatt.service import Service, ServiceCollection
+from bluez_peripheral import get_message_bus
+from bluez_peripheral.gatt import Service, ServiceCollection
 
 
 class TestService1(Service):
@@ -68,19 +68,13 @@ class TestService(IsolatedAsyncioTestCase):
 
         async def inspector(path):
             service1 = await get_attrib(
-                self._client_bus, 
-                self._bus_manager.name, 
-                path, 
-                UUID16("180A")
+                self._client_bus, self._bus_manager.name, path, UUID16("180A")
             )
             service = service1.get_interface("org.bluez.GattService1")
             includes = await service.get_includes()
 
             service2 = await get_attrib(
-                self._client_bus, 
-                self._bus_manager.name, 
-                path, 
-                UUID16("180B")
+                self._client_bus, self._bus_manager.name, path, UUID16("180B")
             )
             # Services must include themselves.
             assert service1.path in includes
@@ -88,10 +82,7 @@ class TestService(IsolatedAsyncioTestCase):
 
             if expect_service3:
                 service3 = await get_attrib(
-                    self._client_bus, 
-                    self._bus_manager.name, 
-                    path, 
-                    UUID16("180C")
+                    self._client_bus, self._bus_manager.name, path, UUID16("180C")
                 )
                 assert service3.path in includes
 
@@ -107,4 +98,3 @@ class TestService(IsolatedAsyncioTestCase):
         collection.remove_service(service3)
         expect_service3 = False
         await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-

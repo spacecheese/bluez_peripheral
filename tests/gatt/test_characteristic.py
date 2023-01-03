@@ -55,10 +55,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             service = await get_attrib(
-                self._client_bus, 
-                self._bus_manager.name, 
-                path, 
-                UUID16("180A")
+                self._client_bus, self._bus_manager.name, path, UUID16("180A")
             )
 
             child_names = [path.split("/")[-1] for path in service.child_paths]
@@ -194,7 +191,6 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 assert len(values) == 1
                 assert values["Value"].value.decode("utf-8") == "Test Notify Value"
                 property_changed.set()
-                
 
             properties_interface.on_properties_changed(on_properties_changed)
             await char_interface.call_start_notify()

@@ -13,6 +13,7 @@ from ..util import _snake_to_kebab, _getattr_variant
 from ..error import NotSupportedError
 
 
+# TODO: Add type annotations to these classes.
 class CharacteristicReadOptions:
     """Options supplied to characteristic read functions.
     Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
@@ -23,7 +24,7 @@ class CharacteristicReadOptions:
 
     def __init__(self, options):
         self._offset = int(_getattr_variant(options, "offset", 0))
-        self._mtu = int(_getattr_variant(options, "mtu", 0))
+        self._mtu = int(_getattr_variant(options, "mtu", None))
         self._device = _getattr_variant(options, "device", None)
 
     @property
@@ -33,11 +34,11 @@ class CharacteristicReadOptions:
 
     @property
     def mtu(self) -> Optional[int]:
-        """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
+        """The exchanged Maximum Transfer Unit of the connection with the remote device or None."""
         return self._mtu
 
     @property
-    def device(self):
+    def device(self) -> Optional[str]:
         """The path of the remote device on the system dbus or None."""
         return self._device
 
@@ -238,7 +239,9 @@ class characteristic(ServiceInterface):
         return self
 
     def descriptor(
-        self, uuid: Union[str, bytes, UUID, UUID16, int], flags: DescriptorFlags = DescriptorFlags.READ
+        self,
+        uuid: Union[str, bytes, UUID, UUID16, int],
+        flags: DescriptorFlags = DescriptorFlags.READ,
     ) -> "descriptor":
         """Create a new descriptor with the specified UUID and Flags.
 

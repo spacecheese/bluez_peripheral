@@ -18,10 +18,10 @@ class AgentCapability(Enum):
     """Any pairing method can be used.
     """
     DISPLAY_ONLY = 1
-    """Device has no input but a pairing code can be displayed.
+    """Device has no input but a 6 digit pairing code can be displayed.
     """
     DISPLAY_YES_NO = 2
-    """Device can display and record the response to a yes/ no prompt.
+    """Device can display a 6 digit pairing code and record the response to a yes/ no prompt.
     """
     KEYBOARD_ONLY = 3
     """Device has no output but can be used to input a pairing code.

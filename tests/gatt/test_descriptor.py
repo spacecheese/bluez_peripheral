@@ -6,10 +6,14 @@ from dbus_next.signature import Variant
 
 from tests.util import *
 
-from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.gatt.characteristic import CharacteristicFlags, characteristic
-from bluez_peripheral.gatt.descriptor import DescriptorFlags, descriptor
-from bluez_peripheral.gatt.service import Service
+from bluez_peripheral import get_message_bus
+from bluez_peripheral.gatt import (
+    CharacteristicFlags,
+    characteristic,
+    DescriptorFlags,
+    descriptor,
+    Service,
+)
 
 last_opts = None
 write_desc_val = None
@@ -54,11 +58,11 @@ class TestDescriptor(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             char = await get_attrib(
-                self._client_bus, 
-                self._bus_manager.name, 
-                path, 
-                UUID16("180A"), 
-                UUID16("2A37")
+                self._client_bus,
+                self._bus_manager.name,
+                path,
+                UUID16("180A"),
+                UUID16("2A37"),
             )
 
             child_names = [path.split("/")[-1] for path in char.child_paths]

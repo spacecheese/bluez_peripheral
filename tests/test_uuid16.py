@@ -21,12 +21,12 @@ class TestUUID16(unittest.TestCase):
 
     def test_from_bytes(self):
         with self.assertRaises(ValueError):
-            uuid = UUID16(bytes=b'\x12')
+            uuid = UUID16(bytes=b"\x12")
 
         with self.assertRaises(ValueError):
-            uuid = UUID16(bytes=b'\x12\x34\x56')
+            uuid = UUID16(bytes=b"\x12\x34\x56")
 
-        uuid = UUID16(bytes=b'\x12\x34')
+        uuid = UUID16(bytes=b"\x12\x34")
         assert uuid.uuid == UUID("00001234-0000-1000-8000-00805F9B34FB")
 
         uuid = UUID16(bytes=UUID("00001234-0000-1000-8000-00805F9B34FB").bytes)
@@ -72,8 +72,8 @@ class TestUUID16(unittest.TestCase):
 
     def test_bytes(self):
         uuid = UUID16(uuid=UUID("00001234-0000-1000-8000-00805F9B34FB"))
-        assert uuid.bytes == b'\x12\x34'
+        assert uuid.bytes == b"\x12\x34"
 
     def test_hex(self):
         uuid = UUID16(uuid=UUID("00001234-0000-1000-8000-00805F9B34FB"))
-        assert uuid.hex == '1234'
+        assert uuid.hex == "1234"

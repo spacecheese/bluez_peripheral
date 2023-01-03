@@ -6,7 +6,12 @@ from unittest.case import SkipTest
 
 from dbus_next.introspection import Node
 
-from bluez_peripheral.util import get_message_bus, is_bluez_available, MessageBus, Adapter
+from bluez_peripheral.util import (
+    get_message_bus,
+    is_bluez_available,
+    MessageBus,
+    Adapter,
+)
 from bluez_peripheral.uuid16 import UUID16
 
 

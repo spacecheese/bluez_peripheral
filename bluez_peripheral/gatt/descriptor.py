@@ -11,6 +11,7 @@ from ..uuid16 import UUID16
 from ..util import _snake_to_kebab, _getattr_variant
 
 
+# TODO: Add type annotations to these classes.
 class DescriptorReadOptions:
     """Options supplied to descriptor read functions.
     Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
