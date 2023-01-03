@@ -20,7 +20,7 @@ help:
 apidoc:
 	@$(SPHINXDOC) -o "$(APIDOCDIR)" "$(MODPATH)" $(SPHINXDOCOPTS)
 
-.PHONY: help Makefile apidoc
+.PHONY: help Makefile apidoc spelling
 
 spelling:
 	@$(SPHINXBUILD) -b spelling "$(SOURCEDIR)" "$(BUILDDIR)"
