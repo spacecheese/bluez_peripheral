@@ -1,8 +1,5 @@
 .. mdinclude:: ../../README.md
 
-TODO: Make sure types are linked in all these pages when the reference is done.
-TODO: Make sure True/ False is linked in pages.
-
 Contents
 ========
 .. toctree::

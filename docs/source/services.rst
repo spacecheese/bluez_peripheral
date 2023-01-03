@@ -18,11 +18,11 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
 .. warning::
     Attributes exceeding 48 bytes in length may take place across multiple accesses, using the :ref:`options.offset<attribute-options>` parameter to select portions of the data. This is dependent upon the :ref:`options.mtu<attribute-options>`.
 
+.. TODO: Code examples need automated testing.
 .. tab:: Decorators
-    
+
     .. code-block:: python
 
-        # TODO: Code examples need automated testing.
         from bluez_peripheral.gatt import Service
         from bluez_peripheral.gatt import characteristic, CharacteristicFlags as CharFlags
         from bluez_peripheral.gatt import descriptor, DescriptorFlags as DescFlags
