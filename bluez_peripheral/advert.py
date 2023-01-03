@@ -46,13 +46,13 @@ class Advertisement(ServiceInterface):
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
         timeout: The time from registration until this advert is removed.
         discoverable: Whether or not the device this advert should be generally discoverable.
-        packet_type: The type of advertising packet requested.
+        packetType: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
         solicitUUIDs: Array of service UUIDs to attempt to solicit (not widely used).
         serviceData: Any service data elements to include.
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
-        duration: Duration of the advert when multiple adverts are ongoing.
+        duration: Duration of the advert when only this advert is ongoing.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
@@ -65,14 +65,14 @@ class Advertisement(ServiceInterface):
         appearance: Union[int, bytes],
         timeout: int,
         discoverable: bool = True,
-        packet_type: PacketType = PacketType.PERIPHERAL,
+        packetType: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
         solicitUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]] = [],
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
     ):
-        self._type = packet_type
+        self._type = packetType
         self._serviceUUIDs = [UUID16.parse_uuid(uuid) for uuid in serviceUUIDs]
         self._localName = localName
         # Convert the appearance to a uint16 if it isn't already an int.
