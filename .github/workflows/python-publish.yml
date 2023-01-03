@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-        pipenv install
+        pipenv install && pipenv shell
         pip install build
     - name: Build package
       run: python -m build

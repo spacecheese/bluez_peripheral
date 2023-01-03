@@ -16,7 +16,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y enchant-2 aspell-en
           curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
+          pipenv install && pipenv shell
       - name: Build Docs
         run: |
           cd docs
@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
+          pipenv install && pipenv shell
       - name: Add DBus Config
         run: |
           sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: |
           curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-          pipenv install
+          pipenv install && pipenv shell
           pip install black
       - name: Check Formatting
         run: |
