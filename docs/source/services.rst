@@ -4,14 +4,14 @@ Creating a Service
 ==================
 Attribute Flags
 ---------------
-The behaviour of a particular attribute is described by a set of flags. These flags are implemented using the :py:class:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags` and :py:class:`~bluez_peripheral.gatt.descriptor.DescriptorFlags` enums. A single attribute may have multiple flags, in python you can combine these flags using the ``|`` operator (eg. ``CharacteristicFlags.READ | CharacteristicFlags.WRITE``).
+The behavior of a particular attribute is described by a set of flags. These flags are implemented using the :py:class:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags` and :py:class:`~bluez_peripheral.gatt.descriptor.DescriptorFlags` enums. A single attribute may have multiple flags, in python you can combine these flags using the ``|`` operator (eg. ``CharacteristicFlags.READ | CharacteristicFlags.WRITE``).
 
 UUIDs
 -----
 .. hint:: 
     The Bluetooth SIG has reserved 16-bit UUIDs for `standardised services <https://www.bluetooth.com/specifications/assigned-numbers/>`_. 128-bit UUIDs should be preferred to avoid confusion.
 
-BLE uses 128-bit Universally Unique Identifiers (UUIDs) to determine what each service, characteristic and descriptor refers to in addition to the type of every attribute. To minimise the amount of information that needs to be transmitted the Bluetooth SIG selected a base UUID of ``0000XXXX-0000-1000-8000-00805F9B34FB``. This allows a 16-bit number to be transmitted in place of the full 128-bit value in some cases. In bluez_peripheral 16-bit UUIDs are represented by the :py:class:`~bluez_peripheral.uuid16.UUID16` class whilst 128-bit values are represented by :py:class:`uuid.UUID`. In bluez_peripheral all user provided UUIDs are are parsed using :py:func:`UUID16.parse_uuid()<bluez_peripheral.uuid16.UUID16.parse_uuid>` meaning you can use these types interchangably, UUID16s will automatically be used where possible.
+BLE uses 128-bit Universally Unique Identifiers (UUIDs) to determine what each service, characteristic and descriptor refers to in addition to the type of every attribute. To minimize the amount of information that needs to be transmitted the Bluetooth SIG selected a base UUID of ``0000XXXX-0000-1000-8000-00805F9B34FB``. This allows a 16-bit number to be transmitted in place of the full 128-bit value in some cases. In bluez_peripheral 16-bit UUIDs are represented by the :py:class:`~bluez_peripheral.uuid16.UUID16` class whilst 128-bit values are represented by :py:class:`uuid.UUID`. In bluez_peripheral all user provided UUIDs are are parsed using :py:func:`UUID16.parse_uuid()<bluez_peripheral.uuid16.UUID16.parse_uuid>` meaning you can use these types interchangeably, UUID16s will automatically be used where possible.
 
 Adding Attributes
 -----------------
@@ -93,7 +93,7 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
 
 Error Handling
 ^^^^^^^^^^^^^^
-Attribute getters/ setters may raise one of a set of :ref:`legal exceptions<legal-errors>` to signal specific conditions to bluez. Avoid thowing custom exceptions in attribute accessors, since these will not be presented to a user and bluez will not know how to interpret them. Aditionally any exceptions thrown **must** derive from :py:class:`dbus_next.DBusError`. 
+Attribute getters/ setters may raise one of a set of :ref:`legal exceptions<legal-errors>` to signal specific conditions to bluez. Avoid throwing custom exceptions in attribute assessors, since these will not be presented to a user and bluez will not know how to interpret them. Additionally any exceptions thrown **must** derive from :py:class:`dbus_next.DBusError`. 
 
 .. _legal-errors:
 
@@ -123,7 +123,7 @@ Legal Errors
 Registering a Service
 -----------------------
 .. warning:: 
-    Ensure that the thread used to register your service yeilds regularly. Client requests will not be served otherwise.
+    Ensure that the thread used to register your service yields regularly. Client requests will not be served otherwise.
 
 .. hint:: 
     The "message bus" referred to here is a :py:class:`dbus_next.aio.MessageBus`.
@@ -165,7 +165,7 @@ Services can either be registered individually using a :py:class:`~bluez_periphe
 
 Notification
 ^^^^^^^^^^^^
-Characteristics with the :py:attr:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags.NOTIFY` or :py:attr:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags.INDICATE` flags can update clients when their value changes. Indicate requires acknowledgement from the client whilst notify does not. For this to work the client must first call subscribe to the notification. The client can then be notified by calling :py:func:`characteristic.changed()<bluez_peripheral.gatt.characteristic.characteristic.changed>`.
+Characteristics with the :py:attr:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags.NOTIFY` or :py:attr:`~bluez_peripheral.gatt.characteristic.CharacteristicFlags.INDICATE` flags can update clients when their value changes. Indicate requires acknowledgment from the client whilst notify does not. For this to work the client must first call subscribe to the notification. The client can then be notified by calling :py:func:`characteristic.changed()<bluez_peripheral.gatt.characteristic.characteristic.changed>`.
 
 .. warning:: 
     The :py:func:`characteristic.changed()<bluez_peripheral.gatt.characteristic.characteristic.changed>` function may only be called in the same thread that registered the service.

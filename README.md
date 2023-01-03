@@ -23,19 +23,19 @@ Install bluez (eg. `sudo apt-get install bluez`)
 ## GATT Overview
 
 GATT is a protocol that allows you to offer services to other devices. 
-You can find a list of standardised services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/).
+You can find a list of standardized services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/).
 
 ![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-5/images/peripheral-structure.png)
 
 *Courtesey of Qt documentation (GNU Free Documentation License)*
 
-A peripheral defines a list of services that it provides. Services are a collection of characteristics which expose particular data (eg. a heart rate or mouse position). Characteristics may also have descriptors that contain metadata (eg. the units of a characteristic). Services can optionally include other services. All BLE attributes (Services, Characterisics and Descriptors) are identified by a 16-bit number [assigned by the Bluetooth SIG](https://www.bluetooth.com/specifications/assigned-numbers/).
+A peripheral defines a list of services that it provides. Services are a collection of characteristics which expose particular data (eg. a heart rate or mouse position). Characteristics may also have descriptors that contain metadata (eg. the units of a characteristic). Services can optionally include other services. All BLE attributes (Services, Characteristics and Descriptors) are identified by a 16-bit number [assigned by the Bluetooth SIG](https://www.bluetooth.com/specifications/assigned-numbers/).
 
 Characteristics may operate in a number of modes depending on their purpose. By default characteristics are read-only in this library however they may also be writable and provide notification (like an event system) when their value changes. Additionally some characteristics may require security protection. You can read more about BLE on the [Bluetooth SIG blog](https://www.bluetooth.com/blog/a-developers-guide-to-bluetooth/). [This video](https://www.youtube.com/watch?v=BZwOrQ6zkzE) gives a more in-depth overview of BLE.
 
 ## Usage
 
-When using this library please remember that services are not implicitly threaded. **The thread used to register your service must regularly yeild otherwise your service will not work** (particularly notifications). Therefore you must frequently yeild to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
+When using this library please remember that services are not implicitly threaded. **The thread used to register your service must regularly yeild otherwise your service will not work** (particularly notifications). Therefore you must frequently yield to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
 
 The easiest way to use the library is to create a class describing the service that you wish to provide.
 ```python

@@ -85,7 +85,7 @@ There are three potential sources of agents:
 
 Debugging
 ---------
-Pairing can be quite difficult to debug. In between testing attempts ensure that the peripheral has been unpaired from the host **and** vice versa. Using linux you can list paired devices using ``bluetoothctl list`` then remove any unwanted devices using ``bluetoothctl remove <device id>``. Aditionally the linux bluetooth daemon stores a large amount of seemingly undocumented metadata in the ``/var/lib/bluetooth/`` directory and, it may be useful to delete this data between attempts.
+Pairing can be quite difficult to debug. In between testing attempts ensure that the peripheral has been unpaired from the host **and** vice versa. Using linux you can list paired devices using ``bluetoothctl list`` then remove any unwanted devices using ``bluetoothctl remove <device id>``. Additionally the linux bluetooth daemon stores a large amount of seemingly undocumented metadata in the ``/var/lib/bluetooth/`` directory and, it may be useful to delete this data between attempts.
 
 .. _pairing-io:
 

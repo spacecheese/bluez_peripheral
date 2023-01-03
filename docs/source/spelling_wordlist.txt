@@ -10,8 +10,16 @@ cli
 passcode
 indicatable
 eg
+ie
 unregister
 hostname
 dbus
 gatt
 util
+asyncio
+multithreading
+linux
+subpackages
+submodules
+enums
+responder
