@@ -21,12 +21,10 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 
     adapter = await Adapter.get_first(bus)
 
-    #                      This name will appear to the user.
-    #                            |       Any service UUIDs (in this case the heart rate service).
-    #                            |             |   This is the appearance code for a generic heart rate sensor.
-    #                            |             |         |   How long until the advert should stop (in seconds).
-    #                            |             |         |     |
-    #                           \/            \/        \/    \/
+    # "Heart Monitor" is the name the user will be shown for this device.
+    # "180D"          is the uuid16 for a heart rate service.
+    # 0x0340          is the appearance code for a generic heart rate sensor.
+    # 60              is the time (in seconds) until the advert stops.
     advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
     await advert.register(bus, adapter)
 
