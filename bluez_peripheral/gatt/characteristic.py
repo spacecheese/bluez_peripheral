@@ -175,9 +175,7 @@ class characteristic(ServiceInterface):
         flags: Flags defining the possible read/ write behavior of the attribute.
 
     See Also:
-        :ref:`quickstart`
-
-        :ref:`characteristics_descriptors`
+        :ref:`services`
     """
 
     _INTERFACE = "org.bluez.GattCharacteristic1"

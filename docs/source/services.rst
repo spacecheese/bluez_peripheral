@@ -1,3 +1,5 @@
+.. _services:
+
 Creating a Service
 ==================
 Attribute Flags
