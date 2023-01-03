@@ -67,6 +67,7 @@ class HeartRateService(Service):
 For your service to work you need to register it with bluez. In this example we also register an agent to secure pairing attempts (more on this later). Finally you also need to advertise the service to nearby devices.
 ```python
 from bluez_peripheral import get_message_bus, Advertisement
+from bluez_peripheral.util import Adapter
 from bluez_peripheral.agent import NoIoAgent
 import asyncio
 
@@ -99,5 +100,4 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
-Further  [documentation](https://bluez-peripheral.readthedocs.io/en/latest/) is available.
+To connect to and test your service the [nRF Connect for Mobile](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) app is an excellent tool. To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
