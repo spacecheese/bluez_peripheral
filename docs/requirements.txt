@@ -1,7 +1,7 @@
 dbus_next
 
 sphinx
-sphinx_tabs
+sphinx-inline-tabs
 sphinxcontrib-spelling
 furo
 m2r2
