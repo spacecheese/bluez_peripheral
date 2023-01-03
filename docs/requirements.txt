@@ -1,7 +1,0 @@
-dbus_next
-
-sphinx
-sphinx_tabs
-sphinxcontrib-spelling
-furo
-m2r2

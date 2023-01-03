@@ -6,19 +6,18 @@ on:
 
 jobs:
   deploy:
-
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'
-        cache: 'pip'
+        python-version: '3.9.x'
+        cache: 'pipenv'
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
+        pipenv install
         pip install build
     - name: Build package
       run: python -m build
