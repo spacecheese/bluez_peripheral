@@ -26,7 +26,7 @@ jobs:
         if: always()
         run: |
           make spelling
-      - name: Link 
+      - name: Link Check
         if: always()
         run: |
           make linkcheck
