@@ -28,6 +28,9 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
     advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
     await advert.register(bus, adapter)
 
+.. TODO: Advertising includes
+.. TODO: Advertisable characteristics
+
 .. seealso:: 
 
     Bluez Documentation
