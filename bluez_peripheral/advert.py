@@ -43,7 +43,7 @@ class Advertisement(ServiceInterface):
         localName: The device name to advertise.
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
-            `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
+            See the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_ (Search for "Appearance Values")
         timeout: The time from registration until this advert is removed.
         discoverable: Whether or not the device this advert should be generally discoverable.
         packetType: The type of advertising packet requested.

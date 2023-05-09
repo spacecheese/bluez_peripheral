@@ -10,7 +10,7 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 
 * A name for the device transmitting the advert (the ``localName``).
 * A collection of service UUIDs.
-* An appearance  describing how the device should appear to a user (see `Bluetooth SIG Assigned values <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_).
+* An appearance  describing how the device should appear to a user (see `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_).
 * A timeout specifying roughly how long the advert should be broadcast for (roughly since this is complicated by advert multiplexing).
 * A reference to a specific bluetooth :py:class:`adapter<bluez_peripheral.util.Adapter>` (since unlike with services, adverts are per-adapter).
 
@@ -35,6 +35,3 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 
     Bluez Documentation
         `Advertising API <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/advertising-api.txt>`_
-
-    Bluetooth SIG
-        `Assigned Appearance Values <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
