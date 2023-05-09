@@ -11,6 +11,7 @@ from .characteristic import characteristic
 from ..uuid16 import UUID16
 from ..util import *
 
+
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
 class Service(ServiceInterface):
     """Create a bluetooth service with the specified uuid.
