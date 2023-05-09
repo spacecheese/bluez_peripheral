@@ -100,4 +100,4 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-To connect to and test your service the [nRF Connect for Mobile](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) app is an excellent tool. To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
+To connect to and test your service the [nRF Connect for Mobile](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) app is an excellent tool. To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo usermod -aG bluetooth spacecheese`).
