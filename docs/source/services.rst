@@ -9,7 +9,7 @@ The behavior of a particular attribute is described by a set of flags. These fla
 UUIDs
 -----
 .. hint:: 
-    The Bluetooth SIG has reserved 16-bit UUIDs for `standardised services <https://www.bluetooth.com/specifications/assigned-numbers/>`_. 128-bit UUIDs should be preferred to avoid confusion.
+    The Bluetooth SIG has reserved 16-bit UUIDs for `standardised services <https://www.bluetooth.com/specifications/assigned-numbers/>`_. 128-bit UUIDs should be preferred to avoid conflicts and confusion.
 
 BLE uses 128-bit Universally Unique Identifiers (UUIDs) to determine what each service, characteristic and descriptor refers to in addition to the type of every attribute. To minimize the amount of information that needs to be transmitted the Bluetooth SIG selected a base UUID of ``0000XXXX-0000-1000-8000-00805F9B34FB``. This allows a 16-bit number to be transmitted in place of the full 128-bit value in some cases. In bluez_peripheral 16-bit UUIDs are represented by the :py:class:`~bluez_peripheral.uuid16.UUID16` class whilst 128-bit values are represented by :py:class:`uuid.UUID`. In bluez_peripheral all user provided UUIDs are are parsed using :py:func:`UUID16.parse_uuid()<bluez_peripheral.uuid16.UUID16.parse_uuid>` meaning you can use these types interchangeably, UUID16s will automatically be used where possible.
 
