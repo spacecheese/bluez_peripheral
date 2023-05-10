@@ -4,7 +4,7 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 
 from enum import Enum, Flag, auto
-from typing import Collection, Dict, Union
+from typing import Collection, Dict, Union, Callable, Optional
 import struct
 from uuid import UUID
 
@@ -43,7 +43,7 @@ class Advertisement(ServiceInterface):
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
-        timeout: The time from registration until this advert is removed.
+        timeout: The time from registration until this advert is removed (defaults to zero meaning never timeout).
         discoverable: Whether or not the device this advert should be generally discoverable.
         packet_type: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
@@ -52,26 +52,31 @@ class Advertisement(ServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
+        releaseCallback: A function to call when the advert release function is called.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
     _MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
+
+    _defaultPathAdvertCount = 0
 
     def __init__(
         self,
         localName: str,
         serviceUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]],
         appearance: Union[int, bytes],
-        timeout: int,
+        timeout: int = 0,
         discoverable: bool = True,
-        packet_type: PacketType = PacketType.PERIPHERAL,
+        packetType: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
         solicitUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]] = [],
         serviceData: Dict[str, bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
+        releaseCallback: Optional[Callable[[], None]] = None,
     ):
-        self._type = packet_type
+        self._type = packetType
+        # Convert any string uuids to uuid16.
         self._serviceUUIDs = [
             UUID16.parse_uuid(uuid) for uuid in serviceUUIDs
         ]
@@ -93,6 +98,7 @@ class Advertisement(ServiceInterface):
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
+        self.releaseCallback = releaseCallback
 
         super().__init__(self._INTERFACE)
 
@@ -100,7 +106,7 @@ class Advertisement(ServiceInterface):
         self,
         bus: MessageBus,
         adapter: Adapter = None,
-        path: str = "/com/spacecheese/bluez_peripheral/advert0",
+        path: Optional[str] = None,
     ):
         """Register this advert with bluez to start advertising.
 
@@ -109,6 +115,16 @@ class Advertisement(ServiceInterface):
             adapter: The adapter to use.
             path: The dbus path to use for registration.
         """
+        # Generate a unique path name for this advert if one isn't already given.
+        if path is None:
+            path = "/com/spacecheese/bluez_peripheral/advert" + str(
+                Advertisement._defaultPathAdvertCount
+            )
+            Advertisement._defaultPathAdvertCount += 1
+
+        self._exportBus = bus
+        self._exportPath = path
+
         # Export this advert to the dbus.
         bus.export(path, self)
 
@@ -118,8 +134,6 @@ class Advertisement(ServiceInterface):
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})
-
-        bus.unexport(path, self._INTERFACE)
 
     @classmethod
     async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
@@ -134,7 +148,10 @@ class Advertisement(ServiceInterface):
 
     @method()
     def Release(self):  # type: ignore
-        return
+        self._exportBus.unexport(self._exportPath, self._INTERFACE)
+
+        if self.releaseCallback is not None:
+            self.releaseCallback()
 
     @dbus_property(PropertyAccess.READ)
     def Type(self) -> "s":  # type: ignore

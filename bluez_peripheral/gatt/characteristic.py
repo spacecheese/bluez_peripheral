@@ -3,9 +3,10 @@ from dbus_next.constants import PropertyAccess
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.aio import MessageBus
 
+import inspect
 from uuid import UUID
 from enum import Enum, Flag, auto
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Awaitable
 
 from .descriptor import descriptor, DescriptorFlags
 from ..uuid16 import UUID16
@@ -210,7 +211,9 @@ class characteristic(ServiceInterface):
     # Decorators
     def setter(
         self,
-        setter_func: Callable[["Service", bytes, CharacteristicWriteOptions], None],
+        setter_func: Union[
+            Callable[["Service", bytes, CharacteristicWriteOptions], None],
+            Callable[["Service", bytes, CharacteristicWriteOptions], Awaitable[None]]],
     ) -> "characteristic":
         """A decorator for characteristic value setters."""
         self.setter_func = setter_func
@@ -218,9 +221,13 @@ class characteristic(ServiceInterface):
 
     def __call__(
         self,
-        getter_func: Callable[["Service", CharacteristicReadOptions], bytes] = None,
-        setter_func: Callable[
-            ["Service", bytes, CharacteristicWriteOptions], None
+        getter_func: Union[
+            Callable[["Service", CharacteristicReadOptions], bytes],
+            Callable[["Service", CharacteristicReadOptions], Awaitable[bytes]]
+        ] = None,
+        setter_func: Union[
+            Callable[["Service", bytes, CharacteristicWriteOptions], None],
+            Callable[["Service", bytes, CharacteristicWriteOptions], Awaitable[None]]
         ] = None,
     ) -> "characteristic":
         """A decorator for characteristic value getters.
@@ -316,11 +323,15 @@ class characteristic(ServiceInterface):
         self._service_path = None
 
     @method()
-    def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+    async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            self._value = bytearray(
-                self.getter_func(self._service, CharacteristicReadOptions(options))
-            )
+            res = []
+            if inspect.iscoroutinefunction(self.getter_func):
+                res = await self.getter_func(self._service, CharacteristicReadOptions(options))
+            else:
+                res = self.getter_func(self._service, CharacteristicReadOptions(options))
+
+            self._value = bytearray(res)
             return bytes(self._value)
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
@@ -333,10 +344,13 @@ class characteristic(ServiceInterface):
             raise e
 
     @method()
-    def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+    async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
         opts = CharacteristicWriteOptions(options)
         try:
-            self.setter_func(self._service, data, opts)
+            if inspect.iscoroutinefunction(self.setter_func):
+                await self.setter_func(self._service, data, opts)
+            else:
+                self.setter_func(self._service, data, opts)
         except DBusError as e:
             raise e
         except Exception as e:
