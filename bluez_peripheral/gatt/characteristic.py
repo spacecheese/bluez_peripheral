@@ -4,11 +4,12 @@ from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.aio import MessageBus
 
 import inspect
+from uuid import UUID
 from enum import Enum, Flag, auto
-from typing import Callable, Union, Awaitable
+from typing import Callable, Optional, Union, Awaitable
 
 from .descriptor import descriptor, DescriptorFlags
-from ..uuid import BTUUID
+from ..uuid16 import UUID16
 from ..util import *
 
 
@@ -31,7 +32,7 @@ class CharacteristicReadOptions:
         return self._offset
 
     @property
-    def mtu(self) -> Union[int, None]:
+    def mtu(self) -> Optional[int]:
         """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
         return self._mtu
 
@@ -182,12 +183,10 @@ class characteristic(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[BTUUID, str],
+        uuid: Union[str, bytes, UUID, UUID16, int],
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
-        if type(uuid) is str:
-            uuid = BTUUID.from_uuid16_128(uuid)
-        self.uuid = uuid
+        self.uuid = UUID16.parse_uuid(uuid)
         self.getter_func = None
         self.setter_func = None
         self.flags = flags
@@ -245,7 +244,7 @@ class characteristic(ServiceInterface):
         return self
 
     def descriptor(
-        self, uuid: Union[BTUUID, str], flags: DescriptorFlags = DescriptorFlags.READ
+        self, uuid: Union[str, bytes, UUID, UUID16, int], flags: DescriptorFlags = DescriptorFlags.READ
     ) -> "descriptor":
         """Create a new descriptor with the specified UUID and Flags.
 

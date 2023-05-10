@@ -4,9 +4,10 @@ from dbus_next.service import ServiceInterface, dbus_property
 from dbus_next.aio import MessageBus
 
 from .characteristic import characteristic
-from ..uuid import BTUUID as UUID
+from ..uuid16 import UUID16
 from ..util import *
 
+from uuid import UUID
 from typing import Union
 import inspect
 
@@ -36,12 +37,12 @@ class Service(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[UUID, str],
+        uuid: Union[str, bytes, UUID, UUID16, int],
         primary: bool = True,
         includes: Collection["Service"] = [],
     ):
         # Make sure uuid is a uuid16.
-        self._uuid = uuid if type(uuid) is UUID else UUID.from_uuid16_128(uuid)
+        self._uuid = UUID16.parse_uuid(uuid)
         self._primary = primary
         self._characteristics = []
         self._path = None
