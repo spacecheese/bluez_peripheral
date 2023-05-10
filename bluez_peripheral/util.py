@@ -82,14 +82,6 @@ class Adapter:
         """
         await self._adapter_interface.set_alias(val)
 
-    async def get_powered(self) -> bool:
-        """Indicates if the adapter is on or off."""
-        return await self._adapter_interface.get_powered()
-
-    async def set_powered(self, val: bool):
-        """Turn this adapter on or off."""
-        await self._adapter_interface.set_powered(val)
-
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
         """Get a list of available Bluetooth adapters.
