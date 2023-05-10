@@ -42,7 +42,7 @@ class Advertisement(ServiceInterface):
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
             `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
-        timeout: The time from registration until this advert is removed.
+        timeout: The time from registration until this advert is removed (defaults to zero meaning never timeout).
         discoverable: Whether or not the device this advert should be generally discoverable.
         packet_type: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
@@ -61,7 +61,7 @@ class Advertisement(ServiceInterface):
         localName: str,
         serviceUUIDs: Collection[Union[BTUUID, str]],
         appearance: Union[int, bytes],
-        timeout: int,
+        timeout: int = 0,
         discoverable: bool = True,
         packet_type: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
