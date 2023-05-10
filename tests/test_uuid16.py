@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import unittest
 
 from bluez_peripheral.uuid16 import UUID16
