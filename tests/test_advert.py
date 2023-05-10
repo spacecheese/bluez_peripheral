@@ -22,7 +22,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
             ["180A", "180D"],
             0x0340,
             2,
-            packet_type=PacketType.PERIPHERAL,
+            packetType=PacketType.PERIPHERAL,
             includes=AdvertisingIncludes.TX_POWER,
         )
 
@@ -56,7 +56,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
             ["180A", "180D"],
             0x0340,
             2,
-            packet_type=PacketType.PERIPHERAL,
+            packetType=PacketType.PERIPHERAL,
             includes=AdvertisingIncludes.NONE,
         )
 
