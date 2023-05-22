@@ -3,6 +3,7 @@ from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
 
+import inspect
 from uuid import UUID
 from enum import Flag, auto
 from typing import Callable, Union, Awaitable

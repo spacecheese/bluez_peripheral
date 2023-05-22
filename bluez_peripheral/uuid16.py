@@ -16,7 +16,7 @@ class UUID16:
 
     # 0000****--0000-1000-8000-00805F9B34FB
     _FIELDS = (0x00000000, 0x0000, 0x1000, 0x80, 0x00, 0x00805F9B34FB)
-    _uuid: UUID = None
+    _uuid: Optional[UUID] = None
 
     def __init__(
         self,
@@ -26,9 +26,10 @@ class UUID16:
         uuid: Optional[UUID] = None,
     ):
         if [hex, bytes, int, uuid].count(None) != 3:
-            raise TypeError("one of the hex, bytes or int arguments must be given")
+            raise TypeError("exactly one of the hex, bytes or int arguments must be given")
 
-        time_low = None
+        # All representations are converted to either a UUID128 or a 16-bit integer.
+        time_low : int = None
 
         if hex is not None:
             hex.strip("0x")
@@ -43,7 +44,7 @@ class UUID16:
             elif len(bytes) == 16:
                 uuid = UUID(bytes=bytes)
             else:
-                raise ValueError("bytes must be either 2 or 16-bytes long")
+                raise ValueError("uuid bytes must be exactly either 2 or 16 bytes long")
 
         if int is not None:
             if int < 2**16 and int >= 0:
@@ -52,14 +53,13 @@ class UUID16:
                 uuid = UUID(int=int)
 
         if time_low is not None:
-            fields = [f for f in self._FIELDS]
-            fields[0] = time_low
-            self._uuid = UUID(fields=fields)
+            self._uuid = UUID(fields=(time_low,) + self._FIELDS[1:])
         else:
             if UUID16.is_in_range(uuid):
                 self._uuid = uuid
             else:
                 raise ValueError("the supplied uuid128 was out of range")
+            
 
     @classmethod
     def is_in_range(cls, uuid: UUID) -> bool:
@@ -78,25 +78,25 @@ class UUID16:
         return True
 
     @classmethod
-    def parse_uuid(cls, uuid: Union[str, bytes, int, UUID]) -> Union[UUID, "UUID16"]:
-        if type(uuid) is UUID:
+    def parse_uuid(cls, uuid: Union[str, bytes, int, UUID, "UUID16"]) -> Union[UUID, "UUID16"]:
+        if type(uuid) is UUID16:
+            return uuid
+        elif type(uuid) is UUID:
             if cls.is_in_range(uuid):
                 return UUID16(uuid=uuid)
-            return uuid
-
-        if type(uuid) is str:
+            else:
+                return uuid
+        elif type(uuid) is str:
             try:
                 return UUID16(hex=uuid)
             except:
                 return UUID(hex=uuid)
-
-        if type(uuid) is bytes:
+        elif type(uuid) is bytes:
             try:
                 return UUID16(bytes=uuid)
             except:
                 return UUID(bytes=uuid)
-
-        if type(uuid) is int:
+        else: # Must be int.
             try:
                 return UUID16(int=uuid)
             except:
