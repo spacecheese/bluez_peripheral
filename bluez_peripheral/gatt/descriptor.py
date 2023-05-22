@@ -5,7 +5,7 @@ from dbus_next.constants import PropertyAccess
 
 from uuid import UUID
 from enum import Flag, auto
-from typing import Callable, Union
+from typing import Callable, Union, Awaitable
 
 from ..uuid16 import UUID16
 from ..util import _snake_to_kebab, _getattr_variant
@@ -134,7 +134,10 @@ class descriptor(ServiceInterface):
     # Decorators
     def setter(
         self,
-        setter_func: Callable[[bytes, DescriptorWriteOptions], None],
+        setter_func: Union[
+            Callable[["Service", bytes, DescriptorWriteOptions], None],
+            Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]],
+        ],
     ) -> "descriptor":
         """A decorator for descriptor value setters."""
         self.setter_func = setter_func
@@ -142,8 +145,14 @@ class descriptor(ServiceInterface):
 
     def __call__(
         self,
-        getter_func: Callable[["Service", DescriptorReadOptions], bytes] = None,
-        setter_func: Callable[["Service", bytes, DescriptorWriteOptions], None] = None,
+        getter_func: Union[
+            Callable[["Service", DescriptorReadOptions], bytes],
+            Callable[["Service", DescriptorReadOptions], Awaitable[bytes]],
+        ] = None,
+        setter_func: Union[
+            Callable[["Service", bytes, DescriptorWriteOptions], None],
+            Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]],
+        ] = None,
     ) -> "descriptor":
         """A decorator for characteristic value getters.
 
@@ -175,9 +184,14 @@ class descriptor(ServiceInterface):
         self._characteristic_path = None
 
     @method()
-    def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+    async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
         try:
-            return self.getter_func(self._service, DescriptorReadOptions(options))
+            if inspect.iscoroutinefunction(self.getter_func):
+                return await self.getter_func(
+                    self._service, DescriptorReadOptions(options)
+                )
+            else:
+                return self.getter_func(self._service, DescriptorReadOptions(options))
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
@@ -189,9 +203,14 @@ class descriptor(ServiceInterface):
             raise e
 
     @method()
-    def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+    async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
         try:
-            self.setter_func(self._service, data, DescriptorWriteOptions(options))
+            if inspect.iscoroutinefunction(self.setter_func):
+                await self.setter_func(
+                    self._service, data, DescriptorWriteOptions(options)
+                )
+            else:
+                self.setter_func(self._service, data, DescriptorWriteOptions(options))
         except DBusError as e:
             raise e
         except Exception as e:

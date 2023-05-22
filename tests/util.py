@@ -90,7 +90,7 @@ async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, st
         elif "org.bluez.GattDescriptor1" in interface_names:
             uuid = await proxy.get_interface("org.bluez.GattDescriptor1").get_uuid()
 
-        if UUID16(uuid) == target_uuid:
+        if UUID16.parse_uuid(uuid) == UUID16.parse_uuid(target_uuid):
             return introspection, node_path
 
     raise ValueError(

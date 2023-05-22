@@ -8,10 +8,10 @@ class UUID16:
     """A container for BLE uuid16 values.
 
     Args:
-        hex: A hexadecimal representation of a uuid16 or compatible uuid128.
-        bytes: A 16-bit or 128-bit value representing a uuid16 or compatible uuid128.
-        int: A numeric value representing a uuid16 (if < 2^16) or compatible uuid128.
-        uuid: A compatible uuid128.
+        hex (Optional[str]): A hexadecimal representation of a uuid16 or compatible uuid128.
+        bytes (Optional[bytes]): A 16-bit or 128-bit value representing a uuid16 or compatible uuid128.
+        int (Optional[int]): A numeric value representing a uuid16 (if < 2^16) or compatible uuid128.
+        uuid (Optional[UUID]): A compatible uuid128.
     """
 
     # 0000****--0000-1000-8000-00805F9B34FB
@@ -66,7 +66,7 @@ class UUID16:
         """Determines if a supplied uuid128 is in the allowed uuid16 range.
 
         Returns:
-            True if the uuid is in range, False otherwise.
+            bool: True if the uuid is in range, False otherwise.
         """
         if uuid.fields[0] & 0xFFFF0000 != cls._FIELDS[0]:
             return False
@@ -79,7 +79,6 @@ class UUID16:
 
     @classmethod
     def parse_uuid(cls, uuid: Union[str, bytes, int, UUID]) -> Union[UUID, "UUID16"]:
-        """Attempts to convert a provided value to a UUID16. If this fails, conversion falls back to a 128-bit UUID."""
         if type(uuid) is UUID:
             if cls.is_in_range(uuid):
                 return UUID16(uuid=uuid)

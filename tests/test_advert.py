@@ -95,7 +95,6 @@ class TestAdvert(IsolatedAsyncioTestCase):
             assert [id.lower() for id in await interface.get_service_uui_ds()] == [
                 "00467768-6228-2272-4663-277478268000",
             ]
-            print(await interface.get_service_uui_ds())
 
         adapter = MockAdapter(inspector)
         await advert.register(self._bus_manager.bus, adapter)
