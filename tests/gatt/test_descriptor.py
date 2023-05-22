@@ -19,6 +19,7 @@ last_opts = None
 write_desc_val = None
 async_write_desc_val = None
 
+
 class TestService(Service):
     def __init__(self):
         super().__init__("180A")

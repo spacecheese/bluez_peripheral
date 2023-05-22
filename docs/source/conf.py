@@ -14,11 +14,13 @@ import os
 import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/../../'))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../../"))
+
 
 # See https://github.com/sphinx-doc/sphinx/issues/5603
 def add_intersphinx_aliases_to_inv(app):
     from sphinx.ext.intersphinx import InventoryAdapter
+
     inventories = InventoryAdapter(app.builder.env)
 
     for alias, target in app.config.intersphinx_aliases.items():
@@ -33,6 +35,7 @@ def add_intersphinx_aliases_to_inv(app):
         except KeyError:
             continue
 
+
 # -- Project information -----------------------------------------------------
 
 project = "bluez-peripheral"
@@ -44,7 +47,14 @@ author = "spacecheese"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinxcontrib.spelling", "sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.napoleon", "sphinx_inline_tabs", "m2r2"]
+extensions = [
+    "sphinxcontrib.spelling",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
+    "sphinx_inline_tabs",
+    "m2r2",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -67,19 +77,22 @@ intersphinx_mapping = {
 
 # Fix resolution of MessageBus class to where docs actually are.
 intersphinx_aliases = {
-    ('py:class', 'dbus_next.aio.message_bus.MessageBus'):
-        ('py:class', 'dbus_next.aio.MessageBus'),
-    ('py:class', 'dbus_next.aio.proxy_object.ProxyObject'):
-        ('py:class', 'dbus_next.aio.ProxyObject'),
-    ('py:class', 'dbus_next.errors.DBusError'):
-        ('py:class', 'dbus_next.DBusError'),
-    ('py:class', 'dbus_next.signature.Variant'):
-        ('py:class', 'dbus_next.Variant'),
+    ("py:class", "dbus_next.aio.message_bus.MessageBus"): (
+        "py:class",
+        "dbus_next.aio.MessageBus",
+    ),
+    ("py:class", "dbus_next.aio.proxy_object.ProxyObject"): (
+        "py:class",
+        "dbus_next.aio.ProxyObject",
+    ),
+    ("py:class", "dbus_next.errors.DBusError"): ("py:class", "dbus_next.DBusError"),
+    ("py:class", "dbus_next.signature.Variant"): ("py:class", "dbus_next.Variant"),
 }
 
+
 def setup(app):
-    app.add_config_value('intersphinx_aliases', {}, 'env')
-    app.connect('builder-inited', add_intersphinx_aliases_to_inv)
+    app.add_config_value("intersphinx_aliases", {}, "env")
+    app.connect("builder-inited", add_intersphinx_aliases_to_inv)
 
 
 # -- Options for HTML output -------------------------------------------------
