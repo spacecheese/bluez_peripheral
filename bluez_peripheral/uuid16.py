@@ -26,10 +26,12 @@ class UUID16:
         uuid: Optional[UUID] = None,
     ):
         if [hex, bytes, int, uuid].count(None) != 3:
-            raise TypeError("exactly one of the hex, bytes or int arguments must be given")
+            raise TypeError(
+                "exactly one of the hex, bytes or int arguments must be given"
+            )
 
         # All representations are converted to either a UUID128 or a 16-bit integer.
-        time_low : int = None
+        time_low: int = None
 
         if hex is not None:
             hex.strip("0x")
@@ -59,7 +61,6 @@ class UUID16:
                 self._uuid = uuid
             else:
                 raise ValueError("the supplied uuid128 was out of range")
-            
 
     @classmethod
     def is_in_range(cls, uuid: UUID) -> bool:
@@ -78,7 +79,9 @@ class UUID16:
         return True
 
     @classmethod
-    def parse_uuid(cls, uuid: Union[str, bytes, int, UUID, "UUID16"]) -> Union[UUID, "UUID16"]:
+    def parse_uuid(
+        cls, uuid: Union[str, bytes, int, UUID, "UUID16"]
+    ) -> Union[UUID, "UUID16"]:
         if type(uuid) is UUID16:
             return uuid
         elif type(uuid) is UUID:
@@ -96,7 +99,7 @@ class UUID16:
                 return UUID16(bytes=uuid)
             except:
                 return UUID(bytes=uuid)
-        else: # Must be int.
+        else:  # Must be int.
             try:
                 return UUID16(int=uuid)
             except:
