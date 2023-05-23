@@ -65,30 +65,30 @@ class Adapter:
 
     async def get_address(self) -> str:
         """Read the bluetooth address of this device."""
-        return await self._adapter_interface.get_address()
+        return await self._adapter_interface.get_address()  # type: ignore
 
     async def get_name(self) -> str:
         """Read the bluetooth hostname of this system."""
-        return await self._adapter_interface.get_name()
+        return await self._adapter_interface.get_name()  # type: ignore
 
     async def get_alias(self) -> str:
         """The user friendly name of the device."""
-        return await self._adapter_interface.get_alias()
+        return await self._adapter_interface.get_alias()  # type: ignore
 
     async def set_alias(self, val: str):
         """Set the user friendly name for this device.
         Changing the device hostname directly is preferred.
         Writing an empty string will result in the alias resetting to the device hostname.
         """
-        await self._adapter_interface.set_alias(val)
+        await self._adapter_interface.set_alias(val)  # type: ignore
 
     async def get_powered(self) -> bool:
         """Indicates if the adapter is on or off."""
-        return await self._adapter_interface.get_powered()
+        return await self._adapter_interface.get_powered()  # type: ignore
 
     async def set_powered(self, val: bool):
         """Turn this adapter on or off."""
-        await self._adapter_interface.set_powered(val)
+        await self._adapter_interface.set_powered(val)  # type: ignore
 
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
@@ -127,6 +127,6 @@ class Adapter:
         """
         adapters = await cls.get_all(bus)
         if len(adapters) > 0:
-            return adapters[0]
+            return next(iter(adapters))
         else:
             raise ValueError("No bluetooth adapters could be found.")

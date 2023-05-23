@@ -5,7 +5,7 @@ from dbus_next.aio import MessageBus
 
 import inspect
 from uuid import UUID
-from typing import Union
+from typing import Union, List, Optional
 
 from .characteristic import characteristic
 from ..uuid16 import UUID16
@@ -45,8 +45,8 @@ class Service(ServiceInterface):
         # Make sure uuid is a uuid16.
         self._uuid = UUID16.parse_uuid(uuid)
         self._primary = primary
-        self._characteristics = []
-        self._path = None
+        self._characteristics: List[characteristic] = []
+        self._path: Optional[str] = None
         self._includes = includes
         self._populate()
 
@@ -103,6 +103,9 @@ class Service(ServiceInterface):
             i += 1
 
     def _unexport(self, bus: MessageBus):
+        if self._path is None:
+            return
+
         # Unexport this and every child characteristic.
         bus.unexport(self._path, self._INTERFACE)
         for char in self._characteristics:
@@ -114,7 +117,7 @@ class Service(ServiceInterface):
         self,
         bus: MessageBus,
         path: str = "/com/spacecheese/bluez_peripheral",
-        adapter: Adapter = None,
+        adapter: Optional[Adapter] = None,
     ):
         """Register this service as a standalone service.
         Using this multiple times will cause path conflicts.
@@ -150,6 +153,10 @@ class Service(ServiceInterface):
     def Includes(self) -> "ao":  # type: ignore
         paths = []
 
+        # Shouldn't be possible to call this before export.
+        if self._path is None:
+            raise ValueError()
+
         for service in self._includes:
             if not service._path is None:
                 paths.append(service._path)
@@ -163,19 +170,14 @@ class ServiceCollection:
 
     _MANAGER_INTERFACE = "org.bluez.GattManager1"
 
-    def _init(self, services: Collection[Service]):
-        self._path = None
-        self._adapter = None
-        self._services = services
-
-    def __init__(self, services: Collection[Service] = []):
+    def __init__(self, services: List[Service] = []):
         """Create a service collection populated with the specified list of services.
 
         Args:
             services: The services to provide.
         """
-        self._path = None
-        self._adapter = None
+        self._path: Optional[str] = None
+        self._adapter: Optional[Adapter] = None
         self._services = services
 
     def add_service(self, service: Service):
@@ -219,7 +221,7 @@ class ServiceCollection:
         self,
         bus: MessageBus,
         path: str = "/com/spacecheese/bluez_peripheral",
-        adapter: Adapter = None,
+        adapter: Optional[Adapter] = None,
     ):
         """Register this collection of services with the bluez service manager.
         Services and service collections that are registered may not be modified until they are unregistered.

@@ -2,7 +2,7 @@ from dbus_next.service import ServiceInterface, method
 from dbus_next.aio import MessageBus
 from dbus_next import DBusError
 
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Optional
 from enum import Enum
 
 from .util import _snake_to_pascal
@@ -46,9 +46,9 @@ class BaseAgent(ServiceInterface):
         self,
         capability: AgentCapability,
     ):
-        self._capability = capability
+        self._capability: AgentCapability = capability
+        self._path: Optional[str] = None
 
-        self._path = None
         super().__init__(self._INTERFACE)
 
     @method()
@@ -76,7 +76,7 @@ class BaseAgent(ServiceInterface):
             bus: The message bus to expose the agent using.
             default: Whether or not the agent should be registered as default.
                 Non-default agents will not be called to respond to incoming pairing requests.
-                The caller requires superuser if this is true.
+                The invoking process requires superuser if this is true.
             path: The path to expose this message bus on.
         """
         self._path = path
@@ -89,6 +89,9 @@ class BaseAgent(ServiceInterface):
             await interface.call_request_default_agent(self._path)
 
     async def unregister(self, bus: MessageBus):
+        if self._path is None:
+            return
+
         interface = await self._get_manager_interface(bus)
         await interface.call_unregister_agent(self._path)
 

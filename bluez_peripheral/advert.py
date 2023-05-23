@@ -81,9 +81,10 @@ class Advertisement(ServiceInterface):
         self._serviceUUIDs = [UUID16.parse_uuid(uuid) for uuid in serviceUUIDs]
         self._localName = localName
         # Convert the appearance to a uint16 if it isn't already an int.
-        self._appearance = (
-            appearance if type(appearance) is int else struct.unpack("H", appearance)[0]
-        )
+        if type(appearance) is bytes:
+            self._appearance = struct.unpack("H", appearance)[0]
+        else:
+            self._appearance = appearance
         self._timeout = timeout
 
         self._manufacturerData = {}
@@ -102,7 +103,7 @@ class Advertisement(ServiceInterface):
     async def register(
         self,
         bus: MessageBus,
-        adapter: Adapter = None,
+        adapter: Optional[Adapter] = None,
         path: Optional[str] = None,
     ):
         """Register this advert with bluez to start advertising.
@@ -130,12 +131,12 @@ class Advertisement(ServiceInterface):
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
-        await interface.call_register_advertisement(path, {})
+        await interface.call_register_advertisement(path, {})  # type: ignore
 
     @classmethod
     async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
         interface = adapter._proxy.get_interface(cls._MANAGER_INTERFACE)
-        includes = await interface.get_supported_includes()
+        includes = await interface.get_supported_includes()  # type: ignore
         flags = AdvertisingIncludes.NONE
         for inc in includes:
             inc = AdvertisingIncludes[_kebab_to_shouting_snake(inc)]
@@ -191,7 +192,7 @@ class Advertisement(ServiceInterface):
         return [
             _snake_to_kebab(inc.name)
             for inc in AdvertisingIncludes
-            if self._includes & inc
+            if self._includes & inc and inc.name is not None
         ]
 
     @dbus_property(PropertyAccess.READ)

@@ -16,7 +16,7 @@ class UUID16:
 
     # 0000****--0000-1000-8000-00805F9B34FB
     _FIELDS = (0x00000000, 0x0000, 0x1000, 0x80, 0x00, 0x00805F9B34FB)
-    _uuid: Optional[UUID] = None
+    _uuid: UUID
 
     def __init__(
         self,
@@ -31,7 +31,7 @@ class UUID16:
             )
 
         # All representations are converted to either a UUID128 or a 16-bit integer.
-        time_low: int = None
+        time_low = None
 
         if hex is not None:
             hex.strip("0x")
@@ -56,7 +56,7 @@ class UUID16:
 
         if time_low is not None:
             self._uuid = UUID(fields=(time_low,) + self._FIELDS[1:])
-        else:
+        elif uuid is not None:
             if UUID16.is_in_range(uuid):
                 self._uuid = uuid
             else:
@@ -101,11 +101,13 @@ class UUID16:
                 return UUID16(bytes=uuid)
             except:
                 return UUID(bytes=uuid)
-        else:  # Must be int.
+        elif type(uuid) is int:
             try:
                 return UUID16(int=uuid)
             except:
                 return UUID(int=uuid)
+
+        raise ValueError("uuid is not a supported type")
 
     @property
     def uuid(self) -> UUID:

@@ -1,4 +1,4 @@
-from dbus_next import DBusError
+from dbus_next import DBusError, Variant
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
@@ -6,19 +6,25 @@ from dbus_next.constants import PropertyAccess
 import inspect
 from uuid import UUID
 from enum import Flag, auto
-from typing import Callable, Union, Awaitable
+from typing import Callable, Union, Awaitable, Optional, Dict, TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .service import Service
 
 from ..uuid16 import UUID16
 from ..util import _snake_to_kebab, _getattr_variant
+from ..error import FailedError
 
 
-# TODO: Add type annotations to these classes.
 class DescriptorReadOptions:
     """Options supplied to descriptor read functions.
     Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options):
+    def __init__(self, options: Optional[Dict[str, Variant]] = None):
+        if options is None:
+            return
+
         self._offset = _getattr_variant(options, "offset", 0)
         self._link = _getattr_variant(options, "link", None)
         self._device = _getattr_variant(options, "device", None)
@@ -44,7 +50,10 @@ class DescriptorWriteOptions:
     Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options):
+    def __init__(self, options: Optional[Dict[str, Variant]] = None):
+        if options is None:
+            return
+
         self._offset = _getattr_variant(options, "offset", 0)
         self._device = _getattr_variant(options, "device", None)
         self._link = _getattr_variant(options, "link", None)
@@ -99,6 +108,16 @@ class DescriptorFlags(Flag):
     """"""
 
 
+GetterType = Union[
+    Callable[["Service", DescriptorReadOptions], bytes],
+    Callable[["Service", DescriptorReadOptions], Awaitable[bytes]],
+]
+SetterType = Union[
+    Callable[["Service", bytes, DescriptorWriteOptions], None],
+    Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]],
+]
+
+
 # Decorator for descriptor getters/ setters.
 class descriptor(ServiceInterface):
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
@@ -121,13 +140,13 @@ class descriptor(ServiceInterface):
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
         self.uuid = UUID16.parse_uuid(uuid)
-        self.getter_func = None
-        self.setter_func = None
+        self.getter_func: Optional[GetterType] = None
+        self.setter_func: Optional[SetterType] = None
         self.characteristic = characteristic
         self.flags = flags
         self._service = None
 
-        self._characteristic_path = None
+        self._characteristic_path: Optional[str] = None
         super().__init__(self._INTERFACE)
 
         characteristic.add_descriptor(self)
@@ -135,31 +154,22 @@ class descriptor(ServiceInterface):
     # Decorators
     def setter(
         self,
-        setter_func: Union[
-            Callable[["Service", bytes, DescriptorWriteOptions], None],
-            Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]],
-        ],
+        setter_func: SetterType,
     ) -> "descriptor":
         """A decorator for descriptor value setters."""
         self.setter_func = setter_func
-        return setter_func
+        return self
 
     def __call__(
         self,
-        getter_func: Union[
-            Callable[["Service", DescriptorReadOptions], bytes],
-            Callable[["Service", DescriptorReadOptions], Awaitable[bytes]],
-        ] = None,
-        setter_func: Union[
-            Callable[["Service", bytes, DescriptorWriteOptions], None],
-            Callable[["Service", bytes, DescriptorWriteOptions], Awaitable[None]],
-        ] = None,
+        getter_func: Optional[GetterType] = None,
+        setter_func: Optional[SetterType] = None,
     ) -> "descriptor":
         """A decorator for characteristic value getters.
 
         Args:
             getter_func: The getter function for this descriptor.
-            setter_func: The setter function for this descriptor. Defaults to None.
+            setter_func: The setter function for this descriptor.
 
         Returns:
             This descriptor
@@ -173,6 +183,9 @@ class descriptor(ServiceInterface):
 
     # DBus
     def _get_path(self) -> str:
+        if self._characteristic_path is None:
+            raise ValueError()
+
         return self._characteristic_path + "/desc{:d}".format(self._num)
 
     def _export(self, bus: MessageBus, characteristic_path: str, num: int):
@@ -181,18 +194,30 @@ class descriptor(ServiceInterface):
         bus.export(self._get_path(), self)
 
     def _unexport(self, bus: MessageBus):
+        if self._characteristic_path is None:
+            return
+
         bus.unexport(self._get_path(), self._INTERFACE)
         self._characteristic_path = None
 
     @method()
     async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+        if self.getter_func is None:
+            raise FailedError("No getter implemented")
+
+        if self._service is None:
+            raise ValueError()
+
         try:
             if inspect.iscoroutinefunction(self.getter_func):
                 return await self.getter_func(
                     self._service, DescriptorReadOptions(options)
                 )
             else:
-                return self.getter_func(self._service, DescriptorReadOptions(options))
+                return cast(
+                    bytes,
+                    self.getter_func(self._service, DescriptorReadOptions(options)),
+                )
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
@@ -205,6 +230,12 @@ class descriptor(ServiceInterface):
 
     @method()
     async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+        if self.setter_func is None:
+            raise FailedError("No setter implemented")
+
+        if self._service is None:
+            raise ValueError()
+
         try:
             if inspect.iscoroutinefunction(self.setter_func):
                 await self.setter_func(
@@ -232,5 +263,7 @@ class descriptor(ServiceInterface):
     def Flags(self) -> "as":  # type: ignore
         # Return a list of string flag names.
         return [
-            _snake_to_kebab(flag.name) for flag in DescriptorFlags if self.flags & flag
+            _snake_to_kebab(flag.name)
+            for flag in DescriptorFlags
+            if self.flags & flag and flag.name is not None
         ]
