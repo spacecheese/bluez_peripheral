@@ -1,3 +1,4 @@
+from dbus_next import Variant
 from dbus_next.aio import MessageBus
 from dbus_next.aio.proxy_object import ProxyInterface
 from dbus_next.constants import PropertyAccess
@@ -9,7 +10,7 @@ import struct
 from uuid import UUID
 
 from .uuid16 import UUID16
-from .util import *
+from .util import _snake_to_kebab, _kebab_to_shouting_snake, Adapter
 
 
 class PacketType(Enum):
@@ -42,10 +43,10 @@ class Advertisement(ServiceInterface):
         localName: The device name to advertise.
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
-            `See the Bluetooth SIG recognised values. <https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf>`_
+            See the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_ (Search for "Appearance Values")
         timeout: The time from registration until this advert is removed (defaults to zero meaning never timeout).
         discoverable: Whether or not the device this advert should be generally discoverable.
-        packet_type: The type of advertising packet requested.
+        packetType: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
         solicitUUIDs: Array of service UUIDs to attempt to solicit (not widely used).
         serviceData: Any service data elements to include.
@@ -77,23 +78,20 @@ class Advertisement(ServiceInterface):
     ):
         self._type = packetType
         # Convert any string uuids to uuid16.
-        self._serviceUUIDs = [
-            UUID16.parse_uuid(uuid) for uuid in serviceUUIDs
-        ]
+        self._serviceUUIDs = [UUID16.parse_uuid(uuid) for uuid in serviceUUIDs]
         self._localName = localName
         # Convert the appearance to a uint16 if it isn't already an int.
-        self._appearance = (
-            appearance if type(appearance) is int else struct.unpack("H", appearance)[0]
-        )
+        if type(appearance) is bytes:
+            self._appearance = struct.unpack("H", appearance)[0]
+        else:
+            self._appearance = appearance
         self._timeout = timeout
 
         self._manufacturerData = {}
         for key, value in manufacturerData.items():
             self._manufacturerData[key] = Variant("ay", value)
 
-        self._solicitUUIDs = [
-            UUID16.parse_uuid(uuid) for uuid in solicitUUIDs
-        ]
+        self._solicitUUIDs = [UUID16.parse_uuid(uuid) for uuid in solicitUUIDs]
         self._serviceData = serviceData
         self._discoverable = discoverable
         self._includes = includes
@@ -105,7 +103,7 @@ class Advertisement(ServiceInterface):
     async def register(
         self,
         bus: MessageBus,
-        adapter: Adapter = None,
+        adapter: Optional[Adapter] = None,
         path: Optional[str] = None,
     ):
         """Register this advert with bluez to start advertising.
@@ -133,15 +131,15 @@ class Advertisement(ServiceInterface):
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
-        await interface.call_register_advertisement(path, {})
+        await interface.call_register_advertisement(path, {})  # type: ignore
 
     @classmethod
     async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
         interface = adapter._proxy.get_interface(cls._MANAGER_INTERFACE)
-        includes = await interface.get_supported_includes()
+        includes = await interface.get_supported_includes()  # type: ignore
         flags = AdvertisingIncludes.NONE
         for inc in includes:
-            inc = AdvertisingIncludes[kebab_to_shouting_snake(inc)]
+            inc = AdvertisingIncludes[_kebab_to_shouting_snake(inc)]
             # Combine all the included flags.
             flags |= inc
         return flags
@@ -192,9 +190,9 @@ class Advertisement(ServiceInterface):
     @dbus_property(PropertyAccess.READ)
     def Includes(self) -> "as":  # type: ignore
         return [
-            snake_to_kebab(inc.name)
+            _snake_to_kebab(inc.name)
             for inc in AdvertisingIncludes
-            if self._includes & inc
+            if self._includes & inc and inc.name is not None
         ]
 
     @dbus_property(PropertyAccess.READ)

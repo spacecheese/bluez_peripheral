@@ -6,11 +6,16 @@ from dbus_next.aio import MessageBus
 import inspect
 from uuid import UUID
 from enum import Enum, Flag, auto
-from typing import Callable, Optional, Union, Awaitable
+from typing import Callable, Optional, Union, Awaitable, List, TYPE_CHECKING, cast
 
-from .descriptor import descriptor, DescriptorFlags
+if TYPE_CHECKING:
+    from .service import Service
+
+from .descriptor import descriptor as Descriptor, DescriptorFlags
 from ..uuid16 import UUID16
 from ..util import *
+from ..util import _snake_to_kebab, _getattr_variant
+from ..error import NotSupportedError, FailedError
 
 
 class CharacteristicReadOptions:
@@ -18,13 +23,13 @@ class CharacteristicReadOptions:
     Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self):
-        self.__init__({})
+    def __init__(self, options: Optional[Dict[str, Variant]] = None):
+        if options is None:
+            return
 
-    def __init__(self, options):
-        self._offset = int(getattr_variant(options, "offset", 0))
-        self._mtu = int(getattr_variant(options, "mtu", 0))
-        self._device = getattr_variant(options, "device", None)
+        self._offset = int(_getattr_variant(options, "offset", 0))
+        self._mtu = int(_getattr_variant(options, "mtu", None))
+        self._device = _getattr_variant(options, "device", None)
 
     @property
     def offset(self) -> int:
@@ -37,7 +42,7 @@ class CharacteristicReadOptions:
         return self._mtu
 
     @property
-    def device(self):
+    def device(self) -> Optional[str]:
         """The path of the remote device on the system dbus or None."""
         return self._device
 
@@ -61,19 +66,19 @@ class CharacteristicWriteOptions:
     Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self):
-        self.__init__({})
+    def __init__(self, options: Optional[Dict[str, Variant]] = None):
+        if options is None:
+            return
 
-    def __init__(self, options):
-        self._offset = int(getattr_variant(options, "offset", 0))
-        type = getattr_variant(options, "type", None)
+        self._offset = int(_getattr_variant(options, "offset", 0))
+        type = _getattr_variant(options, "type", None)
         if not type is None:
             type = CharacteristicWriteType[type.upper()]
         self._type = type
-        self._mtu = int(getattr_variant(options, "mtu", 0))
-        self._device = getattr_variant(options, "device", None)
-        self._link = getattr_variant(options, "link", None)
-        self._prepare_authorize = getattr_variant(options, "prepare-authorize", False)
+        self._mtu = int(_getattr_variant(options, "mtu", 0))
+        self._device = _getattr_variant(options, "device", None)
+        self._link = _getattr_variant(options, "link", None)
+        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
 
     @property
     def offset(self):
@@ -166,17 +171,25 @@ class CharacteristicFlags(Flag):
     """"""
 
 
+GetterType = Union[
+    Callable[["Service", CharacteristicReadOptions], bytes],
+    Callable[["Service", CharacteristicReadOptions], Awaitable[bytes]],
+]
+SetterType = Union[
+    Callable[["Service", bytes, CharacteristicWriteOptions], None],
+    Callable[["Service", bytes, CharacteristicWriteOptions], Awaitable[None]],
+]
+
+
 class characteristic(ServiceInterface):
     """Create a new characteristic with a specified UUID and flags.
 
     Args:
-        uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://www.bluetooth.com/specifications/assigned-numbers/>`_
         flags: Flags defining the possible read/ write behavior of the attribute.
 
     See Also:
-        :ref:`quickstart`
-
-        :ref:`characteristics_descriptors`
+        :ref:`services`
     """
 
     _INTERFACE = "org.bluez.GattCharacteristic1"
@@ -187,14 +200,14 @@ class characteristic(ServiceInterface):
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
         self.uuid = UUID16.parse_uuid(uuid)
-        self.getter_func = None
-        self.setter_func = None
+        self.getter_func: Optional[GetterType] = None
+        self.setter_func: Optional[SetterType] = None
         self.flags = flags
 
         self._notify = False
-        self._service_path = None
-        self._descriptors = []
-        self._service = None
+        self._service_path: Optional[str] = None
+        self._descriptors: List[Descriptor] = []
+        self._service: Optional["Service"] = None
         self._value = bytearray()
 
         super().__init__(self._INTERFACE)
@@ -209,26 +222,15 @@ class characteristic(ServiceInterface):
             self.emit_properties_changed({"Value": new_value}, [])
 
     # Decorators
-    def setter(
-        self,
-        setter_func: Union[
-            Callable[["Service", bytes, CharacteristicWriteOptions], None],
-            Callable[["Service", bytes, CharacteristicWriteOptions], Awaitable[None]]],
-    ) -> "characteristic":
+    def setter(self, setter_func: SetterType) -> "characteristic":
         """A decorator for characteristic value setters."""
         self.setter_func = setter_func
         return self
 
     def __call__(
         self,
-        getter_func: Union[
-            Callable[["Service", CharacteristicReadOptions], bytes],
-            Callable[["Service", CharacteristicReadOptions], Awaitable[bytes]]
-        ] = None,
-        setter_func: Union[
-            Callable[["Service", bytes, CharacteristicWriteOptions], None],
-            Callable[["Service", bytes, CharacteristicWriteOptions], Awaitable[None]]
-        ] = None,
+        getter_func: Optional[GetterType] = None,
+        setter_func: Optional[SetterType] = None,
     ) -> "characteristic":
         """A decorator for characteristic value getters.
 
@@ -244,8 +246,10 @@ class characteristic(ServiceInterface):
         return self
 
     def descriptor(
-        self, uuid: Union[str, bytes, UUID, UUID16, int], flags: DescriptorFlags = DescriptorFlags.READ
-    ) -> "descriptor":
+        self,
+        uuid: Union[str, bytes, UUID, UUID16, int],
+        flags: DescriptorFlags = DescriptorFlags.READ,
+    ) -> Descriptor:
         """Create a new descriptor with the specified UUID and Flags.
 
         Args:
@@ -253,7 +257,7 @@ class characteristic(ServiceInterface):
             flags: Any descriptor access flags to use.
         """
         # Use as a decorator for descriptors that need a getter.
-        return descriptor(uuid, self, flags)
+        return Descriptor(uuid, self, flags)
 
     def _is_registered(self):
         return not self._service_path is None
@@ -264,7 +268,7 @@ class characteristic(ServiceInterface):
         for desc in self._descriptors:
             desc._set_service(service)
 
-    def add_descriptor(self, desc: "descriptor"):
+    def add_descriptor(self, desc: Descriptor):
         """Associate the specified descriptor with this characteristic.
 
         Args:
@@ -282,7 +286,7 @@ class characteristic(ServiceInterface):
         # Make sure that any descriptors have the correct service set at all times.
         desc._set_service(self._service)
 
-    def remove_descriptor(self, desc: "descriptor"):
+    def remove_descriptor(self, desc: Descriptor):
         """Remove the specified descriptor from this characteristic.
 
         Args:
@@ -301,6 +305,9 @@ class characteristic(ServiceInterface):
         desc._set_service(None)
 
     def _get_path(self) -> str:
+        if self._service_path is None:
+            raise ValueError()
+
         return self._service_path + "/char{:d}".format(self._num)
 
     def _export(self, bus: MessageBus, service_path: str, num: int):
@@ -324,15 +331,26 @@ class characteristic(ServiceInterface):
 
     @method()
     async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+        if self.getter_func is None:
+            raise FailedError("No getter implemented")
+
+        if self._service is None:
+            raise ValueError()
+
         try:
-            res = []
+            res: bytes
             if inspect.iscoroutinefunction(self.getter_func):
-                res = await self.getter_func(self._service, CharacteristicReadOptions(options))
+                res = await self.getter_func(
+                    self._service, CharacteristicReadOptions(options)
+                )
             else:
-                res = self.getter_func(self._service, CharacteristicReadOptions(options))
+                res = cast(
+                    bytes,
+                    self.getter_func(self._service, CharacteristicReadOptions(options)),
+                )
 
             self._value = bytearray(res)
-            return bytes(self._value)
+            return res
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
@@ -345,6 +363,12 @@ class characteristic(ServiceInterface):
 
     @method()
     async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+        if self.setter_func is None:
+            raise FailedError("No setter implemented")
+
+        if self._service is None:
+            raise ValueError()
+
         opts = CharacteristicWriteOptions(options)
         try:
             if inspect.iscoroutinefunction(self.setter_func):
@@ -363,20 +387,14 @@ class characteristic(ServiceInterface):
     @method()
     def StartNotify(self):
         if not self.flags | CharacteristicFlags.NOTIFY:
-            raise DBusError(
-                "org.bluez.Error.NotSupported",
-                "The characteristic does not support notification.",
-            )
+            raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = True
 
     @method()
     def StopNotify(self):
         if not self.flags | CharacteristicFlags.NOTIFY:
-            raise DBusError(
-                "org.bluez.Error.NotSupported",
-                "The characteristic does not support notification.",
-            )
+            raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = False
 
@@ -395,9 +413,9 @@ class characteristic(ServiceInterface):
 
         # Return a list of set string flag names.
         return [
-            snake_to_kebab(flag.name)
+            _snake_to_kebab(flag.name)
             for flag in CharacteristicFlags
-            if self.flags & flag
+            if self.flags & flag and flag.name is not None
         ]
 
     @dbus_property(PropertyAccess.READ)

@@ -2,7 +2,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.case import SkipTest
 
 from tests.util import *
-from bluez_peripheral.util import get_message_bus
+from bluez_peripheral import get_message_bus
 from bluez_peripheral.advert import Advertisement, PacketType, AdvertisingIncludes
 
 from uuid import UUID
@@ -95,7 +95,6 @@ class TestAdvert(IsolatedAsyncioTestCase):
             assert [id.lower() for id in await interface.get_service_uui_ds()] == [
                 "00467768-6228-2272-4663-277478268000",
             ]
-            print(await interface.get_service_uui_ds())
 
         adapter = MockAdapter(inspector)
         await advert.register(self._bus_manager.bus, adapter)

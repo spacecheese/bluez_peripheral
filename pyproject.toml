@@ -7,3 +7,11 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+
+[tool.interrogate]
+# Documenting these plays badly with sphinx
+ignore-init-module = true
+ignore-init-method = true
+
+ignore-private = true
+ignore-semiprivate = true

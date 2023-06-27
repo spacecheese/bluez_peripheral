@@ -1,16 +1,19 @@
-from bluez_peripheral.gatt.descriptor import descriptor
 from unittest import IsolatedAsyncioTestCase
 from threading import Event
 from tests.util import *
 import re
 
+from bluez_peripheral.uuid16 import UUID16
 from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.gatt.characteristic import (
     CharacteristicFlags,
     CharacteristicWriteType,
     characteristic,
 )
+from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service
+
+from dbus_next import Variant
 
 last_opts = None
 write_notify_char_val = None
@@ -72,7 +75,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             service = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180A"
+                self._client_bus, self._bus_manager.name, path, UUID16("180A")
             )
 
             child_names = [path.split("/")[-1] for path in service.child_paths]
@@ -102,8 +105,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A37",
+                    UUID16("180A"),
+                    UUID16("2A37"),
                 )
             ).get_interface("org.bluez.GattCharacteristic1")
             resp = await interface.call_read_value(opts)
@@ -151,8 +154,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A38",
+                    UUID16("180A"),
+                    UUID16("2A38"),
                 )
             ).get_interface("org.bluez.GattCharacteristic1")
             await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
@@ -193,8 +196,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A38",
+                    UUID16("180A"),
+                    UUID16("2A38"),
                 )
             ).get_interface("org.freedesktop.DBus.Properties")
 
@@ -223,8 +226,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 self._client_bus,
                 self._bus_manager.name,
                 path,
-                "180A",
-                char_uuid="2A38",
+                UUID16("180A"),
+                UUID16("2A38"),
             )
             properties_interface = proxy.get_interface(
                 "org.freedesktop.DBus.Properties"
@@ -236,7 +239,6 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 assert len(values) == 1
                 assert values["Value"].value.decode("utf-8") == "Test Notify Value"
                 property_changed.set()
-                
 
             properties_interface.on_properties_changed(on_properties_changed)
             await char_interface.call_start_notify()
@@ -263,8 +265,8 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                 self._client_bus,
                 self._bus_manager.name,
                 path,
-                "180A",
-                char_uuid="2A38",
+                UUID16("180A"),
+                UUID16("2A38"),
             )
             property_interface = proxy.get_interface("org.freedesktop.DBus.Properties")
             char_interface = proxy.get_interface("org.bluez.GattCharacteristic1")
@@ -313,9 +315,9 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    "2A38",
-                    "2D56",
+                    UUID16("180A"),
+                    UUID16("2A38"),
+                    UUID16("2D56"),
                 )
                 desc = proxy.get_interface("org.bluez.GattDescriptor1")
                 assert (await desc.call_read_value(opts)).decode(
@@ -327,9 +329,9 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                         self._client_bus,
                         self._bus_manager.name,
                         path,
-                        "180A",
-                        "2A38",
-                        "2D56",
+                        UUID16("180A"),
+                        UUID16("2A38"),
+                        UUID16("2D56"),
                     )
                 except ValueError:
                     pass

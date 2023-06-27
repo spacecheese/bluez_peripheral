@@ -10,7 +10,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: '3.11.x'
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -22,6 +22,15 @@ jobs:
           cd docs
           make clean
           make html
+      - name: Spelling Check
+        if: always()
+        run: |
+          cd docs
+          make spelling
+      - name: Link Check
+        if: always()
+        run: |
+          cd docs
           make linkcheck
   test:
     runs-on: ubuntu-22.04
@@ -30,7 +39,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: '3.11.x'
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -42,4 +51,56 @@ jobs:
       - name: Run Tests
         run: |
           python -m unittest
+  format-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black
+      - name: Check Formatting
+        run: |
+          python -m black --check bluez_peripheral
+          python -m black --check tests
+  type-hint-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy
+      - name: Check type hints
+        run: |
+          python -m mypy bluez_peripheral
+  interrotate-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install interrogate
+      - name: Check type hints
+        run: |
+          python -m interrogate -vv
         
