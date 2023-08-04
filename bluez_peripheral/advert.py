@@ -70,7 +70,7 @@ class Advertisement(ServiceInterface):
         packetType: PacketType = PacketType.PERIPHERAL,
         manufacturerData: Dict[int, bytes] = {},
         solicitUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]] = [],
-        serviceData: Dict[str, bytes] = {},
+        serviceData: Dict[Union[str, bytes, UUID, UUID16, int], bytes] = {},
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
         releaseCallback: Optional[Callable[[], None]] = None,
@@ -94,7 +94,11 @@ class Advertisement(ServiceInterface):
         self._solicitUUIDs = [
             UUID16.parse_uuid(uuid) for uuid in solicitUUIDs
         ]
-        self._serviceData = serviceData
+       
+        self._serviceData = {}
+        for key, value in serviceData.items():
+            self._serviceData[key] = Variant("ay", value)
+
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
@@ -182,8 +186,8 @@ class Advertisement(ServiceInterface):
         return [str(id) for id in self._solicitUUIDs]
 
     @dbus_property(PropertyAccess.READ)
-    def ServiceData(self) -> "a{say}":  # type: ignore
-        return self._serviceData
+    def ServiceData(self) -> "a{sv}":  # type: ignore
+        return dict((str(id), val) for id, val in self._serviceData.items())
 
     @dbus_property(PropertyAccess.READ)
     def Discoverable(self) -> "b":  # type: ignore
