@@ -71,14 +71,14 @@ You need to advertise your service to allow other devices to connect to it.
 
 .. code-block:: python
 
-   from bluez_peripheral.advert import Advertisment
+   from bluez_peripheral.advert import Advertisement
 
    my_service_ids = ["BEEF"] # The services that we're advertising.
    my_appearance = 0 # The appearance of my service. 
    # See https://specificationrefs.bluetooth.com/assigned-values/Appearance%20Values.pdf
    my_timeout = 60 # Advert should last 60 seconds before ending (assuming other local 
    # services aren't being advertised).
-   advert = Advertisment("My Device Name", my_service_ids, my_appearance, my_timeout)
+   advert = Advertisement("My Device Name", my_service_ids, my_appearance, my_timeout)
 
 
 At this point you'll be be able to connect to your device using a bluetooth tester 
