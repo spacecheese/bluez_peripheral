@@ -114,9 +114,6 @@ class Adapter:
             except InvalidIntrospectionError:
                 pass
 
-        if len(adapters) == 0:
-            raise Exception("No bluetooth adapters could be found.")
-
         return adapters
 
     @classmethod
