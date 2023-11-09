@@ -1,5 +1,6 @@
 from dbus_next import Variant, BusType
 from dbus_next.aio import MessageBus
+from dbus_next.errors import InvalidIntrospectionError
 
 from typing import Any, Collection, Dict
 
@@ -104,11 +105,17 @@ class Adapter:
 
         adapters = []
         for node in adapter_nodes:
-            introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
-            proxy = bus.get_proxy_object(
-                "org.bluez", "/org/bluez/" + node.name, introspection
-            )
-            adapters.append(cls(proxy))
+            try:
+                introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
+                proxy = bus.get_proxy_object(
+                    "org.bluez", "/org/bluez/" + node.name, introspection
+                )
+                adapters.append(cls(proxy))
+            except InvalidIntrospectionError:
+                pass
+
+        if len(adapters) == 0:
+            raise Exception("No bluetooth adapters could be found.")
 
         return adapters
 
