@@ -38,7 +38,7 @@ You can use these decorators the same way as the built-in `property class <https
       # In Python 3.9+:
       # @characteristic("BEF1", CharFlags.WRITE).setter
       # Define a characteristic writing function like so.
-      @my_readonly_characteristic.setter
+      @my_writeonly_characteristic.setter
       def my_writeonly_characteristic(self, value, options):
          # Your characteristics will need to handle bytes.
          self._some_value = value
