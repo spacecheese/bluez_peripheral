@@ -56,8 +56,7 @@ Once you've defined your service you need to add it to a service collection whic
 
 .. code-block:: python
 
-   from bluez_peripheral.gatt.service import ServiceCollection
-   from ble.util import *
+   from ble.util import get_message_bus
 
    # This needs running in an awaitable context.
    bus = await get_message_bus()
