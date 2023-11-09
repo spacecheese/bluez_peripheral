@@ -108,5 +108,5 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
+To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo usermod -aG bluetooth $USER`).
 For more examples please read the [documentation](https://bluez-peripheral.readthedocs.io/en/latest/).
