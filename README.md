@@ -74,7 +74,7 @@ class HeartRateService(Service):
 ```
 Bluez interfaces with bluez-peripheral using dbus for inter-process communication. For Bluez to start offering your service it needs to be registered on this bus. Additionally if you want devices to pair with your device you need to register an agent to decide how pairing should be completed. Finally you also need to advertise the service to nearby devices.
 ```python
-from bluez_peripheral.util import *
+from bluez_peripheral.util import Adapter, get_message_bus
 from bluez_peripheral.advert import Advertisement
 from bluez_peripheral.agent import NoIoAgent
 import asyncio
@@ -108,5 +108,5 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo useradd -aG bluetooth spacecheese`).
+To communicate with bluez the default dbus configuration requires that you be in the bluetooth user group (eg. `sudo usermod -aG bluetooth $USER`).
 For more examples please read the [documentation](https://bluez-peripheral.readthedocs.io/en/latest/).
