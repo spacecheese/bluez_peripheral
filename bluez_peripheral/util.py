@@ -91,6 +91,41 @@ class Adapter:
         """Turn this adapter on or off."""
         await self._adapter_interface.set_powered(val)
 
+    async def get_pairable(self) -> bool:
+        """Indicates if the adapter is in pairable state or not."""
+        return await self._adapter_interface.get_pairable()
+
+    async def set_pairable(self, val: bool):
+        """Switch an adapter to pairable or non-pairable."""
+        await self._adapter_interface.set_pairable(val)
+
+    async def get_pairable_timeout(self) -> int:
+        """Get the current pairable timeout"""
+        return await self._adapter_interface.get_pairable_timeout()
+
+    async def set_pairable_timeout(self, val: int):
+        """Set the pairable timeout in seconds. A value of zero means that the
+        timeout is disabled and it will stay in pairable mode forever."""
+        await self._adapter_interface.set_pairable_timeout(val)
+
+    async def get_discoverable(self) -> bool:
+        """Indicates if the adapter is discoverable."""
+        return await self._adapter_interface.get_discoverable()
+
+    async def set_discoverable(self, val: bool):
+        """Switch an adapter to discoverable or non-discoverable to either make it
+        visible or hide it."""
+        await self._adapter_interface.set_discoverable(val)
+
+    async def get_discoverable_timeout(self) -> int:
+        """Get the current discoverable timeout"""
+        return await self._adapter_interface.get_discoverable_timeout()
+
+    async def set_discoverable_timeout(self, val: int):
+        """Set the discoverable timeout in seconds. A value of zero means that the
+        timeout is disabled and it will stay in discoverable mode forever."""
+        await self._adapter_interface.set_discoverable_timeout(val)
+
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
         """Get a list of available Bluetooth adapters.

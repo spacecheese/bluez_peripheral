@@ -38,3 +38,39 @@ class TestUtil(IsolatedAsyncioTestCase):
         await self._adapter.set_powered(True)
         assert await self._adapter.get_powered() == True
         await self._adapter.set_powered(initial_powered)
+
+    async def test_discoverable(self):
+        initial_discoverable = await self._adapter.get_discoverable()
+
+        await self._adapter.set_discoverable(False)
+        assert await self._adapter.get_discoverable() == False
+        await self._adapter.set_discoverable(True)
+        assert await self._adapter.get_discoverable() == True
+        await self._adapter.set_discoverable(initial_discoverable)
+
+    async def test_pairable(self):
+        initial_pairable = await self._adapter.get_pairable()
+
+        await self._adapter.set_pairable(False)
+        assert await self._adapter.get_pairable() == False
+        await self._adapter.set_pairable(True)
+        assert await self._adapter.get_pairable() == True
+        await self._adapter.set_pairable(initial_pairable)
+
+    async def test_pairable_timeout(self):
+        initial_pairable_timeout = await self._adapter.get_pairable_timeout()
+
+        await self._adapter.set_pairable_timeout(30)
+        assert await self._adapter.get_pairable_timeout() == 30
+        await self._adapter.set_pairable_timeout(0)
+        assert await self._adapter.get_pairable_timeout() == 0
+        await self._adapter.set_pairable_timeout(initial_pairable_timeout)
+
+    async def test_discoverable_timeout(self):
+        initial_discoverable_timeout = await self._adapter.get_discoverable_timeout()
+
+        await self._adapter.set_discoverable_timeout(30)
+        assert await self._adapter.get_discoverable_timeout() == 30
+        await self._adapter.set_discoverable_timeout(0)
+        assert await self._adapter.get_discoverable_timeout() == 0
+        await self._adapter.set_discoverable_timeout(initial_discoverable_timeout)
