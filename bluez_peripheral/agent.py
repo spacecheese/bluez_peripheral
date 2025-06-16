@@ -1,6 +1,6 @@
-from dbus_next.service import ServiceInterface, method
-from dbus_next.aio import MessageBus
-from dbus_next import DBusError
+from dbus_fast.service import ServiceInterface, method
+from dbus_fast.aio import MessageBus
+from dbus_fast import DBusError
 
 from typing import Awaitable, Callable
 from enum import Enum

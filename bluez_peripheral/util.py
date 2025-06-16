@@ -1,11 +1,11 @@
-from dbus_next import Variant, BusType
-from dbus_next.aio import MessageBus
-from dbus_next.errors import InvalidIntrospectionError
+from dbus_fast import Variant, BusType
+from dbus_fast.aio import MessageBus
+from dbus_fast.errors import InvalidIntrospectionError
 
 from typing import Any, Collection, Dict
 
-from dbus_next.aio.proxy_object import ProxyObject
-from dbus_next.errors import DBusError
+from dbus_fast.aio.proxy_object import ProxyObject
+from dbus_fast.errors import DBusError
 
 
 def getattr_variant(object: Dict[str, Variant], key: str, default: Any):

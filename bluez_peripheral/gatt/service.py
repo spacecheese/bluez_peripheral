@@ -1,7 +1,7 @@
-from dbus_next.aio.proxy_object import ProxyObject
-from dbus_next.constants import PropertyAccess
-from dbus_next.service import ServiceInterface, dbus_property
-from dbus_next.aio import MessageBus
+from dbus_fast.aio.proxy_object import ProxyObject
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import ServiceInterface, dbus_property
+from dbus_fast.aio import MessageBus
 
 from .characteristic import characteristic
 from ..uuid16 import UUID16

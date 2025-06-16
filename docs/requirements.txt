@@ -1,4 +1,4 @@
-dbus_next
+dbus_fast
 sphinx
 sphinx_rtd_theme
 sphinxcontrib-spelling
