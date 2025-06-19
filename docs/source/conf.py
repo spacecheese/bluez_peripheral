@@ -44,7 +44,7 @@ napoleon_numpy_docstring = False
 # -- Intersphinx -------------------------------------------------------------
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "dbus_fast": ("https://python-dbus-next.readthedocs.io/en/latest/", None),
+    "dbus_fast": ("https://dbus-fast.readthedocs.io/en/latest/", None),
     # Add a backup inv to fix mapping of dbus_fast.aio.proxy_object.ProxyObject and dbus_fast.aio.message_bus.MessageBus
     "dbus_fast_alias": (os.path.abspath(os.path.dirname(__file__)), "dbus_fast.inv")
 }
