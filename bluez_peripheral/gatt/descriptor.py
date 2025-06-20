@@ -1,7 +1,7 @@
-from dbus_next import DBusError
-from dbus_next.aio import MessageBus
-from dbus_next.service import ServiceInterface, method, dbus_property
-from dbus_next.constants import PropertyAccess
+from dbus_fast import DBusError
+from dbus_fast.aio import MessageBus
+from dbus_fast.service import ServiceInterface, method, dbus_property
+from dbus_fast.constants import PropertyAccess
 
 import inspect
 from uuid import UUID

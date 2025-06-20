@@ -1,7 +1,7 @@
-from dbus_next.aio import MessageBus
-from dbus_next.aio.proxy_object import ProxyInterface
-from dbus_next.constants import PropertyAccess
-from dbus_next.service import ServiceInterface, method, dbus_property
+from dbus_fast.aio import MessageBus
+from dbus_fast.aio.proxy_object import ProxyInterface
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import ServiceInterface, method, dbus_property
 
 from enum import Enum, Flag, auto
 from typing import Collection, Dict, Union, Callable, Optional

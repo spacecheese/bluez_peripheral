@@ -14,8 +14,8 @@ These are recommended over creating a custom characteristic where possible since
 Exceptions
 ----------
 
-Internally bluez_peripheral uses `dbus_next <https://github.com/altdesktop/python-dbus-next/tree/master/dbus_next>`_ to communicate with bluez.
-If you find that a characteristic or descriptor read or write access is invalid or not permitted for some reason you should raise a :py:class:`dbus_next.DBusError` with a type string recognized by bluez.
+Internally bluez_peripheral uses `dbus_fast <https://github.com/altdesktop/python-dbus-next/tree/master/dbus_fast>`_ to communicate with bluez.
+If you find that a characteristic or descriptor read or write access is invalid or not permitted for some reason you should raise a :py:class:`dbus_fast.DBusError` with a type string recognized by bluez.
 The `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_ include specific lists 
 of each access operation (the characteristic getters and setters map to ReadValue/ WriteValue calls) however in general you may use the following types::
     
@@ -26,7 +26,7 @@ of each access operation (the characteristic getters and setters map to ReadValu
     org.bluez.Error.NotAuthorized
     org.bluez.Error.NotSupported
 
-Exceptions that are not a :py:class:`dbus_next.DBusError` will still be returned to the caller but will result in a warning being printed to the terminal to aid in debugging.
+Exceptions that are not a :py:class:`dbus_fast.DBusError` will still be returned to the caller but will result in a warning being printed to the terminal to aid in debugging.
 
 Read/ Write Options
 -------------------
