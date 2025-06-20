@@ -41,5 +41,5 @@ jobs:
           sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
-          python -m unittest
+          python -m unittest discover -s tests -p "test_*.py" -v
         
