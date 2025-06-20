@@ -244,8 +244,11 @@ class ServiceCollection:
             service._export(bus, self._path + "/service{:d}".format(i))
             i += 1
 
+        class EmptyServiceInterface(ServiceInterface):
+            pass
+
         # Export an empty interface on the root path so that bluez has an object manager to find.
-        bus.export(self._path, ServiceInterface(self._path.replace("/", ".")[1:]))
+        bus.export(self._path, EmptyServiceInterface(self._path.replace("/", ".")[1:]))
         await manager.call_register_application(self._path, {})
 
     async def unregister(self):
