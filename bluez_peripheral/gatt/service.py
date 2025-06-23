@@ -5,6 +5,7 @@ from dbus_fast.aio import MessageBus
 
 from .characteristic import characteristic
 from ..uuid16 import UUID16
+from ..adapter import Adapter
 from ..util import *
 
 from uuid import UUID

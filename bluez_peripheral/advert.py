@@ -9,6 +9,7 @@ import struct
 from uuid import UUID
 
 from .uuid16 import UUID16
+from .adapter import Adapter
 from .util import *
 
 
