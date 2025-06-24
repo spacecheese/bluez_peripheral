@@ -5,6 +5,7 @@ from unittest.case import SkipTest
 
 from dbus_fast.introspection import Node
 
+from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.util import *
 from bluez_peripheral.uuid16 import UUID16
 

@@ -9,7 +9,7 @@ from ..adapter import Adapter
 from ..util import *
 
 from uuid import UUID
-from typing import Union
+from typing import Union, Collection
 import inspect
 
 # See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
