@@ -20,6 +20,9 @@ class Device:
     async def pair(self):
         await self._device_interface.call_pair()
 
+    async def get_name(self):
+        return await self._device_interface.get_name()
+
 
 class Adapter:
     """A bluetooth adapter."""
