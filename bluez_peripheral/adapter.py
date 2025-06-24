@@ -101,8 +101,9 @@ class Adapter:
         """Stop searching for other blutooth devices."""
         await self._adapter_interface.call_stop_discovery()
 
-    async def get_devices(self, bus: MessageBus) -> Collection[Device]:
+    async def get_devices(self) -> Collection[Device]:
         path = self._adapter_interface.path
+        bus = self._adapter_interface.bus
         device_nodes = (await bus.introspect("org.bluez", path)).nodes
 
         devices = []
