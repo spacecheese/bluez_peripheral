@@ -117,6 +117,10 @@ class Adapter:
                 pass
 
         return devices
+    
+    async def remove_device(self, device: Device):
+        path = device._device_interface.path
+        await self._adapter_interface.call_remove_device(path)
 
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
