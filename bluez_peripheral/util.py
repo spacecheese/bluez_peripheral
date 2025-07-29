@@ -1,6 +1,6 @@
 from dbus_fast import Variant, BusType
 from dbus_fast.aio import MessageBus
-from dbus_fast.errors import InvalidIntrospectionError
+from dbus_fast.errors import InvalidIntrospectionError, InterfaceNotFoundError
 
 from typing import Any, Collection, Dict
 
@@ -146,7 +146,7 @@ class Adapter:
                     "org.bluez", "/org/bluez/" + node.name, introspection
                 )
                 adapters.append(cls(proxy))
-            except InvalidIntrospectionError:
+            except (InvalidIntrospectionError, InterfaceNotFoundError):
                 pass
 
         return adapters
