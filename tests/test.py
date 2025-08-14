@@ -1,13 +1,53 @@
 #!/usr/bin/env python3
 
 import asyncio
+from dbus_fast.service import ServiceInterface, method
 from dbus_fast.aio import MessageBus
 from dbus_fast.constants import BusType
 
 from bluez_peripheral.advert import Advertisement
 from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.agent import TestAgent, AgentCapability
+from bluez_peripheral.agent import BaseAgent, TestAgent, AgentCapability
+
+class TrivialAgent(BaseAgent):
+    @method()
+    def Cancel():  # type: ignore
+        return
+
+    @method()
+    def Release():  # type: ignore
+        return
+
+    @method()
+    def RequestPinCode(self, device: "o") -> "s":  # type: ignore
+        breakpoint()
+        pass
+
+    @method()
+    def DisplayPinCode(self, device: "o", pincode: "s"):  # type: ignore
+        return
+
+    @method()
+    def RequestPasskey(self, device: "o") -> "u":  # type: ignore
+        return
+
+    @method()
+    def DisplayPasskey(self, device: "o", passkey: "u", entered: "q"):  # type: ignore
+        return
+
+    @method()
+    def RequestConfirmation(self, device: "o", passkey: "u"):  # type: ignore
+        return
+
+    @method()
+    def RequestAuthorization(self, device: "o"):  # type: ignore
+        return
+
+    @method()
+    def AuthorizeService(self, device: "o", uuid: "s"):  # type: ignore
+        return
+
 
 async def main():
     bus = await get_message_bus()
@@ -30,7 +70,7 @@ async def main():
     print(f"Starting scan on {await adapters[1].get_name()}")
     await adapters[1].start_discovery()
 
-    agent = TestAgent(AgentCapability.KEYBOARD_DISPLAY)
+    agent = TrivialAgent(AgentCapability.KEYBOARD_DISPLAY)
     await agent.register(bus)
 
     devices = []
