@@ -12,7 +12,7 @@ from ..uuid16 import UUID16
 from ..util import *
 
 
-# See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
+# See https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattService.rst
 class Service(ServiceInterface):
     """Create a bluetooth service with the specified uuid.
 

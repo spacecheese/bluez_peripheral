@@ -136,4 +136,4 @@ Note that IO Capability is not the only factor in selecting a pairing algorithm.
         Vol 3, Part H, Table 2.8 (source of :ref:`pairing-io`)
 
     Bluez Documentation
-        `Agent API <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/agent-api.txt>`_
+        `Agent API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.Agent.rst>`_

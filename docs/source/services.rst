@@ -199,7 +199,9 @@ Characteristics with the :py:attr:`~bluez_peripheral.gatt.characteristic.Charact
 .. seealso:: 
 
     Bluez Documentation
-        `GATT API <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_
+        `Service API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattService.rst>`_
+        `Characteristic API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattCharacteristic.rst>`_
+        `Descriptor API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattDescriptor.rst>`_
 
     .. _attribute-options:
 

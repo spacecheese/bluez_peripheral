@@ -113,7 +113,7 @@ class CharacteristicWriteOptions:
 
 class CharacteristicFlags(Flag):
     """Flags to use when specifying the read/ write routines that can be used when accessing the characteristic.
-    These are converted to `bluez flags <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_ some of which are not clearly documented.
+    These are converted to `bluez flags <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattCharacteristic.rst>`_.
     """
 
     INVALID = 0

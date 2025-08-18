@@ -34,4 +34,4 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 .. seealso:: 
 
     Bluez Documentation
-        `Advertising API <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/advertising-api.txt>`_
+        `Advertising API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.LEAdvertisement.rst>`_
