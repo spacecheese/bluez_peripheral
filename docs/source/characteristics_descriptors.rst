@@ -14,10 +14,7 @@ These are recommended over creating a custom characteristic where possible since
 Exceptions
 ----------
 
-Internally bluez_peripheral uses `dbus_fast <https://github.com/altdesktop/python-dbus-next/tree/master/dbus_fast>`_ to communicate with bluez.
-If you find that a characteristic or descriptor read or write access is invalid or not permitted for some reason you should raise a :py:class:`dbus_fast.DBusError` with a type string recognized by bluez.
-The `bluez docs <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>`_ include specific lists 
-of each access operation (the characteristic getters and setters map to ReadValue/ WriteValue calls) however in general you may use the following types::
+If you find that a characteristic or descriptor read or write access is invalid or not permitted for some reason you should raise a :py:class:`dbus_fast.DBusError` with one of the following types::
     
     org.bluez.Error.Failed
     org.bluez.Error.InProgress
@@ -25,6 +22,7 @@ of each access operation (the characteristic getters and setters map to ReadValu
     org.bluez.Error.InvalidValueLength
     org.bluez.Error.NotAuthorized
     org.bluez.Error.NotSupported
+    org.bluez.Error.ImproperlyConfigured
 
 Exceptions that are not a :py:class:`dbus_fast.DBusError` will still be returned to the caller but will result in a warning being printed to the terminal to aid in debugging.
 
@@ -35,7 +33,7 @@ bluez_peripheral does not check the validity of these options and only assigns t
 Normally you can ignore these options however one notable exception to this is when the size of you characteristic exceeds the negotiated Minimum Transfer Unit (MTU) of your connection with the remote device.
 In this case bluez will read your characteristic multiple times (using the offset option to break it up).
 This can be a problem if your characteristic exceeds 48 bytes in length (this is the minimum allowed by the Bluetooth specification) although in general 
-most devices have a larger default MTU (on the Raspberry Pi this appears to be 128 bytes).
+most devices have a larger default MTU.
 
 You may also choose to use these options to enforce authentication/ authorization.
 The behavior of these options is untested so if you experiment with these or have experience working with them a GitHub issue would be greatly appreciated.
