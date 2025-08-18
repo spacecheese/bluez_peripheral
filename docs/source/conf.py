@@ -12,6 +12,9 @@
 #
 import os
 import sys
+import inspect
+import importlib
+from pathlib import Path
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../../"))
@@ -52,6 +55,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
+    "sphinx.ext.linkcode",
     "sphinx_inline_tabs",
     "m2r2",
 ]
@@ -65,6 +69,36 @@ templates_path = ["_templates"]
 exclude_patterns = []
 
 nitpicky = True
+
+# -- Linkcode ----------------------------------------------------------------
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    modname = info.get("module")
+    fullname = info.get("fullname")
+    if not modname:
+        return None
+
+    obj = importlib.import_module(modname)
+    for part in fullname.split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
+
+    try:
+        src = inspect.getsourcefile(obj)
+        lines, lineno = inspect.getsourcelines(obj)
+    except Exception:
+        return None
+
+    src = Path(src).relative_to(Path(__file__).parents[2])
+
+    return (
+        f"https://github.com/spacecheese/bluez_peripheral/"
+        f"blob/master/{src.as_posix()}#L{lineno}-L{lineno+len(lines)-1}"
+    )
 
 # -- Napoleon ----------------------------------------------------------------
 napoleon_numpy_docstring = False
