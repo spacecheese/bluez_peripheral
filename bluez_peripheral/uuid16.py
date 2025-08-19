@@ -142,3 +142,6 @@ class UUID16:
 
     def __str__(self):
         return self.hex
+
+    def __hash__(self):
+        return hash(self.uuid)

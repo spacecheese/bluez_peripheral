@@ -1,10 +1,11 @@
-from dbus_next import Variant, BusType
-from dbus_next.aio import MessageBus
+from dbus_fast import Variant, BusType
+from dbus_fast.aio import MessageBus
+from dbus_fast.errors import InvalidIntrospectionError, InterfaceNotFoundError
 
 from typing import Any, Collection, Dict
 
-from dbus_next.aio.proxy_object import ProxyObject
-from dbus_next.errors import DBusError
+from dbus_fast.aio.proxy_object import ProxyObject
+from dbus_fast.errors import DBusError
 
 
 def _getattr_variant(object: Dict[str, Variant], key: str, default: Any):
@@ -90,6 +91,41 @@ class Adapter:
         """Turn this adapter on or off."""
         await self._adapter_interface.set_powered(val)  # type: ignore
 
+    async def get_pairable(self) -> bool:
+        """Indicates if the adapter is in pairable state or not."""
+        return await self._adapter_interface.get_pairable()
+
+    async def set_pairable(self, val: bool):
+        """Switch an adapter to pairable or non-pairable."""
+        await self._adapter_interface.set_pairable(val)
+
+    async def get_pairable_timeout(self) -> int:
+        """Get the current pairable timeout"""
+        return await self._adapter_interface.get_pairable_timeout()
+
+    async def set_pairable_timeout(self, val: int):
+        """Set the pairable timeout in seconds. A value of zero means that the
+        timeout is disabled and it will stay in pairable mode forever."""
+        await self._adapter_interface.set_pairable_timeout(val)
+
+    async def get_discoverable(self) -> bool:
+        """Indicates if the adapter is discoverable."""
+        return await self._adapter_interface.get_discoverable()
+
+    async def set_discoverable(self, val: bool):
+        """Switch an adapter to discoverable or non-discoverable to either make it
+        visible or hide it."""
+        await self._adapter_interface.set_discoverable(val)
+
+    async def get_discoverable_timeout(self) -> int:
+        """Get the current discoverable timeout"""
+        return await self._adapter_interface.get_discoverable_timeout()
+
+    async def set_discoverable_timeout(self, val: int):
+        """Set the discoverable timeout in seconds. A value of zero means that the
+        timeout is disabled and it will stay in discoverable mode forever."""
+        await self._adapter_interface.set_discoverable_timeout(val)
+
     @classmethod
     async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
         """Get a list of available Bluetooth adapters.
@@ -104,11 +140,14 @@ class Adapter:
 
         adapters = []
         for node in adapter_nodes:
-            introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
-            proxy = bus.get_proxy_object(
-                "org.bluez", "/org/bluez/" + node.name, introspection
-            )
-            adapters.append(cls(proxy))
+            try:
+                introspection = await bus.introspect("org.bluez", "/org/bluez/" + node.name)
+                proxy = bus.get_proxy_object(
+                    "org.bluez", "/org/bluez/" + node.name, introspection
+                )
+                adapters.append(cls(proxy))
+            except (InvalidIntrospectionError, InterfaceNotFoundError):
+                pass
 
         return adapters
 

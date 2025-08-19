@@ -1,5 +1,4 @@
-dbus_next
-
+dbus_fast
 sphinx
 sphinx-inline-tabs
 sphinxcontrib-spelling

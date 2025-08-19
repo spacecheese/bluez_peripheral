@@ -1,7 +1,7 @@
-from dbus_next.aio.proxy_object import ProxyObject
-from dbus_next.constants import PropertyAccess
-from dbus_next.service import ServiceInterface, dbus_property
-from dbus_next.aio import MessageBus
+from dbus_fast.aio.proxy_object import ProxyObject
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import ServiceInterface, dbus_property
+from dbus_fast.aio import MessageBus
 
 import inspect
 from uuid import UUID
@@ -247,8 +247,11 @@ class ServiceCollection:
             service._export(bus, self._path + "/service{:d}".format(i))
             i += 1
 
+        class EmptyServiceInterface(ServiceInterface):
+            pass
+
         # Export an empty interface on the root path so that bluez has an object manager to find.
-        bus.export(self._path, ServiceInterface(self._path.replace("/", ".")[1:]))
+        bus.export(self._path, EmptyServiceInterface(self._path.replace("/", ".")[1:]))
         await manager.call_register_application(self._path, {})
 
     async def unregister(self):

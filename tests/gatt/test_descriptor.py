@@ -1,8 +1,8 @@
-from dbus_next import introspection
+from dbus_fast import introspection
 from unittest import IsolatedAsyncioTestCase
 import re
 
-from dbus_next.signature import Variant
+from dbus_fast.signature import Variant
 
 from tests.util import *
 

@@ -106,7 +106,7 @@ napoleon_numpy_docstring = False
 # -- Intersphinx -------------------------------------------------------------
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "dbus_next": ("https://python-dbus-next.readthedocs.io/en/latest/", None),
+    "dbus_fast": ("https://dbus-fast.readthedocs.io/en/latest/", None),
 }
 
 # Fix resolution of MessageBus class to where docs actually are.
