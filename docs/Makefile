@@ -18,7 +18,9 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 apidoc:
+	rm -r "$(APIDOCDIR)"
 	@$(SPHINXDOC) -o "$(APIDOCDIR)" "$(MODPATH)" $(SPHINXDOCOPTS)
+	rm "$(APIDOCDIR)/modules.rst"
 
 .PHONY: help Makefile apidoc spelling
 

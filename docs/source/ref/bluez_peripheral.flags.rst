@@ -1,7 +1,7 @@
-bluez\_peripheral.agent module
+bluez\_peripheral.flags module
 ==============================
 
-.. automodule:: bluez_peripheral.agent
+.. automodule:: bluez_peripheral.flags
    :members:
    :show-inheritance:
    :undoc-members:

@@ -10,3 +10,11 @@ Submodules
    bluez_peripheral.gatt.characteristic
    bluez_peripheral.gatt.descriptor
    bluez_peripheral.gatt.service
+
+Module contents
+---------------
+
+.. automodule:: bluez_peripheral.gatt
+   :members:
+   :show-inheritance:
+   :undoc-members:

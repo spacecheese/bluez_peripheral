@@ -30,7 +30,7 @@ class Advertisement(ServiceInterface):
         solicitUUIDs: Array of service UUIDs to attempt to solicit (not widely used).
         serviceData: Any service data elements to include.
         includes: Fields that can be optionally included in the advertising packet.
-            Only the :class:`AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
+            Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
         releaseCallback: A function to call when the advert release function is called.
     """
