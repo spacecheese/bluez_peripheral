@@ -1,38 +1,17 @@
-from dbus_next import Variant
-from dbus_next.aio import MessageBus
-from dbus_next.aio.proxy_object import ProxyInterface
-from dbus_next.constants import PropertyAccess
-from dbus_next.service import ServiceInterface, method, dbus_property
-
-from enum import Enum, Flag, auto
-from typing import Collection, Dict, Union, Callable, Optional
+from typing import Collection, Dict, Callable, Optional, Union, List, Tuple
 import struct
 from uuid import UUID
 
-from .uuid16 import UUID16
-from .util import _snake_to_kebab, _kebab_to_shouting_snake, Adapter
+from dbus_fast import Variant
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import ServiceInterface, method, dbus_property
+from dbus_fast.aio.message_bus import MessageBus
 
-
-class PacketType(Enum):
-    BROADCAST = 0
-    """The relevant service(s) will be broadcast and do not require pairing.
-    """
-    PERIPHERAL = 1
-    """The relevant service(s) are associated with a peripheral role.
-    """
-
-
-class AdvertisingIncludes(Flag):
-    NONE = 0
-    TX_POWER = auto()
-    """Transmission power should be included.
-    """
-    APPEARANCE = auto()
-    """Device appearance number should be included.
-    """
-    LOCAL_NAME = auto()
-    """The local name of this device should be included.
-    """
+from .uuid16 import UUID16, UUIDCompatible
+from .util import _snake_to_kebab
+from .adapter import Adapter
+from .flags import AdvertisingIncludes
+from .flags import AdvertisingPacketType
 
 
 class Advertisement(ServiceInterface):
@@ -63,46 +42,54 @@ class Advertisement(ServiceInterface):
 
     def __init__(
         self,
-        localName: str,
-        serviceUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]],
+        local_name: str,
+        service_uuids: Collection[UUIDCompatible],
+        *,
         appearance: Union[int, bytes],
         timeout: int = 0,
         discoverable: bool = True,
-        packetType: PacketType = PacketType.PERIPHERAL,
-        manufacturerData: Dict[int, bytes] = {},
-        solicitUUIDs: Collection[Union[str, bytes, UUID, UUID16, int]] = [],
-        serviceData: Dict[Union[str, bytes, UUID, UUID16, int], bytes] = {},
+        packet_type: AdvertisingPacketType = AdvertisingPacketType.PERIPHERAL,
+        manufacturer_data: Optional[Dict[int, bytes]] = None,
+        solicit_uuids: Optional[Collection[UUIDCompatible]] = None,
+        service_data: Optional[List[Tuple[UUIDCompatible, bytes]]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
-        releaseCallback: Optional[Callable[[], None]] = None,
+        release_callback: Optional[Callable[[], None]] = None,
     ):
-        self._type = packetType
+        self._type = packet_type
         # Convert any string uuids to uuid16.
-        self._serviceUUIDs = [UUID16.parse_uuid(uuid) for uuid in serviceUUIDs]
-        self._localName = localName
+        self._service_uuids = [UUID16.parse_uuid(uuid) for uuid in service_uuids]
+        self._local_name = local_name
         # Convert the appearance to a uint16 if it isn't already an int.
-        if type(appearance) is bytes:
+        if isinstance(appearance, bytes):
             self._appearance = struct.unpack("H", appearance)[0]
         else:
             self._appearance = appearance
         self._timeout = timeout
 
-        self._manufacturerData = {}
-        for key, value in manufacturerData.items():
-            self._manufacturerData[key] = Variant("ay", value)
+        if manufacturer_data is None:
+            manufacturer_data = {}
+        self._manufacturer_data = {}
+        for key, value in manufacturer_data.items():
+            self._manufacturer_data[key] = Variant("ay", value)
 
-        self._solicitUUIDs = [
-            UUID16.parse_uuid(uuid) for uuid in solicitUUIDs
-        ]
-       
-        self._serviceData = {}
-        for key, value in serviceData.items():
-            self._serviceData[key] = Variant("ay", value)
+        if solicit_uuids is None:
+            solicit_uuids = []
+        self._solicit_uuids = [UUID16.parse_uuid(uuid) for uuid in solicit_uuids]
+
+        if service_data is None:
+            service_data = []
+        self._service_data: List[Tuple[UUID16 | UUID, Variant]] = []
+        for i, dat in service_data:
+            self._service_data.append((UUID16.parse_uuid(i), Variant("ay", dat)))
 
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
-        self.releaseCallback = releaseCallback
+        self._release_callback = release_callback
+
+        self._export_bus: Optional[MessageBus] = None
+        self._export_path: Optional[str] = None
 
         super().__init__(self._INTERFACE)
 
@@ -111,7 +98,7 @@ class Advertisement(ServiceInterface):
         bus: MessageBus,
         adapter: Optional[Adapter] = None,
         path: Optional[str] = None,
-    ):
+    ) -> None:
         """Register this advert with bluez to start advertising.
 
         Args:
@@ -126,8 +113,8 @@ class Advertisement(ServiceInterface):
             )
             Advertisement._defaultPathAdvertCount += 1
 
-        self._exportBus = bus
-        self._exportPath = path
+        self._export_bus = bus
+        self._export_path = path
 
         # Export this advert to the dbus.
         bus.export(path, self)
@@ -139,68 +126,59 @@ class Advertisement(ServiceInterface):
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})  # type: ignore
 
-    @classmethod
-    async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
-        interface = adapter._proxy.get_interface(cls._MANAGER_INTERFACE)
-        includes = await interface.get_supported_includes()  # type: ignore
-        flags = AdvertisingIncludes.NONE
-        for inc in includes:
-            inc = AdvertisingIncludes[_kebab_to_shouting_snake(inc)]
-            # Combine all the included flags.
-            flags |= inc
-        return flags
+    @method("Release")
+    def _release(self):  # type: ignore
+        assert self._export_bus is not None
+        assert self._export_path is not None
+        self._export_bus.unexport(self._export_path, self._INTERFACE)
 
-    @method()
-    def Release(self):  # type: ignore
-        self._exportBus.unexport(self._exportPath, self._INTERFACE)
+        if self._release_callback is not None:
+            self._release_callback()
 
-        if self.releaseCallback is not None:
-            self.releaseCallback()
-
-    @dbus_property(PropertyAccess.READ)
-    def Type(self) -> "s":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Type")
+    def _get_type(self) -> "s":  # type: ignore
         return self._type.name.lower()
 
-    @dbus_property(PropertyAccess.READ)
-    def ServiceUUIDs(self) -> "as":  # type: ignore
-        return [str(id) for id in self._serviceUUIDs]
+    @dbus_property(PropertyAccess.READ, "ServiceUUIDs")
+    def _get_service_uuids(self) -> "as":  # type: ignore
+        return [str(id) for id in self._service_uuids]
 
-    @dbus_property(PropertyAccess.READ)
-    def LocalName(self) -> "s":  # type: ignore
-        return self._localName
+    @dbus_property(PropertyAccess.READ, "LocalName")
+    def _get_local_name(self) -> "s":  # type: ignore
+        return self._local_name
 
-    @dbus_property(PropertyAccess.READ)
-    def Appearance(self) -> "q":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Appearance")
+    def _get_appearance(self) -> "q":  # type: ignore
         return self._appearance
 
-    @dbus_property(PropertyAccess.READ)
-    def Timeout(self) -> "q":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Timeout")
+    def _get_timeout(self) -> "q":  # type: ignore
         return self._timeout
 
-    @dbus_property(PropertyAccess.READ)
-    def ManufacturerData(self) -> "a{qv}":  # type: ignore
-        return self._manufacturerData
+    @dbus_property(PropertyAccess.READ, "ManufacturerData")
+    def _get_manufacturer_data(self) -> "a{qv}":  # type: ignore
+        return self._manufacturer_data
 
-    @dbus_property(PropertyAccess.READ)
-    def SolicitUUIDs(self) -> "as":  # type: ignore
-        return [str(id) for id in self._solicitUUIDs]
+    @dbus_property(PropertyAccess.READ, "SolicitUUIDs")
+    def _get_solicit_uuids(self) -> "as":  # type: ignore
+        return [str(key) for key in self._solicit_uuids]
 
-    @dbus_property(PropertyAccess.READ)
-    def ServiceData(self) -> "a{sv}":  # type: ignore
-        return dict((str(id), val) for id, val in self._serviceData.items())
+    @dbus_property(PropertyAccess.READ, "ServiceData")
+    def _get_service_data(self) -> "a{sv}":  # type: ignore
+        return dict((str(key), val) for key, val in self._service_data)
 
-    @dbus_property(PropertyAccess.READ)
-    def Discoverable(self) -> "b":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Discoverable")
+    def _get_discoverable(self) -> "b":  # type: ignore
         return self._discoverable
 
-    @dbus_property(PropertyAccess.READ)
-    def Includes(self) -> "as":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Includes")
+    def _get_includes(self) -> "as":  # type: ignore
         return [
             _snake_to_kebab(inc.name)
             for inc in AdvertisingIncludes
             if self._includes & inc and inc.name is not None
         ]
 
-    @dbus_property(PropertyAccess.READ)
-    def Duration(self) -> "q":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Duration")
+    def _get_duration(self) -> "q":  # type: ignore
         return self._duration

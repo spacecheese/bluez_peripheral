@@ -1,7 +1,8 @@
 import builtins
-
+from typing import Union, Optional
 from uuid import UUID
-from typing import Optional, Union
+
+UUIDCompatible = Union[str, bytes, UUID, "UUID16", int]
 
 
 class UUID16:
@@ -24,13 +25,12 @@ class UUID16:
         bytes: Optional[bytes] = None,
         int: Optional[int] = None,
         uuid: Optional[UUID] = None,
-    ):
+    ):  # pylint: disable=redefined-builtin
         if [hex, bytes, int, uuid].count(None) != 3:
             raise TypeError(
                 "exactly one of the hex, bytes or int arguments must be given"
             )
 
-        # All representations are converted to either a UUID128 or a 16-bit integer.
         time_low = None
 
         if hex is not None:
@@ -39,24 +39,23 @@ class UUID16:
                 time_low = builtins.int(hex, 16)
             else:
                 uuid = UUID(hex)
-
-        if bytes is not None:
+        elif bytes is not None:
             if len(bytes) == 2:
                 time_low = builtins.int.from_bytes(bytes, byteorder="big")
             elif len(bytes) == 16:
                 uuid = UUID(bytes=bytes)
             else:
                 raise ValueError("uuid bytes must be exactly either 2 or 16 bytes long")
-
-        if int is not None:
-            if int < 2**16 and int >= 0:
+        elif int is not None:
+            if 0 <= int < 2**16:
                 time_low = int
             else:
                 uuid = UUID(int=int)
 
         if time_low is not None:
             self._uuid = UUID(fields=(time_low,) + self._FIELDS[1:])
-        elif uuid is not None:
+        else:
+            assert uuid is not None
             if UUID16.is_in_range(uuid):
                 self._uuid = uuid
             else:
@@ -72,39 +71,32 @@ class UUID16:
         if uuid.fields[0] & 0xFFFF0000 != cls._FIELDS[0]:
             return False
 
-        for i in range(1, 5):
-            if uuid.fields[i] != cls._FIELDS[i]:
-                return False
-
-        return True
+        return uuid.fields[1:5] == cls._FIELDS[1:5]
 
     @classmethod
-    def parse_uuid(
-        cls, uuid: Union[str, bytes, int, UUID, "UUID16"]
-    ) -> Union[UUID, "UUID16"]:
+    def parse_uuid(cls, uuid: UUIDCompatible) -> Union[UUID, "UUID16"]:
         """Attempts to parse a supplied UUID representation to a UUID16.
         If the resulting value is out of range a UUI128 will be returned instead."""
-        if type(uuid) is UUID16:
+        if isinstance(uuid, UUID16):
             return uuid
-        elif type(uuid) is UUID:
+        if isinstance(uuid, UUID):
             if cls.is_in_range(uuid):
                 return UUID16(uuid=uuid)
-            else:
-                return uuid
-        elif type(uuid) is str:
+            return uuid
+        if isinstance(uuid, str):
             try:
                 return UUID16(hex=uuid)
-            except:
+            except ValueError:
                 return UUID(hex=uuid)
-        elif type(uuid) is bytes:
+        if isinstance(uuid, builtins.bytes):
             try:
                 return UUID16(bytes=uuid)
-            except:
+            except ValueError:
                 return UUID(bytes=uuid)
-        elif type(uuid) is int:
+        if isinstance(uuid, builtins.int):
             try:
                 return UUID16(int=uuid)
-            except:
+            except ValueError:
                 return UUID(int=uuid)
 
         raise ValueError("uuid is not a supported type")
@@ -115,7 +107,7 @@ class UUID16:
         return self._uuid
 
     @property
-    def int(self) -> int:
+    def int(self) -> builtins.int:
         """Returns the 16-bit integer value corresponding to this uuid16."""
         return self._uuid.time_low & 0xFFFF
 
@@ -130,18 +122,18 @@ class UUID16:
         return self.bytes.hex()
 
     def __eq__(self, __o: object) -> bool:
-        if type(__o) is UUID16:
+        if isinstance(__o, UUID16):
             return self._uuid == __o._uuid
-        elif type(__o) is UUID:
+        if isinstance(__o, UUID):
             return self._uuid == __o
-        else:
-            return False
+
+        return False
 
     def __ne__(self, __o: object) -> bool:
         return not self.__eq__(__o)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.hex
 
-    def __hash__(self):
+    def __hash__(self) -> builtins.int:
         return hash(self.uuid)

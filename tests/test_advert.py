@@ -3,7 +3,8 @@ from unittest.case import SkipTest
 
 from tests.util import *
 from bluez_peripheral import get_message_bus
-from bluez_peripheral.advert import Advertisement, PacketType, AdvertisingIncludes
+from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
+from bluez_peripheral.flags import AdvertisingPacketType
 
 from uuid import UUID
 
@@ -21,9 +22,9 @@ class TestAdvert(IsolatedAsyncioTestCase):
         advert = Advertisement(
             "Testing Device Name",
             ["180A", "180D"],
-            0x0340,
-            2,
-            packetType=PacketType.PERIPHERAL,
+            appearance=0x0340,
+            timeout=2,
+            packet_type=AdvertisingPacketType.PERIPHERAL,
             includes=AdvertisingIncludes.TX_POWER,
         )
 
@@ -55,9 +56,9 @@ class TestAdvert(IsolatedAsyncioTestCase):
         advert = Advertisement(
             "Testing Device Name",
             ["180A", "180D"],
-            0x0340,
-            2,
-            packetType=PacketType.PERIPHERAL,
+            appearance=0x0340,
+            timeout=2,
+            packet_type=AdvertisingPacketType.PERIPHERAL,
             includes=AdvertisingIncludes.NONE,
         )
 
@@ -79,8 +80,8 @@ class TestAdvert(IsolatedAsyncioTestCase):
         advert = Advertisement(
             "Improv Test",
             [UUID("00467768-6228-2272-4663-277478268000")],
-            0x0340,
-            2,
+            appearance=0x0340,
+            timeout=2,
         )
 
         async def inspector(path):

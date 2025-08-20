@@ -13,7 +13,7 @@ from bluez_peripheral.gatt.characteristic import (
 from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service
 
-from dbus_next import Variant
+from dbus_fast import Variant
 
 last_opts = None
 write_notify_char_val = None

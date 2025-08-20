@@ -8,10 +8,24 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
-[tool.interrogate]
-# Documenting these plays badly with sphinx
-ignore-init-module = true
-ignore-init-method = true
+[tool.pylint]
+disable = [
+    "missing-module-docstring",
+    "line-too-long",
+    "too-many-instance-attributes",
+    "too-many-return-statements",
+    "too-many-branches",
+    "too-many-arguments",
+    "too-many-locals",
+    "too-few-public-methods",
+    "duplicate-code",
+]
 
-ignore-private = true
-ignore-semiprivate = true
+[tool.mypy]
+python_version = "3.11"
+strict = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unused_configs = true

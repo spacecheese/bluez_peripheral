@@ -1,21 +1,20 @@
-from dbus_fast import DBusError
+import inspect
+from enum import Enum, Flag, auto
+from typing import Callable, Optional, Union, Awaitable, List, cast, Dict, TYPE_CHECKING
+
+from dbus_fast.errors import DBusError
 from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import ServiceInterface, method, dbus_property
 from dbus_fast.aio import MessageBus
+from dbus_fast import Variant
 
-import inspect
-from uuid import UUID
-from enum import Enum, Flag, auto
-from typing import Callable, Optional, Union, Awaitable, List, TYPE_CHECKING, cast
+from .descriptor import descriptor as Descriptor, DescriptorFlags
+from ..uuid16 import UUID16, UUIDCompatible
+from ..util import _snake_to_kebab, _getattr_variant
+from ..error import NotSupportedError, FailedError
 
 if TYPE_CHECKING:
     from .service import Service
-
-from .descriptor import descriptor as Descriptor, DescriptorFlags
-from ..uuid16 import UUID16
-from ..util import *
-from ..util import _snake_to_kebab, _getattr_variant
-from ..error import NotSupportedError, FailedError
 
 
 class CharacteristicReadOptions:
@@ -27,9 +26,9 @@ class CharacteristicReadOptions:
         if options is None:
             return
 
-        self._offset = int(_getattr_variant(options, "offset", 0))
-        self._mtu = int(_getattr_variant(options, "mtu", None))
-        self._device = _getattr_variant(options, "device", None)
+        self._offset = cast(int, _getattr_variant(options, "offset", 0))
+        self._mtu = cast(int, _getattr_variant(options, "mtu", None))
+        self._device = cast(str, _getattr_variant(options, "device", None))
 
     @property
     def offset(self) -> int:
@@ -70,43 +69,46 @@ class CharacteristicWriteOptions:
         if options is None:
             return
 
-        self._offset = int(_getattr_variant(options, "offset", 0))
-        type = _getattr_variant(options, "type", None)
-        if not type is None:
-            type = CharacteristicWriteType[type.upper()]
-        self._type = type
-        self._mtu = int(_getattr_variant(options, "mtu", 0))
-        self._device = _getattr_variant(options, "device", None)
-        self._link = _getattr_variant(options, "link", None)
-        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
+        t = _getattr_variant(options, "type", None)
+        self._type: Optional[CharacteristicWriteType] = None
+        if not t is None:
+            self._type = CharacteristicWriteType[t.upper()]
+
+        self._offset = cast(int, _getattr_variant(options, "offset", 0))
+        self._mtu = cast(int, _getattr_variant(options, "mtu", 0))
+        self._device = cast(str, _getattr_variant(options, "device", None))
+        self._link = cast(str, _getattr_variant(options, "link", None))
+        self._prepare_authorize = cast(
+            bool, _getattr_variant(options, "prepare-authorize", False)
+        )
 
     @property
-    def offset(self):
+    def offset(self) -> int:
         """A byte offset to use when writing to this characteristic."""
         return self._offset
 
     @property
-    def type(self):
+    def type(self) -> Optional[CharacteristicWriteType]:
         """The type of write operation requested or None."""
         return self._type
 
     @property
-    def mtu(self):
+    def mtu(self) -> int:
         """The exchanged Maximum Transfer Unit of the connection with the remote device or 0."""
         return self._mtu
 
     @property
-    def device(self):
+    def device(self) -> str:
         """The path of the remote device on the system dbus or None."""
         return self._device
 
     @property
-    def link(self):
+    def link(self) -> str:
         """The link type."""
         return self._link
 
     @property
-    def prepare_authorize(self):
+    def prepare_authorize(self) -> bool:
         """True if prepare authorization request. False otherwise."""
         return self._prepare_authorize
 
@@ -181,7 +183,7 @@ SetterType = Union[
 ]
 
 
-class characteristic(ServiceInterface):
+class characteristic(ServiceInterface):  # pylint: disable=invalid-name
     """Create a new characteristic with a specified UUID and flags.
 
     Args:
@@ -196,7 +198,7 @@ class characteristic(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[str, bytes, UUID, UUID16, int],
+        uuid: UUIDCompatible,
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
         self.uuid = UUID16.parse_uuid(uuid)
@@ -209,10 +211,11 @@ class characteristic(ServiceInterface):
         self._descriptors: List[Descriptor] = []
         self._service: Optional["Service"] = None
         self._value = bytearray()
+        self._num: Optional[int] = None
 
         super().__init__(self._INTERFACE)
 
-    def changed(self, new_value: bytes):
+    def changed(self, new_value: bytes) -> None:
         """Call this function when the value of a notifiable or indicatable property changes to alert any subscribers.
 
         Args:
@@ -247,7 +250,7 @@ class characteristic(ServiceInterface):
 
     def descriptor(
         self,
-        uuid: Union[str, bytes, UUID, UUID16, int],
+        uuid: UUIDCompatible,
         flags: DescriptorFlags = DescriptorFlags.READ,
     ) -> Descriptor:
         """Create a new descriptor with the specified UUID and Flags.
@@ -259,16 +262,21 @@ class characteristic(ServiceInterface):
         # Use as a decorator for descriptors that need a getter.
         return Descriptor(uuid, self, flags)
 
-    def _is_registered(self):
+    def _is_registered(self) -> bool:
         return not self._service_path is None
 
-    def _set_service(self, service: "Service"):
+    def set_service(self, service: Optional["Service"]) -> None:
+        """Attaches this characteristic to the specified service.
+        .. warning::
+
+            Do not call this directly. Subclasses of the Service class will handle this automatically.
+        """
         self._service = service
 
         for desc in self._descriptors:
-            desc._set_service(service)
+            desc.set_service(service)
 
-    def add_descriptor(self, desc: Descriptor):
+    def add_descriptor(self, desc: Descriptor) -> None:
         """Associate the specified descriptor with this characteristic.
 
         Args:
@@ -284,9 +292,9 @@ class characteristic(ServiceInterface):
 
         self._descriptors.append(desc)
         # Make sure that any descriptors have the correct service set at all times.
-        desc._set_service(self._service)
+        desc.set_service(self._service)
 
-    def remove_descriptor(self, desc: Descriptor):
+    def remove_descriptor(self, desc: Descriptor) -> None:
         """Remove the specified descriptor from this characteristic.
 
         Args:
@@ -302,15 +310,15 @@ class characteristic(ServiceInterface):
 
         self._descriptors.remove(desc)
         # Clear the parent service from any old descriptors.
-        desc._set_service(None)
+        desc.set_service(None)
 
     def _get_path(self) -> str:
         if self._service_path is None:
             raise ValueError()
 
-        return self._service_path + "/char{:d}".format(self._num)
+        return f"{self._service_path}/char{self._num}"
 
-    def _export(self, bus: MessageBus, service_path: str, num: int):
+    def _export(self, bus: MessageBus, service_path: str, num: int) -> None:
         self._service_path = service_path
         self._num = num
         bus.export(self._get_path(), self)
@@ -321,7 +329,7 @@ class characteristic(ServiceInterface):
             desc._export(bus, self._get_path(), i)
             i += 1
 
-    def _unexport(self, bus: MessageBus):
+    def _unexport(self, bus: MessageBus) -> None:
         # Unexport this and each of the child descriptors.
         bus.unexport(self._get_path(), self._INTERFACE)
         for desc in self._descriptors:
@@ -329,8 +337,8 @@ class characteristic(ServiceInterface):
 
         self._service_path = None
 
-    @method()
-    async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+    @method("ReadValue")
+    async def _read_value(self, options: "a{sv}") -> "ay":  # type: ignore
         if self.getter_func is None:
             raise FailedError("No getter implemented")
 
@@ -361,8 +369,8 @@ class characteristic(ServiceInterface):
             )
             raise e
 
-    @method()
-    async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+    @method("WriteValue")
+    async def _write_value(self, data: "ay", options: "a{sv}"):  # type: ignore
         if self.setter_func is None:
             raise FailedError("No setter implemented")
 
@@ -384,30 +392,30 @@ class characteristic(ServiceInterface):
             raise e
         self._value[opts.offset : opts.offset + len(data)] = bytearray(data)
 
-    @method()
-    def StartNotify(self):
+    @method("StartNotify")
+    def _start_notify(self) -> None:
         if not self.flags | CharacteristicFlags.NOTIFY:
             raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = True
 
-    @method()
-    def StopNotify(self):
+    @method("StopNotify")
+    def _stop_notify(self) -> None:
         if not self.flags | CharacteristicFlags.NOTIFY:
             raise NotSupportedError("The characteristic does not support notification.")
 
         self._notify = False
 
-    @dbus_property(PropertyAccess.READ)
-    def UUID(self) -> "s":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "UUID")
+    def _get_uuid(self) -> "s":  # type: ignore
         return str(self.uuid)
 
-    @dbus_property(PropertyAccess.READ)
-    def Service(self) -> "o":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Service")
+    def _get_service(self) -> "o":  # type: ignore
         return self._service_path
 
-    @dbus_property(PropertyAccess.READ)
-    def Flags(self) -> "as":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Flags")
+    def _get_flags(self) -> "as":  # type: ignore
         # Clear the extended properties flag (bluez doesn't seem to like this flag even though its in the docs).
         self.flags &= ~CharacteristicFlags.EXTENDED_PROPERTIES
 
@@ -418,6 +426,6 @@ class characteristic(ServiceInterface):
             if self.flags & flag and flag.name is not None
         ]
 
-    @dbus_property(PropertyAccess.READ)
-    def Value(self) -> "ay":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Value")
+    def _get_value(self) -> "ay":  # type: ignore
         return bytes(self._value)

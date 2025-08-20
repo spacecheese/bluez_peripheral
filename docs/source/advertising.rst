@@ -4,7 +4,7 @@ Advertising Services
 In BLE advertising is required for other devices to discover services that surrounding peripherals offer. To allow multiple adverts to operate simultaneously advertising is time-division multiplexed.
 
 .. hint:: 
-    The "message bus" referred to here is a :py:class:`dbus_next.aio.MessageBus`.
+    The "message bus" referred to here is a :py:class:`dbus_fast.aio.MessageBus`.
 
 A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 

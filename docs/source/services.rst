@@ -93,7 +93,7 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
 
 Error Handling
 ^^^^^^^^^^^^^^
-Attribute getters/ setters may raise one of a set of :ref:`legal exceptions<legal-errors>` to signal specific conditions to bluez. Avoid throwing custom exceptions in attribute assessors, since these will not be presented to a user and bluez will not know how to interpret them. Additionally any exceptions thrown **must** derive from :py:class:`dbus_next.DBusError`. 
+Attribute getters/ setters may raise one of a set of :ref:`legal exceptions<legal-errors>` to signal specific conditions to bluez. Avoid throwing custom exceptions in attribute assessors, since these will not be presented to a user and bluez will not know how to interpret them. Additionally any exceptions thrown **must** derive from :py:class:`dbus_fast.DBusError`. 
 
 .. _legal-errors:
 
@@ -126,7 +126,7 @@ Registering a Service
     Ensure that the thread used to register your service yields regularly. Client requests will not be served otherwise.
 
 .. hint:: 
-    The "message bus" referred to here is a :py:class:`dbus_next.aio.MessageBus`.
+    The "message bus" referred to here is a :py:class:`dbus_fast.aio.MessageBus`.
 
 Services can either be registered individually using a :py:class:`~bluez_peripheral.gatt.service.Service` or as part of a :py:class:`~bluez_peripheral.gatt.service.ServiceCollection`. For example following on from the earlier code:
 

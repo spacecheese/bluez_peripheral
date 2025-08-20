@@ -1,46 +1,64 @@
-from dbus_next import DBusError
+from dbus_fast.errors import DBusError
 
 
 class FailedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.Failed", message)
+    """Raised when an operation failed."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.Failed", message)
 
 
 class InProgressError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.InProgress", message)
+    """Raised when an operation was already in progress but was requested again."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.InProgress", message)
 
 
 class NotPermittedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.NotPermitted", message)
+    """Raised when a requested operation is not permitted."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.NotPermitted", message)
 
 
 class InvalidValueLengthError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.InvalidValueLength", message)
+    """Raised when a written value was an illegal length."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.InvalidValueLength", message)
 
 
 class InvalidOffsetError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.InvalidOffset", message)
+    """Raised when an illegal offset is provided."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.InvalidOffset", message)
 
 
 class NotAuthorizedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.NotAuthorized", message)
+    """Raised when a requester is not authorized to perform the requsted operation."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.NotAuthorized", message)
 
 
 class NotConnectedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.NotConnected", message)
+    """Raised when the operation could not be completed because the target is not connected."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.NotConnected", message)
 
 
 class NotSupportedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.NotSupported", message)
+    """Raised when the requested operation is not supported."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.NotSupported", message)
 
 
 class RejectedError(DBusError):
-    def __init__(self, message):
-        super.__init__("org.bluez.Error.Rejected", message)
+    """Raised when the pairing operation was rejected."""
+
+    def __init__(self, message: str):
+        super().__init__("org.bluez.Error.Rejected", message)

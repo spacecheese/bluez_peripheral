@@ -10,8 +10,8 @@ from bluez_peripheral.util import (
     get_message_bus,
     is_bluez_available,
     MessageBus,
-    Adapter,
 )
+from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.uuid16 import UUID16
 
 

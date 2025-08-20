@@ -92,6 +92,9 @@ def linkcode_resolve(domain, info):
         lines, lineno = inspect.getsourcelines(obj)
     except Exception:
         return None
+    
+    if src is None:
+        return None
 
     src = Path(src).relative_to(Path(__file__).parents[2])
 
@@ -111,16 +114,16 @@ intersphinx_mapping = {
 
 # Fix resolution of MessageBus class to where docs actually are.
 intersphinx_aliases = {
-    ("py:class", "dbus_next.aio.message_bus.MessageBus"): (
+    ("py:class", "dbus_fast.aio.message_bus.MessageBus"): (
         "py:class",
-        "dbus_next.aio.MessageBus",
+        "dbus_fast.aio.MessageBus",
     ),
-    ("py:class", "dbus_next.aio.proxy_object.ProxyObject"): (
+    ("py:class", "dbus_fast.aio.proxy_object.ProxyObject"): (
         "py:class",
-        "dbus_next.aio.ProxyObject",
+        "dbus_fast.aio.ProxyObject",
     ),
-    ("py:class", "dbus_next.errors.DBusError"): ("py:class", "dbus_next.DBusError"),
-    ("py:class", "dbus_next.signature.Variant"): ("py:class", "dbus_next.Variant"),
+    ("py:class", "dbus_fast.errors.DBusError"): ("py:class", "dbus_fast.DBusError"),
+    ("py:class", "dbus_fast.signature.Variant"): ("py:class", "dbus_fast.Variant"),
 }
 
 

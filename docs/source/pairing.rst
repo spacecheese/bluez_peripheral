@@ -20,7 +20,7 @@ Using an Agent
 --------------
 
 .. hint:: 
-    The "message bus" referred to here is a :py:class:`dbus_next.aio.MessageBus`.
+    The "message bus" referred to here is a :py:class:`dbus_fast.aio.MessageBus`.
 
 There are three potential sources of agents:
 
@@ -81,7 +81,7 @@ There are three potential sources of agents:
         agent = TestAgent()
         await agent.register(bus)
 
-    The test agent will then fire :py:func:`breakpoints<breakpoint>` when each of the interfaces functions is called during the pairing process. Note that when extending this class the type hints as used are important (see :doc:`dbus_next services<dbus_next:high-level-service/index>`).
+    The test agent will then fire :py:func:`breakpoints<breakpoint>` when each of the interfaces functions is called during the pairing process. Note that when extending this class the type hints as used are important (see :doc:`dbus_fast services<dbus_fast:high-level-service/index>`).
 
 Debugging
 ---------

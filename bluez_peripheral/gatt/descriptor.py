@@ -1,19 +1,19 @@
-from dbus_next import DBusError, Variant
-from dbus_next.aio import MessageBus
-from dbus_next.service import ServiceInterface, method, dbus_property
-from dbus_next.constants import PropertyAccess
-
 import inspect
-from uuid import UUID
 from enum import Flag, auto
 from typing import Callable, Union, Awaitable, Optional, Dict, TYPE_CHECKING, cast
 
-if TYPE_CHECKING:
-    from .service import Service
+from dbus_fast.errors import DBusError
+from dbus_fast import Variant
+from dbus_fast.aio.message_bus import MessageBus
+from dbus_fast.service import ServiceInterface, method, dbus_property
+from dbus_fast.constants import PropertyAccess
 
-from ..uuid16 import UUID16
+from ..uuid16 import UUID16, UUIDCompatible
 from ..util import _snake_to_kebab, _getattr_variant
 from ..error import FailedError
+
+if TYPE_CHECKING:
+    from .service import Service
 
 
 class DescriptorReadOptions:
@@ -30,19 +30,19 @@ class DescriptorReadOptions:
         self._device = _getattr_variant(options, "device", None)
 
     @property
-    def offset(self):
+    def offset(self) -> int:
         """A byte offset to use when writing to this descriptor."""
-        return self._offset
+        return cast(int, self._offset)
 
     @property
-    def link(self):
+    def link(self) -> str:
         """The link type."""
-        return self._link
+        return cast(str, self._link)
 
     @property
-    def device(self):
+    def device(self) -> str:
         """The path of the remote device on the system dbus or None."""
-        return self._device
+        return cast(str, self._device)
 
 
 class DescriptorWriteOptions:
@@ -60,24 +60,24 @@ class DescriptorWriteOptions:
         self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
 
     @property
-    def offset(self):
+    def offset(self) -> int:
         """A byte offset to use when writing to this descriptor."""
-        return self._offset
+        return cast(int, self._offset)
 
     @property
-    def device(self):
+    def device(self) -> str:
         """The path of the remote device on the system dbus or None."""
-        return self._device
+        return cast(str, self._device)
 
     @property
-    def link(self):
+    def link(self) -> str:
         """The link type."""
-        return self._link
+        return cast(str, self._link)
 
     @property
-    def prepare_authorize(self):
+    def prepare_authorize(self) -> bool:
         """True if prepare authorization request. False otherwise."""
-        return self._prepare_authorize
+        return cast(bool, self._prepare_authorize)
 
 
 class DescriptorFlags(Flag):
@@ -119,7 +119,7 @@ SetterType = Union[
 
 
 # Decorator for descriptor getters/ setters.
-class descriptor(ServiceInterface):
+class descriptor(ServiceInterface):  # pylint: disable=invalid-name
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
 
     Args:
@@ -135,7 +135,7 @@ class descriptor(ServiceInterface):
 
     def __init__(
         self,
-        uuid: Union[str, bytes, UUID, UUID16, int],
+        uuid: UUIDCompatible,
         characteristic: "characteristic",  # type: ignore
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):
@@ -144,7 +144,8 @@ class descriptor(ServiceInterface):
         self.setter_func: Optional[SetterType] = None
         self.characteristic = characteristic
         self.flags = flags
-        self._service = None
+        self._service: Optional[Service] = None
+        self._num: Optional[int] = None
 
         self._characteristic_path: Optional[str] = None
         super().__init__(self._INTERFACE)
@@ -178,7 +179,12 @@ class descriptor(ServiceInterface):
         self.setter_func = setter_func
         return self
 
-    def _set_service(self, service):
+    def set_service(self, service: Optional["Service"]) -> None:
+        """Attaches this descriptor to the specified service.
+        .. warning::
+
+            Do not call this directly. Subclasses of the Service class will handle this automatically.
+        """
         self._service = service
 
     # DBus
@@ -186,22 +192,22 @@ class descriptor(ServiceInterface):
         if self._characteristic_path is None:
             raise ValueError()
 
-        return self._characteristic_path + "/desc{:d}".format(self._num)
+        return f"{self._characteristic_path}/desc{self._num}"
 
-    def _export(self, bus: MessageBus, characteristic_path: str, num: int):
+    def _export(self, bus: MessageBus, characteristic_path: str, num: int) -> None:
         self._characteristic_path = characteristic_path
         self._num = num
         bus.export(self._get_path(), self)
 
-    def _unexport(self, bus: MessageBus):
+    def _unexport(self, bus: MessageBus) -> None:
         if self._characteristic_path is None:
             return
 
         bus.unexport(self._get_path(), self._INTERFACE)
         self._characteristic_path = None
 
-    @method()
-    async def ReadValue(self, options: "a{sv}") -> "ay":  # type: ignore
+    @method("ReadValue")
+    async def _read_value(self, options: "a{sv}") -> "ay":  # type: ignore
         if self.getter_func is None:
             raise FailedError("No getter implemented")
 
@@ -213,11 +219,11 @@ class descriptor(ServiceInterface):
                 return await self.getter_func(
                     self._service, DescriptorReadOptions(options)
                 )
-            else:
-                return cast(
-                    bytes,
-                    self.getter_func(self._service, DescriptorReadOptions(options)),
-                )
+
+            return cast(
+                bytes,
+                self.getter_func(self._service, DescriptorReadOptions(options)),
+            )
         except DBusError as e:
             # Allow DBusErrors to bubble up normally.
             raise e
@@ -228,8 +234,8 @@ class descriptor(ServiceInterface):
             )
             raise e
 
-    @method()
-    async def WriteValue(self, data: "ay", options: "a{sv}"):  # type: ignore
+    @method("WriteValue")
+    async def _write_value(self, data: "ay", options: "a{sv}"):  # type: ignore
         if self.setter_func is None:
             raise FailedError("No setter implemented")
 
@@ -251,16 +257,16 @@ class descriptor(ServiceInterface):
             )
             raise e
 
-    @dbus_property(PropertyAccess.READ)
-    def UUID(self) -> "s":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "UUID")
+    def _get_uuid(self) -> "s":  # type: ignore
         return str(self.uuid)
 
-    @dbus_property(PropertyAccess.READ)
-    def Characteristic(self) -> "o":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Characteristic")
+    def _get_characteristic(self) -> "o":  # type: ignore
         return self._characteristic_path
 
-    @dbus_property(PropertyAccess.READ)
-    def Flags(self) -> "as":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Flags")
+    def _get_flags(self) -> "as":  # type: ignore
         # Return a list of string flag names.
         return [
             _snake_to_kebab(flag.name)
