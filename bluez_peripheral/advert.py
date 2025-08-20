@@ -104,6 +104,10 @@ class Advertisement(ServiceInterface):
         self._duration = duration
         self.releaseCallback = releaseCallback
 
+        self._exportBus: Optional[MessageBus] = None
+        self._exportPath: Optional[str] = None
+        self._adapter: Optional[Adapter] = None
+
         super().__init__(self._INTERFACE)
 
     async def register(
@@ -135,9 +139,24 @@ class Advertisement(ServiceInterface):
         if adapter is None:
             adapter = await Adapter.get_first(bus)
 
+        self._adapter = adapter
+
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})
+
+    async def unregister(self):
+        """
+        Unregister this advertisement from bluez to stop advertising.
+        """
+        if not self._exportBus or not self._adapter or not self._exportPath:
+            return
+
+        interface = self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
+
+        await interface.call_unregister_advertisement(self._exportPath)
+
+        self.Release()
 
     @classmethod
     async def GetSupportedIncludes(cls, adapter: Adapter) -> AdvertisingIncludes:
@@ -153,6 +172,10 @@ class Advertisement(ServiceInterface):
     @method()
     def Release(self):  # type: ignore
         self._exportBus.unexport(self._exportPath, self._INTERFACE)
+
+        self._exportBus = None
+        self._adapter = None
+        self._exportPath = None
 
         if self.releaseCallback is not None:
             self.releaseCallback()
