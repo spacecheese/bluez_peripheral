@@ -267,8 +267,8 @@ class characteristic(ServiceInterface):  # pylint: disable=invalid-name
 
     def set_service(self, service: Optional["Service"]) -> None:
         """Attaches this characteristic to the specified service.
-        .. warning::
-
+        
+        Warnings:
             Do not call this directly. Subclasses of the Service class will handle this automatically.
         """
         self._service = service
