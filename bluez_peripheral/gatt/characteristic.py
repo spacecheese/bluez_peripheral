@@ -238,8 +238,8 @@ class characteristic(ServiceInterface):  # pylint: disable=invalid-name
         """A decorator for characteristic value getters.
 
         Args:
-            get: The getter function for this characteristic.
-            set: The setter function for this characteristic.
+            getter_func: The getter function for this characteristic.
+            setter_func: The setter function for this characteristic.
 
         Returns:
             This characteristic.
