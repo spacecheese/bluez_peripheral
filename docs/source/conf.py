@@ -19,26 +19,6 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../../"))
 
-
-# See https://github.com/sphinx-doc/sphinx/issues/5603
-def add_intersphinx_aliases_to_inv(app):
-    from sphinx.ext.intersphinx import InventoryAdapter
-
-    inventories = InventoryAdapter(app.builder.env)
-
-    for alias, target in app.config.intersphinx_aliases.items():
-        alias_domain, alias_name = alias
-        target_domain, target_name = target
-        try:
-            found = inventories.main_inventory[target_domain][target_name]
-            try:
-                inventories.main_inventory[alias_domain][alias_name] = found
-            except KeyError:
-                continue
-        except KeyError:
-            continue
-
-
 # -- Project information -----------------------------------------------------
 
 project = "bluez-peripheral"
@@ -111,25 +91,6 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "dbus_fast": ("https://dbus-fast.readthedocs.io/en/latest/", None),
 }
-
-# Fix resolution of MessageBus class to where docs actually are.
-intersphinx_aliases = {
-    ("py:class", "dbus_fast.aio.message_bus.MessageBus"): (
-        "py:class",
-        "dbus_fast.aio.MessageBus",
-    ),
-    ("py:class", "dbus_fast.aio.proxy_object.ProxyObject"): (
-        "py:class",
-        "dbus_fast.aio.ProxyObject",
-    ),
-    ("py:class", "dbus_fast.errors.DBusError"): ("py:class", "dbus_fast.DBusError"),
-    ("py:class", "dbus_fast.signature.Variant"): ("py:class", "dbus_fast.Variant"),
-}
-
-
-def setup(app):
-    app.add_config_value("intersphinx_aliases", {}, "env")
-    app.connect("builder-inited", add_intersphinx_aliases_to_inv)
 
 
 # -- Options for HTML output -------------------------------------------------
