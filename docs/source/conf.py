@@ -51,6 +51,9 @@ exclude_patterns = []
 
 nitpicky = True
 
+autodoc_typehints = "description"
+
+
 # -- Linkcode ----------------------------------------------------------------
 def _get_git_ref():
     try:
