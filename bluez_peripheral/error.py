@@ -37,7 +37,7 @@ class InvalidOffsetError(DBusError):
 
 
 class NotAuthorizedError(DBusError):
-    """Raised when a requester is not authorized to perform the requsted operation."""
+    """Raised when a requester is not authorized to perform the requested operation."""
 
     def __init__(self, message: str):
         super().__init__("org.bluez.Error.NotAuthorized", message)

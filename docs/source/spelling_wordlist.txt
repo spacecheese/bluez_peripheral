@@ -6,6 +6,10 @@ getter
 getters
 discoverable
 bluetoothctl
+bluetoothd
+manpages
+pairable
+subclasses
 cli
 passcode
 indicatable
