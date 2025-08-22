@@ -32,7 +32,7 @@ class Advertisement(ServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        _release_callback: A function to call when the advert release function is called.
+        release_callback: A function to call when the advert release function is called.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
