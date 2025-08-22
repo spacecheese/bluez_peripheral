@@ -76,7 +76,7 @@ class UUID16:
     @classmethod
     def parse_uuid(cls, uuid: UUIDCompatible) -> Union[UUID, "UUID16"]:
         """Attempts to parse a supplied UUID representation to a UUID16.
-        If the resulting value is out of range a UUI128 will be returned instead."""
+        If the resulting value is out of range a UUID128 will be returned instead."""
         if isinstance(uuid, UUID16):
             return uuid
         if isinstance(uuid, UUID):
