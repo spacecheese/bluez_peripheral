@@ -91,6 +91,10 @@ class Advertisement(ServiceInterface):
         self._export_bus: Optional[MessageBus] = None
         self._export_path: Optional[str] = None
 
+        self._exportBus: Optional[MessageBus] = None
+        self._exportPath: Optional[str] = None
+        self._adapter: Optional[Adapter] = None
+
         super().__init__(self._INTERFACE)
 
     async def register(
@@ -122,6 +126,8 @@ class Advertisement(ServiceInterface):
         if adapter is None:
             adapter = await Adapter.get_first(bus)
 
+        self._adapter = adapter
+
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
         await interface.call_register_advertisement(path, {})  # type: ignore
@@ -131,9 +137,23 @@ class Advertisement(ServiceInterface):
         assert self._export_bus is not None
         assert self._export_path is not None
         self._export_bus.unexport(self._export_path, self._INTERFACE)
+    
+    async def unregister(self):
+        """
+        Unregister this advertisement from bluez to stop advertising.
+        """
+        if not self._exportBus or not self._adapter or not self._exportPath:
+            return
 
-        if self._release_callback is not None:
-            self._release_callback()
+        interface = self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
+
+        await interface.call_unregister_advertisement(self._exportPath)
+        self._exportBus = None
+        self._adapter = None
+        self._exportPath = None
+
+        if self.releaseCallback is not None:
+            self.releaseCallback()
 
     @dbus_property(PropertyAccess.READ, "Type")
     def _get_type(self) -> "s":  # type: ignore
