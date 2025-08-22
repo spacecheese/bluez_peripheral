@@ -90,9 +90,6 @@ class Advertisement(ServiceInterface):
 
         self._export_bus: Optional[MessageBus] = None
         self._export_path: Optional[str] = None
-
-        self._exportBus: Optional[MessageBus] = None
-        self._exportPath: Optional[str] = None
         self._adapter: Optional[Adapter] = None
 
         super().__init__(self._INTERFACE)
@@ -142,15 +139,15 @@ class Advertisement(ServiceInterface):
         """
         Unregister this advertisement from bluez to stop advertising.
         """
-        if not self._exportBus or not self._adapter or not self._exportPath:
+        if not self._export_bus or not self._adapter or not self._export_path:
             return
 
         interface = self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
 
-        await interface.call_unregister_advertisement(self._exportPath)  # type: ignore
-        self._exportBus = None
+        await interface.call_unregister_advertisement(self._export_path)  # type: ignore
+        self._export_bus = None
         self._adapter = None
-        self._exportPath = None
+        self._export_path = None
 
         if self._release_callback is not None:
             self._release_callback()
