@@ -32,7 +32,7 @@ class Advertisement(ServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        releaseCallback: A function to call when the advert release function is called.
+        _release_callback: A function to call when the advert release function is called.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
@@ -137,8 +137,8 @@ class Advertisement(ServiceInterface):
         assert self._export_bus is not None
         assert self._export_path is not None
         self._export_bus.unexport(self._export_path, self._INTERFACE)
-    
-    async def unregister(self):
+
+    async def unregister(self) -> None:
         """
         Unregister this advertisement from bluez to stop advertising.
         """
@@ -147,13 +147,13 @@ class Advertisement(ServiceInterface):
 
         interface = self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
 
-        await interface.call_unregister_advertisement(self._exportPath)
+        await interface.call_unregister_advertisement(self._exportPath)  # type: ignore
         self._exportBus = None
         self._adapter = None
         self._exportPath = None
 
-        if self.releaseCallback is not None:
-            self.releaseCallback()
+        if self._release_callback is not None:
+            self._release_callback()
 
     @dbus_property(PropertyAccess.READ, "Type")
     def _get_type(self) -> "s":  # type: ignore
