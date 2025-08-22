@@ -14,6 +14,7 @@ import os
 import sys
 import inspect
 import importlib
+import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -51,6 +52,23 @@ exclude_patterns = []
 nitpicky = True
 
 # -- Linkcode ----------------------------------------------------------------
+def _get_git_ref():
+    try:
+        ref = (
+            subprocess.check_output(["git", "describe", "--tags", "--exact-match"], stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()
+        )
+    except subprocess.CalledProcessError:
+        ref = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()
+        )
+    return ref
+
+GIT_REF = _get_git_ref()
+
 def linkcode_resolve(domain, info):
     if domain != "py":
         return None
@@ -80,7 +98,7 @@ def linkcode_resolve(domain, info):
 
     return (
         f"https://github.com/spacecheese/bluez_peripheral/"
-        f"blob/master/{src.as_posix()}#L{lineno}-L{lineno+len(lines)-1}"
+        f"blob/{GIT_REF}/{src.as_posix()}#L{lineno}-L{lineno+len(lines)-1}"
     )
 
 # -- Napoleon ----------------------------------------------------------------
