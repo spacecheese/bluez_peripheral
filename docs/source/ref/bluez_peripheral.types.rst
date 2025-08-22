@@ -1,7 +1,7 @@
-bluez\_peripheral.flags module
+bluez\_peripheral.types module
 ==============================
 
-.. automodule:: bluez_peripheral.flags
+.. automodule:: bluez_peripheral.types
    :members:
    :show-inheritance:
    :undoc-members:

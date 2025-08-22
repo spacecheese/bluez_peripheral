@@ -1,111 +1,18 @@
 import inspect
-from enum import Flag, auto
 from typing import Callable, Union, Awaitable, Optional, Dict, TYPE_CHECKING, cast
 
 from dbus_fast.errors import DBusError
-from dbus_fast import Variant
 from dbus_fast.aio.message_bus import MessageBus
 from dbus_fast.service import ServiceInterface, method, dbus_property
 from dbus_fast.constants import PropertyAccess
 
+from ..types import DescriptorFlags, DescriptorReadOptions, DescriptorWriteOptions
 from ..uuid16 import UUID16, UUIDCompatible
-from ..util import _snake_to_kebab, _getattr_variant
+from ..util import _snake_to_kebab
 from ..error import FailedError
 
 if TYPE_CHECKING:
     from .service import Service
-
-
-class DescriptorReadOptions:
-    """Options supplied to descriptor read functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
-    """
-
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
-        self._offset = _getattr_variant(options, "offset", 0)
-        self._link = _getattr_variant(options, "link", None)
-        self._device = _getattr_variant(options, "device", None)
-
-    @property
-    def offset(self) -> int:
-        """A byte offset to use when writing to this descriptor."""
-        return cast(int, self._offset)
-
-    @property
-    def link(self) -> str:
-        """The link type."""
-        return cast(str, self._link)
-
-    @property
-    def device(self) -> str:
-        """The path of the remote device on the system dbus or None."""
-        return cast(str, self._device)
-
-
-class DescriptorWriteOptions:
-    """Options supplied to descriptor write functions.
-    Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
-    """
-
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
-        self._offset = _getattr_variant(options, "offset", 0)
-        self._device = _getattr_variant(options, "device", None)
-        self._link = _getattr_variant(options, "link", None)
-        self._prepare_authorize = _getattr_variant(options, "prepare-authorize", False)
-
-    @property
-    def offset(self) -> int:
-        """A byte offset to use when writing to this descriptor."""
-        return cast(int, self._offset)
-
-    @property
-    def device(self) -> str:
-        """The path of the remote device on the system dbus or None."""
-        return cast(str, self._device)
-
-    @property
-    def link(self) -> str:
-        """The link type."""
-        return cast(str, self._link)
-
-    @property
-    def prepare_authorize(self) -> bool:
-        """True if prepare authorization request. False otherwise."""
-        return cast(bool, self._prepare_authorize)
-
-
-class DescriptorFlags(Flag):
-    """Flags to use when specifying the read/ write routines that can be used when accessing the descriptor.
-    These are converted to `bluez flags <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattDescriptor.rst>`_.
-    """
-
-    INVALID = 0
-    READ = auto()
-    """Descriptor may be read.
-    """
-    WRITE = auto()
-    """Descriptor may be written to.
-    """
-    ENCRYPT_READ = auto()
-    """"""
-    ENCRYPT_WRITE = auto()
-    """"""
-    ENCRYPT_AUTHENTICATED_READ = auto()
-    """"""
-    ENCRYPT_AUTHENTICATED_WRITE = auto()
-    """"""
-    SECURE_READ = auto()
-    """"""
-    SECURE_WRITE = auto()
-    """"""
-    AUTHORIZE = auto()
-    """"""
 
 
 GetterType = Union[

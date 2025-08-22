@@ -4,7 +4,7 @@ from unittest.case import SkipTest
 from tests.util import *
 from bluez_peripheral import get_message_bus
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
-from bluez_peripheral.flags import AdvertisingPacketType
+from bluez_peripheral.types import AdvertisingPacketType
 
 from uuid import UUID
 

@@ -10,8 +10,8 @@ from dbus_fast.aio.message_bus import MessageBus
 from .uuid16 import UUID16, UUIDCompatible
 from .util import _snake_to_kebab
 from .adapter import Adapter
-from .flags import AdvertisingIncludes
-from .flags import AdvertisingPacketType
+from .types import AdvertisingIncludes
+from .types import AdvertisingPacketType
 
 
 class Advertisement(ServiceInterface):
@@ -137,7 +137,7 @@ class Advertisement(ServiceInterface):
         assert self._export_bus is not None
         assert self._export_path is not None
         self._export_bus.unexport(self._export_path, self._INTERFACE)
-    
+
     async def unregister(self):
         """
         Unregister this advertisement from bluez to stop advertising.

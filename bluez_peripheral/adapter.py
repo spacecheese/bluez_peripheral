@@ -5,7 +5,7 @@ from dbus_fast.aio import MessageBus
 from dbus_fast.errors import InvalidIntrospectionError, InterfaceNotFoundError
 
 from .util import _kebab_to_shouting_snake
-from .flags import AdvertisingIncludes
+from .types import AdvertisingIncludes
 
 
 class Adapter:

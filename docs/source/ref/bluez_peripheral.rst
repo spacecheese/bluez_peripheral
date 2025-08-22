@@ -19,7 +19,7 @@ Submodules
    bluez_peripheral.advert
    bluez_peripheral.agent
    bluez_peripheral.error
-   bluez_peripheral.flags
+   bluez_peripheral.types
    bluez_peripheral.util
    bluez_peripheral.uuid16
 
