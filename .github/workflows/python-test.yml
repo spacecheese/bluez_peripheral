@@ -23,12 +23,10 @@ jobs:
           make clean
           make html
       - name: Spelling Check
-        if: always()
         run: |
           cd docs
           make spelling
       - name: Link Check
-        if: always()
         run: |
           cd docs
           make linkcheck
