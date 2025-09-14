@@ -57,6 +57,11 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
             def my_writeonly_descriptor(self, value, options):
                 self._my_desc_value = value
 
+            # Characteristic and Descriptor getters/ setters may also be asynchronous.
+            @characteristic("BEEG", CharFlags.READ)
+            async def my_characteristic(self, options):
+                return await my_awaitable()
+
 .. tab:: Manually (Not Recommended)
 
     .. code-block:: python
