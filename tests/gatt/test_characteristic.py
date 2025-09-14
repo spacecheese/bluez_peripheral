@@ -24,6 +24,8 @@ class TestService(Service):
     def __init__(self):
         super().__init__("180A")
 
+    read_write_val = b'\x05'
+
     @characteristic("2A37", CharacteristicFlags.READ)
     def read_only_char(self, opts):
         global last_opts
@@ -60,6 +62,14 @@ class TestService(Service):
         global write_only_char_val
         write_only_char_val = val
         await asyncio.sleep(0.05)
+
+    @characteristic("3A33", CharacteristicFlags.WRITE | CharacteristicFlags.READ)
+    def read_write_char(self, opts):
+        return self.read_write_val
+    
+    @read_write_char.setter
+    def read_write_char(self, val, opts):
+        self.read_write_val = val
 
 
 class TestCharacteristic(IsolatedAsyncioTestCase):
@@ -368,6 +378,29 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         finally:
             await service.unregister()
         
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await service.unregister()
+
+    async def test_empty_opts(self):
+        async def inspector(path):
+            interface = (
+                await get_attrib(
+                    self._client_bus,
+                    self._bus_manager.name,
+                    path,
+                    UUID16("180A"),
+                    UUID16("3A33"),
+                )
+            ).get_interface("org.bluez.GattCharacteristic1")
+            assert await interface.call_read_value({}) == b'\x05'
+            await interface.call_write_value(bytes("Test Write Value", "utf-8"), {})
+            assert await interface.call_read_value({}) == bytes("Test Write Value", "utf-8")
+
+        service = TestService()
+        adapter = MockAdapter(inspector)
+
         try:
             await service.register(self._bus_manager.bus, self._path, adapter=adapter)
         finally:
