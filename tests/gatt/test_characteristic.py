@@ -137,8 +137,10 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_write(self):
         async def inspector(path):
@@ -187,8 +189,10 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_notify_no_start(self):
         property_changed = Event()
@@ -212,15 +216,17 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
-        # Expect a timeout since start notify has not been called.
-        if property_changed.wait(timeout=0.1):
-            raise Exception(
-                "The characteristic signalled a notification before StartNotify() was called."
-            )
-        await service.unregister()
+            # Expect a timeout since start notify has not been called.
+            if property_changed.wait(timeout=0.1):
+                raise Exception(
+                    "The characteristic signalled a notification before StartNotify() was called."
+                )
+        finally:
+            await service.unregister()
 
     async def test_notify_start(self):
         property_changed = Event()
@@ -250,17 +256,19 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
-        await asyncio.sleep(0.01)
+            await asyncio.sleep(0.01)
 
-        # Block until the properties changed notification propagates.
-        if not property_changed.wait(timeout=0.1):
-            raise TimeoutError(
-                "The characteristic did not send a notification in time."
-            )
-        await service.unregister()
+            # Block until the properties changed notification propagates.
+            if not property_changed.wait(timeout=0.1):
+                raise TimeoutError(
+                    "The characteristic did not send a notification in time."
+                )
+        finally:
+            await service.unregister()
 
     async def test_notify_stop(self):
         property_changed = Event()
@@ -287,15 +295,17 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
-        # Expect a timeout since start notify has not been called.
-        if property_changed.wait(timeout=0.01):
-            raise Exception(
-                "The characteristic signalled a notification before after StopNotify() was called."
-            )
-        await service.unregister()
+            # Expect a timeout since start notify has not been called.
+            if property_changed.wait(timeout=0.01):
+                raise Exception(
+                    "The characteristic signalled a notification before after StopNotify() was called."
+                )
+        finally:
+            await service.unregister()
 
     async def test_modify(self):
         service = TestService()
@@ -330,7 +340,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                     "utf-8"
                 ) == "Some Test Value"
             else:
-                try:
+                with self.assertRaises(ValueError):
                     await get_attrib(
                         self._client_bus,
                         self._bus_manager.name,
@@ -339,22 +349,26 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
                         UUID16("2A38"),
                         UUID16("2D56"),
                     )
-                except ValueError:
-                    pass
-                else:
-                    self.fail("The descriptor was not properly removed.")
 
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        self.assertRaises(ValueError, service.write_notify_char.remove_child, some_desc)
-
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+            with self.assertRaises(ValueError):
+                service.write_notify_char.remove_child(some_desc)
+        finally:
+            await service.unregister()
         service.write_notify_char.remove_child(some_desc)
         expect_descriptor = False
 
-        await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        self.assertRaises(ValueError, service.write_notify_char.add_child, some_desc)
-        await service.unregister()
-        await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+            with self.assertRaises(ValueError):
+                service.write_notify_char.add_child(some_desc)
+        finally:
+            await service.unregister()
+        
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await service.unregister()

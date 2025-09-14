@@ -96,8 +96,10 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_read(self):
         async def inspector(path):
@@ -141,8 +143,10 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_write(self):
         async def inspector(path):
@@ -190,13 +194,18 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_bluez(self):
         await bluez_available_or_skip(self._client_bus)
         await get_first_adapter_or_skip(self._client_bus)
 
         service = TestService()
-        await service.register(self._client_bus, self._path)
-        await service.unregister()
+        try:
+            await service.register(self._client_bus, self._path)
+        finally:
+            await service.unregister()
+        

@@ -55,8 +55,10 @@ class TestService(IsolatedAsyncioTestCase):
 
         adapter = MockAdapter(inspector)
 
-        await collection.register(self._bus_manager.bus, self._path, adapter)
-        await collection.unregister()
+        try:
+            await collection.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await collection.unregister()
 
     async def test_include_modify(self):
         service3 = TestService3()
@@ -87,15 +89,21 @@ class TestService(IsolatedAsyncioTestCase):
                 assert service3.path in includes
 
         adapter = MockAdapter(inspector)
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await collection.unregister()
+        try:
+            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await collection.unregister()
 
         collection.add_child(service3)
         expect_service3 = True
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await collection.unregister()
+        try:
+            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await collection.unregister()
 
         collection.remove_child(service3)
         expect_service3 = False
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await collection.unregister()
+        try:
+            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await collection.unregister()
