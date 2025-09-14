@@ -56,11 +56,11 @@ jobs:
           sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
-          coverage run --branch -m unittest discover -s tests -p "test_*.py" -v
+          coverage run --source=. --branch -m unittest discover -s tests -p "test_*.py" -v
       - name: Report Coverage
         run: |
           coverage html
-          coverage report
+          coverage report -m
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v4
         with:
