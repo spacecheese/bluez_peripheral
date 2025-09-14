@@ -31,7 +31,7 @@ class MockBus:
 
 class TestAgent(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._client_bus = await get_message_bus()
 
     async def asyncTearDown(self):

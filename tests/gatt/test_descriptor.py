@@ -43,10 +43,10 @@ class TestService(Service):
 
     @descriptor("2A39", some_char, DescriptorFlags.WRITE)
     def write_desc(self, _):
-        pass
+        return bytes()
 
     @write_desc.setter
-    def write_desc(self, val, opts):
+    def write_desc_set(self, val, opts):
         global last_opts
         last_opts = opts
         global write_desc_val
@@ -54,10 +54,10 @@ class TestService(Service):
 
     @descriptor("3A39", some_char, DescriptorFlags.WRITE)
     async def async_write_desc(self, _):
-        pass
+        return bytes()
 
     @async_write_desc.setter
-    async def async_write_desc(self, val, opts):
+    async def async_write_desc_set(self, val, opts):
         global last_opts
         last_opts = opts
         await asyncio.sleep(0.05)
@@ -68,7 +68,7 @@ class TestService(Service):
 class TestDescriptor(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._client_bus = await get_message_bus()
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._path = "/com/spacecheese/bluez_peripheral/test_descriptor"
 
     async def asyncTearDown(self):
@@ -97,6 +97,7 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_read(self):
         async def inspector(path):
@@ -141,6 +142,7 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_write(self):
         async def inspector(path):
@@ -189,6 +191,7 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_bluez(self):
         await bluez_available_or_skip(self._client_bus)
@@ -196,3 +199,4 @@ class TestDescriptor(IsolatedAsyncioTestCase):
 
         service = TestService()
         await service.register(self._client_bus, self._path)
+        await service.unregister()

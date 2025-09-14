@@ -1,4 +1,4 @@
-from tests.util import BusManager, MockAdapter, get_attrib
+from tests.util import ParallelBus, MockAdapter, get_attrib
 
 import re
 from typing import Collection
@@ -27,7 +27,7 @@ class TestService3(Service):
 class TestService(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._client_bus = await get_message_bus()
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._path = "/com/spacecheese/bluez_peripheral/test_service"
 
     async def asyncTearDown(self):
@@ -90,11 +90,12 @@ class TestService(IsolatedAsyncioTestCase):
         await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
         await collection.unregister()
 
-        collection.add_service(service3)
+        collection.add_child(service3)
         expect_service3 = True
         await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
         await collection.unregister()
 
-        collection.remove_service(service3)
+        collection.remove_child(service3)
         expect_service3 = False
         await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+        await collection.unregister()

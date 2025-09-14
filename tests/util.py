@@ -1,6 +1,5 @@
 import asyncio
-from uuid import UUID
-from typing import Tuple
+from typing import Tuple, Optional
 from threading import Thread, Event
 from unittest.case import SkipTest
 
@@ -15,10 +14,11 @@ from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.uuid16 import UUID16
 
 
-class BusManager:
+class ParallelBus:
     def __init__(self, name="com.spacecheese.test"):
         bus_ready = Event()
         self.name = name
+        self.bus: MessageBus
 
         async def operate_bus_async():
             # Setup the bus.
@@ -36,8 +36,10 @@ class BusManager:
         self._thread.start()
 
         bus_ready.wait()
+        assert self.bus is not None
 
     def close(self):
+        assert self.bus is not None
         self.bus.disconnect()
 
 
@@ -89,6 +91,8 @@ async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, st
             uuid = await proxy.get_interface("org.bluez.GattCharacteristic1").get_uuid()
         elif "org.bluez.GattDescriptor1" in interface_names:
             uuid = await proxy.get_interface("org.bluez.GattDescriptor1").get_uuid()
+        else:
+            raise ValueError("No supported interfaces found")
 
         if UUID16.parse_uuid(uuid) == UUID16.parse_uuid(target_uuid):
             return introspection, node_path

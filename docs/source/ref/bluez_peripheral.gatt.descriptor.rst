@@ -5,4 +5,3 @@ bluez\_peripheral.gatt.descriptor module
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __call__

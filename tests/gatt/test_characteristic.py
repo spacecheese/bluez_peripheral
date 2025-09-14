@@ -40,7 +40,7 @@ class TestService(Service):
     # Not testing other characteristic flags since their functionality is handled by bluez.
     @characteristic("2A38", CharacteristicFlags.NOTIFY | CharacteristicFlags.WRITE)
     def write_notify_char(self, _):
-        pass
+        raise NotImplementedError()
 
     @write_notify_char.setter
     def write_notify_char(self, val, opts):
@@ -51,7 +51,7 @@ class TestService(Service):
 
     @characteristic("3A38", CharacteristicFlags.WRITE)
     async def aysnc_write_only_char(self, _):
-        pass
+        raise NotImplementedError()
 
     @aysnc_write_only_char.setter
     async def aysnc_write_only_char(self, val, opts):
@@ -65,7 +65,7 @@ class TestService(Service):
 class TestCharacteristic(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._client_bus = await get_message_bus()
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._path = "/com/spacecheese/bluez_peripheral/test_characteristic"
 
     async def asyncTearDown(self):
@@ -91,6 +91,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_read(self):
         async def inspector(path):
@@ -137,6 +138,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_write(self):
         async def inspector(path):
@@ -186,6 +188,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter)
+        await service.unregister()
 
     async def test_notify_no_start(self):
         property_changed = Event()
@@ -217,6 +220,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             raise Exception(
                 "The characteristic signalled a notification before StartNotify() was called."
             )
+        await service.unregister()
 
     async def test_notify_start(self):
         property_changed = Event()
@@ -256,6 +260,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             raise TimeoutError(
                 "The characteristic did not send a notification in time."
             )
+        await service.unregister()
 
     async def test_notify_stop(self):
         property_changed = Event()
@@ -290,6 +295,7 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
             raise Exception(
                 "The characteristic signalled a notification before after StopNotify() was called."
             )
+        await service.unregister()
 
     async def test_modify(self):
         service = TestService()
@@ -342,16 +348,17 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
 
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
         self.assertRaises(
-            ValueError, service.write_notify_char.remove_descriptor, some_desc
+            ValueError, service.write_notify_char.remove_child, some_desc
         )
 
         await service.unregister()
-        service.write_notify_char.remove_descriptor(some_desc)
+        service.write_notify_char.remove_child(some_desc)
         expect_descriptor = False
 
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
         self.assertRaises(
-            ValueError, service.write_notify_char.add_descriptor, some_desc
+            ValueError, service.write_notify_char.add_child, some_desc
         )
         await service.unregister()
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+        await service.unregister()

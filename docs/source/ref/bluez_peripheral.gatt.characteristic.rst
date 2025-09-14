@@ -5,4 +5,3 @@ bluez\_peripheral.gatt.characteristic module
    :members:
    :show-inheritance:
    :undoc-members:
-   :special-members: __call__

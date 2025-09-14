@@ -1,7 +1,7 @@
-from typing import Collection
+from typing import Sequence
 
+from dbus_fast.aio import MessageBus, ProxyInterface
 from dbus_fast.aio.proxy_object import ProxyObject
-from dbus_fast.aio import MessageBus
 from dbus_fast.errors import InvalidIntrospectionError, InterfaceNotFoundError
 
 from .util import _kebab_to_shouting_snake
@@ -11,13 +11,22 @@ from .flags import AdvertisingIncludes
 class Adapter:
     """A bluetooth adapter."""
 
-    _ADAPTER_INTERFACE = "org.bluez.Adapter1"
+    BUS_INTERFACE = "org.bluez.Adapter1"
+    _GATT_MANAGER_INTERFACE = "org.bluez.GattManager1"
     _ADVERTISING_MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
     _adapter_interface = None
 
     def __init__(self, proxy: ProxyObject):
         self._proxy = proxy
-        self._adapter_interface = proxy.get_interface(self._ADAPTER_INTERFACE)
+        self._adapter_interface = proxy.get_interface(self.BUS_INTERFACE)
+
+    def get_gatt_manager(self) -> ProxyInterface:
+        """Returns the org.bluez.GattManager1 interface associated with this adapter."""
+        return self._proxy.get_interface(self._GATT_MANAGER_INTERFACE)
+
+    def get_advertising_manager(self) -> ProxyInterface:
+        """Returns the org.bluez.LEAdvertisingManager1 interface associated with this adapter."""
+        return self._proxy.get_interface(self._ADVERTISING_MANAGER_INTERFACE)
 
     async def get_address(self) -> str:
         """Read the bluetooth address of this device."""
@@ -83,7 +92,7 @@ class Adapter:
 
     async def get_supported_advertising_includes(self) -> AdvertisingIncludes:
         """Returns a flag set of the advertising includes supported by this adapter."""
-        interface = self._proxy.get_interface(self._ADVERTISING_MANAGER_INTERFACE)
+        interface = self.get_advertising_manager()
         includes = await interface.get_supported_includes()  # type: ignore
         flags = AdvertisingIncludes.NONE
         for inc in includes:
@@ -93,7 +102,7 @@ class Adapter:
         return flags
 
     @classmethod
-    async def get_all(cls, bus: MessageBus) -> Collection["Adapter"]:
+    async def get_all(cls, bus: MessageBus) -> Sequence["Adapter"]:
         """Get a list of available Bluetooth adapters.
 
         Args:

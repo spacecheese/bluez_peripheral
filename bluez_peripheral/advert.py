@@ -36,7 +36,6 @@ class Advertisement(ServiceInterface):
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
-    _MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
 
     _defaultPathAdvertCount = 0
 
@@ -126,7 +125,7 @@ class Advertisement(ServiceInterface):
         self._adapter = adapter
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
-        interface = adapter._proxy.get_interface(self._MANAGER_INTERFACE)
+        interface = adapter.get_advertising_manager()
         await interface.call_register_advertisement(path, {})  # type: ignore
 
     @method("Release")
@@ -142,7 +141,7 @@ class Advertisement(ServiceInterface):
         if not self._export_bus or not self._adapter or not self._export_path:
             return
 
-        interface = self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
+        interface = self._adapter.get_advertising_manager()
 
         await interface.call_unregister_advertisement(self._export_path)  # type: ignore
         self._export_bus = None
