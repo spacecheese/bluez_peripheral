@@ -90,20 +90,26 @@ class TestService(IsolatedAsyncioTestCase):
 
         adapter = MockAdapter(inspector)
         try:
-            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
         finally:
             await collection.unregister()
 
         collection.add_child(service3)
         expect_service3 = True
         try:
-            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
         finally:
             await collection.unregister()
 
         collection.remove_child(service3)
         expect_service3 = False
         try:
-            await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
         finally:
             await collection.unregister()

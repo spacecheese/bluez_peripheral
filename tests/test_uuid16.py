@@ -106,10 +106,10 @@ class TestUUID16(unittest.TestCase):
     def test_eq(self):
         uuid_a = UUID("00001234-0000-1000-8000-00805F9B34FB")
         uuid16_a = UUID16(uuid=uuid_a)
-       
+
         uuid_b = UUID("00001236-0000-1000-8000-00805F9B34FB")
         uuid16_b = UUID16(uuid=uuid_b)
-        
+
         assert uuid16_a == uuid16_a
         assert uuid16_a != uuid16_b
         assert uuid16_b != uuid16_a
