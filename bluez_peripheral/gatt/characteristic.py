@@ -60,10 +60,7 @@ class CharacteristicWriteOptions:
     Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
+    def __init__(self, options: Dict[str, Variant]):
         t = _getattr_variant(options, "type", None)
         self._type: Optional[CharacteristicWriteType] = None
         if not t is None:

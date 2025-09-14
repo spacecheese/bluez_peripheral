@@ -1,5 +1,5 @@
 from enum import Flag, auto
-from typing import Callable, Union, Awaitable, Optional, Dict, TYPE_CHECKING, cast
+from typing import Callable, Union, Awaitable, Dict, TYPE_CHECKING, cast
 
 from dbus_fast import Variant
 from dbus_fast.service import dbus_property
@@ -45,10 +45,7 @@ class DescriptorWriteOptions:
     Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
+    def __init__(self, options: Dict[str, Variant]):
         self._offset = _getattr_variant(options, "offset", 0)
         self._device = _getattr_variant(options, "device", None)
         self._link = _getattr_variant(options, "link", None)
