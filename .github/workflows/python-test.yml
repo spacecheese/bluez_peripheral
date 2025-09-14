@@ -70,7 +70,7 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: coverage-${{ needs.test.outputs.python-version }}
+          artifact_name: coverage-${{ matrix.python-version }}
       
   format-check:
     runs-on: ubuntu-22.04
