@@ -37,7 +37,7 @@ class HierarchicalServiceInterface(ServiceInterface):
 
     BUS_INTERFACE = ""
     """
-        The DBus interface name implemented by this component.
+        The dbus interface name implemented by this component.
     """
 
     def __init__(self) -> None:
@@ -125,11 +125,11 @@ class HierarchicalServiceInterface(ServiceInterface):
 
 ReadOptionsT = TypeVar("ReadOptionsT")
 """
-The type of options supplied by a DBus ReadValue access.
+The type of options supplied by a dbus ReadValue access.
 """
 WriteOptionsT = TypeVar("WriteOptionsT")
 """
-The type of options supplied by a DBus WriteValue access.
+The type of options supplied by a dbus WriteValue access.
 """
 GetterType = Union[
     Callable[[Any, ReadOptionsT], bytes],
@@ -143,7 +143,7 @@ SetterType = Union[
 
 class ServiceAttribute(Generic[ReadOptionsT, WriteOptionsT], ABC):
     """
-    Base class for service components with a ReadValue and WriteValue DBus interface.
+    Base class for service components with a ReadValue and WriteValue dbus interface.
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -202,7 +202,7 @@ class ServiceAttribute(Generic[ReadOptionsT, WriteOptionsT], ABC):
 
         return self
 
-    # DBus Interface
+    # dbus Interface
     @method("ReadValue")
     async def _read_value(self, options: "a{sv}") -> "ay":  # type: ignore
         if self._getter_func is None:

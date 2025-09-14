@@ -27,3 +27,6 @@ subpackages
 submodules
 enums
 responder
+unexport
+LEAdvertisingManager
+GattManager
