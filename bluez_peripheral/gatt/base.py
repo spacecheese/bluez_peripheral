@@ -8,7 +8,6 @@ from typing import (
     Union,
     Callable,
     Awaitable,
-    TypeAlias,
     Dict,
     cast,
     TYPE_CHECKING,
@@ -132,11 +131,11 @@ WriteOptionsT = TypeVar("WriteOptionsT")
 """
 The type of options supplied by a DBus WriteValue access.
 """
-GetterType: TypeAlias = Union[
+GetterType = Union[
     Callable[[Any, ReadOptionsT], bytes],
     Callable[[Any, ReadOptionsT], Awaitable[bytes]],
 ]
-SetterType: TypeAlias = Union[
+SetterType = Union[
     Callable[[Any, bytes, WriteOptionsT], None],
     Callable[[Any, bytes, WriteOptionsT], Awaitable[None]],
 ]
