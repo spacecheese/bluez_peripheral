@@ -50,7 +50,10 @@ class TestAdvert(IsolatedAsyncioTestCase):
 
         path = "/com/spacecheese/bluez_peripheral/test_advert/advert0"
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter, path)
+        try:
+            await advert.register(self._bus_manager.bus, adapter, path)
+        finally:
+            await advert.unregister()
 
     async def test_includes_empty(self):
         advert = Advertisement(
@@ -74,7 +77,10 @@ class TestAdvert(IsolatedAsyncioTestCase):
             assert await interface.get_includes() == []
 
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter)
+        try:
+            await advert.register(self._bus_manager.bus, adapter)
+        finally:
+            await advert.unregister()
 
     async def test_uuid128(self):
         advert = Advertisement(
@@ -98,7 +104,10 @@ class TestAdvert(IsolatedAsyncioTestCase):
             ]
 
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter)
+        try:
+            await advert.register(self._bus_manager.bus, adapter)
+        finally:
+            await advert.unregister()
 
     async def test_real(self):
         await bluez_available_or_skip(self._client_bus)
@@ -111,4 +120,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
             2,
         )
 
-        await advert.register(self._client_bus, adapter)
+        try:
+            await advert.register(self._client_bus, adapter)
+        finally:
+            await advert.unregister()

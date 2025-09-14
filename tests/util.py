@@ -75,6 +75,9 @@ class MockAdapter(Adapter):
     async def call_unregister_application(self, path):
         pass
 
+    async def call_unregister_advertisement(self, path):
+        pass
+
 
 async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, str]:
     for node in nodes:
