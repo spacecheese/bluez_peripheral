@@ -53,6 +53,8 @@ nitpicky = True
 
 autodoc_typehints = "description"
 
+linkcheck_timeout = 10
+linkcheck_workers = 1
 
 # -- Linkcode ----------------------------------------------------------------
 def _get_git_ref():
