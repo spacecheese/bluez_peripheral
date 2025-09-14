@@ -62,15 +62,11 @@ jobs:
           coverage html
           coverage report
       - name: Upload Coverage Artifact
-        id: upload
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v3
         with:
           name: coverage-${{ matrix.python-version }}
           path: htmlcov/
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        with:
-          artifact_name: coverage-${{ matrix.python-version }}
+      
       
   format-check:
     runs-on: ubuntu-22.04
