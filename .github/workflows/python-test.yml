@@ -62,17 +62,12 @@ jobs:
         id: upload
         uses: actions/upload-pages-artifact@v3
         with:
+          artifact-name: coverage-${{ matrix.python-version }}
           path: htmlcov/
-  deploy-coverage:
-    environment:
-      name: github-pages
-      url: ${{ steps.upload.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
-        
+        with:
+          artifact-name: coverage-${{ needs.test.outputs.python-version }}
       
   format-check:
     runs-on: ubuntu-22.04
