@@ -347,18 +347,14 @@ class TestCharacteristic(IsolatedAsyncioTestCase):
         adapter = MockAdapter(inspector)
 
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        self.assertRaises(
-            ValueError, service.write_notify_char.remove_child, some_desc
-        )
+        self.assertRaises(ValueError, service.write_notify_char.remove_child, some_desc)
 
         await service.unregister()
         service.write_notify_char.remove_child(some_desc)
         expect_descriptor = False
 
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        self.assertRaises(
-            ValueError, service.write_notify_char.add_child, some_desc
-        )
+        self.assertRaises(ValueError, service.write_notify_char.add_child, some_desc)
         await service.unregister()
         await service.register(self._bus_manager.bus, self._path, adapter=adapter)
         await service.unregister()
