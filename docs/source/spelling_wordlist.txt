@@ -28,5 +28,6 @@ submodules
 enums
 responder
 unexport
+unexported
 LEAdvertisingManager
 GattManager
