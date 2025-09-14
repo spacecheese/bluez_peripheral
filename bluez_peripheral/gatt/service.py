@@ -59,8 +59,11 @@ class Service(HierarchicalServiceInterface):
         child.service = self
         super().add_child(child)
 
-    def add_characteristic(self, characteristic: characteristic) -> None:
-        self.add_child(characteristic)
+    def add_characteristic(self, char: characteristic) -> None:
+        """
+        Associated a characteristic with this service.
+        """
+        self.add_child(char)
 
     async def register(
         self,
