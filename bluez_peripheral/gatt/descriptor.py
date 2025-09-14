@@ -19,10 +19,7 @@ class DescriptorReadOptions:
     Generally you can ignore these unless you have a long descriptor (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
+    def __init__(self, options: Dict[str, Variant]):
         self._offset = _getattr_variant(options, "offset", 0)
         self._link = _getattr_variant(options, "link", None)
         self._device = _getattr_variant(options, "device", None)
@@ -151,13 +148,13 @@ class descriptor(
 
     @staticmethod
     def _parse_read_options(
-        options: Optional[Dict[str, Variant]],
+        options: Dict[str, Variant],
     ) -> DescriptorReadOptions:
         return DescriptorReadOptions(options)
 
     @staticmethod
     def _parse_write_options(
-        options: Optional[Dict[str, Variant]],
+        options: Dict[str, Variant],
     ) -> DescriptorWriteOptions:
         return DescriptorWriteOptions(options)
 

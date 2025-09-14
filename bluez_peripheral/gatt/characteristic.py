@@ -20,10 +20,7 @@ class CharacteristicReadOptions:
     Generally you can ignore these unless you have a long characteristic (eg > 48 bytes) or you have some specific authorization requirements.
     """
 
-    def __init__(self, options: Optional[Dict[str, Variant]] = None):
-        if options is None:
-            return
-
+    def __init__(self, options: Dict[str, Variant]):
         self._offset = cast(int, _getattr_variant(options, "offset", 0))
         self._mtu = cast(int, _getattr_variant(options, "mtu", None))
         self._device = cast(str, _getattr_variant(options, "device", None))
@@ -202,13 +199,13 @@ class characteristic(
 
     @staticmethod
     def _parse_read_options(
-        options: Optional[Dict[str, Variant]],
+        options: Dict[str, Variant],
     ) -> CharacteristicReadOptions:
         return CharacteristicReadOptions(options)
 
     @staticmethod
     def _parse_write_options(
-        options: Optional[Dict[str, Variant]],
+        options: Dict[str, Variant],
     ) -> CharacteristicWriteOptions:
         return CharacteristicWriteOptions(options)
 

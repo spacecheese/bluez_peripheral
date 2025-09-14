@@ -157,12 +157,12 @@ class ServiceAttribute(Generic[ReadOptionsT, WriteOptionsT], ABC):
 
     @staticmethod
     @abstractmethod
-    def _parse_read_options(options: Optional[Dict[str, Variant]]) -> ReadOptionsT:
+    def _parse_read_options(options: Dict[str, Variant]) -> ReadOptionsT:
         pass
 
     @staticmethod
     @abstractmethod
-    def _parse_write_options(options: Optional[Dict[str, Variant]]) -> WriteOptionsT:
+    def _parse_write_options(options: Dict[str, Variant]) -> WriteOptionsT:
         pass
 
     @property
