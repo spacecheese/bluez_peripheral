@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.linkcode",
+    "sphinx.ext.doctest",
     "sphinx_inline_tabs",
     "m2r2",
 ]

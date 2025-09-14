@@ -212,6 +212,12 @@ class characteristic(
         child.service = self.service
         super().add_child(child)
 
+    def add_descriptor(self, descriptor: descriptor) -> None:
+        """
+        Associated a descriptor with this characteristic.
+        """
+        self.add_child(descriptor)
+
     @ServiceAttribute.service.setter  # type: ignore[misc, attr-defined]
     def service(self, service: Optional["Service"]) -> None:
         ServiceAttribute.service.fset(self, service)  # type: ignore[attr-defined]

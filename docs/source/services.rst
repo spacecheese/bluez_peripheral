@@ -20,10 +20,9 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
 .. warning::
     Attributes exceeding 48 bytes in length may take place across multiple accesses, using the :ref:`options.offset<attribute-options>` parameter to select portions of the data. This is dependent upon the :ref:`options.mtu<attribute-options>`.
 
-.. TODO: Code examples need automated testing.
 .. tab:: Decorators
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral.gatt import Service
         from bluez_peripheral.gatt import characteristic, CharacteristicFlags as CharFlags
@@ -58,13 +57,13 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
                 self._my_desc_value = value
 
             # Characteristic and Descriptor getters/ setters may also be asynchronous.
-            @characteristic("BEEG", CharFlags.READ)
-            async def my_characteristic(self, options):
+            @characteristic("BEEB", CharFlags.READ)
+            async def my_async_characteristic(self, options):
                 return await my_awaitable()
 
 .. tab:: Manually (Not Recommended)
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral.gatt import Service
         from bluez_peripheral.gatt import characteristic, CharacteristicFlags as CharFlags
@@ -90,11 +89,18 @@ The :py:class:`@characteristic<bluez_peripheral.gatt.characteristic.characterist
             None, my_readonly_descriptor_setter
         )
 
+        async def my_async_characteristic_getter(self, options):
+            return await my_awaitable()
+        my_async_characteristic = characteristic("BEEE", CharFlags.READ)(
+            my_async_characteristic_getter
+        )
+
         # Register my_descriptor with its parent characteristic and my_characteristic 
         # with its parent service.
-        my_service = Service()
+        my_service = Service("BEED")
         my_characteristic.add_descriptor(my_descriptor)
         my_service.add_characteristic(my_characteristic)
+        my_service.add_characteristic(my_async_characteristic)
 
 Error Handling
 ^^^^^^^^^^^^^^
@@ -137,36 +143,44 @@ Services can either be registered individually using a :py:class:`~bluez_periphe
 
 .. tab:: Service
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral import get_message_bus
 
-        my_service = Service()
+        async def main():
+            my_service = Service()
 
-        bus = await get_message_bus()
-        # Register the service for bluez to access.
-        await my_service.register(bus)
+            bus = await get_message_bus()
+            # Register the service for bluez to access.
+            await my_service.register(bus)
 
-        # Yeild so that the service can handle requests.
-        await bus.wait_for_disconnect()
+            # Yeild so that the service can handle requests.
+            await bus.wait_for_disconnect()
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
 .. tab:: ServiceCollection
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral import get_message_bus
         from bluez_peripheral.gatt import ServiceCollection
 
-        my_service_collection = ServiceCollection()
-        my_service_collection.add_service(my_service)
-        #my_service_collection.add_service(my_other_service)
+        async def main():
+            my_service_collection = ServiceCollection()
+            my_service_collection.add_service(my_service)
+            #my_service_collection.add_service(my_other_service)
 
-        bus = await get_message_bus()
-        # Register the service for bluez to access.
-        await my_service_collection.register(bus)
+            bus = await get_message_bus()
+            # Register the service for bluez to access.
+            await my_service_collection.register(bus)
 
-        # Yeild so that the services can handle requests.
-        await bus.wait_for_disconnect()
+            # Yeild so that the services can handle requests.
+            await bus.wait_for_disconnect()
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
 Notification
 ^^^^^^^^^^^^
@@ -175,30 +189,34 @@ Characteristics with the :py:attr:`~bluez_peripheral.gatt.characteristic.Charact
 .. warning:: 
     The :py:func:`characteristic.changed()<bluez_peripheral.gatt.characteristic.characteristic.changed>` function may only be called in the same thread that registered the service.
 
-.. code-block:: python
+.. testcode::
 
     from bluez_peripheral import get_message_bus
     from bluez_peripheral.gatt import Service
     from bluez_peripheral.gatt import characteristic, CharacteristicFlags as CharFlags
 
     class MyService(Service):
-            def __init__(self):
-                super().__init__(uuid="DEED")
+        def __init__(self):
+            super().__init__(uuid="DEED")
 
-            @characteristic("DEEE", CharFlags.NOTIFY)
-            def my_notify_characteristic(self, options):
-                pass
+        @characteristic("DEEE", CharFlags.NOTIFY)
+        def my_notify_characteristic(self, options):
+            pass
 
-    my_service = MyService()
+    async def main():
+        my_service = MyService()
 
-    bus = await get_message_bus()
-    await my_service.register(bus)
+        bus = await get_message_bus()
+        await my_service.register(bus)
 
-    # Signal that the value of the characteristic has changed.
-    service.my_notify_characteristic.changed(bytes("My new value", "utf-8"))
+        # Signal that the value of the characteristic has changed.
+        service.my_notify_characteristic.changed(bytes("My new value", "utf-8"))
 
-    # Yeild so that the service can handle requests and signal the change.
-    await bus.wait_for_disconnect()
+        # Yeild so that the service can handle requests and signal the change.
+        await bus.wait_for_disconnect()
+
+    if __name__ == "__main__":
+        asyncio.run(main())
 
 
 .. seealso:: 

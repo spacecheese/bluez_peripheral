@@ -38,16 +38,17 @@ There are three potential sources of agents:
 
     bluez_peripheral includes built in :py:class:`~bluez_peripheral.agent.NoIoAgent` and :py:class:`~bluez_peripheral.agent.YesNoAgent` agents which can be used as below:
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral import get_message_bus
         from bluez_peripheral.agent import NoIoAgent
 
-        bus = await get_message_bus()
+        async def agent_builtin():
+            bus = await get_message_bus()
 
-        agent = NoIoAgent()
-        # By default agents are registered as default.
-        await agent.register(bus, default=True)
+            agent = NoIoAgent()
+            # By default agents are registered as default.
+            await agent.register(bus, default=True)
 
         # OR
 
@@ -64,22 +65,31 @@ There are three potential sources of agents:
             # TODO: Notify the user that pairing was cancelled by the other device.
             pass
 
-        agent = YesNoAgent(accept_pairing, cancel_pairing)
-        await agent.register(bus)
+        async def agent_custom():
+            agent = YesNoAgent(accept_pairing, cancel_pairing)
+            await agent.register(bus)
+
+        if __name__ == "__main__":
+            asyncio.run(agent_builtin())
+            asyncio.run(agent_custom())
 
 .. tab:: Custom Agents (Recommended)
 
     Support for custom agents in bluez_peripheral is limited. The recommended approach is to inherit the :class:`bluez_peripheral.agent.BaseAgent` in the same way as the built in agents. The :class:`bluez_peripheral.agent.TestAgent` can be instanced as shown for testing:
 
-    .. code-block:: python
+    .. testcode::
 
         from bluez_peripheral import get_message_bus
         from bluez_peripheral.agent import TestAgent
 
-        bus = await get_message_bus()
+        async def main():
+            bus = await get_message_bus()
 
-        agent = TestAgent()
-        await agent.register(bus)
+            agent = TestAgent()
+            await agent.register(bus)
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     The test agent will then fire :py:func:`breakpoints<breakpoint>` when each of the interfaces functions is called during the pairing process. Note that when extending this class the type hints as used are important (see :doc:`dbus_fast services<dbus_fast:high-level-service/index>`).
 
