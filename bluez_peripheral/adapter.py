@@ -23,7 +23,7 @@ class Device:
         return await self._device_interface.get_paired()  # type: ignore
 
     async def pair(self) -> None:
-        """Attemps to pair the parent adapter with this device."""
+        """Attempts to pair the parent adapter with this device."""
         await self._device_interface.call_pair()  # type: ignore
 
     async def get_name(self) -> str:
@@ -33,7 +33,7 @@ class Device:
     async def remove(self, adapter: "Adapter") -> None:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
-        await interface.call_remove_device(self._device_interface._path)  # type: ignore pylint: disable=protected-access
+        await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
 
 
 class Adapter:
@@ -139,7 +139,7 @@ class Adapter:
         await self._adapter_interface.call_start_discovery()  # type: ignore
 
     async def stop_discovery(self) -> None:
-        """Stop searching for other blutooth devices."""
+        """Stop searching for other bluetooth devices."""
         await self._adapter_interface.call_stop_discovery()  # type: ignore
 
     async def get_devices(self) -> Sequence[Device]:

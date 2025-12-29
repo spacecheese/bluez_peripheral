@@ -220,7 +220,7 @@ class characteristic(
 
     @ServiceAttribute.service.setter  # type: ignore[attr-defined, untyped-decorator]
     def service(self, service: Optional["Service"]) -> None:
-        ServiceAttribute.service.fset(self, service)  # type: ignore[attr-defined] pylint: disable=no-member
+        ServiceAttribute.service.fset(self, service)  # type: ignore[attr-defined]  # pylint: disable=no-member
         for c in self._children:
             assert isinstance(c, descriptor)
             c.service = self.service

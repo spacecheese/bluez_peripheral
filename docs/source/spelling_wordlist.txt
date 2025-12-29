@@ -31,3 +31,4 @@ unexport
 unexported
 LEAdvertisingManager
 GattManager
+unpairs
