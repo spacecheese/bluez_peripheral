@@ -139,3 +139,7 @@ cython_debug/
 
 # VSCode Config Files
 .vscode/
+
+# Testing images
+tests/loopback/*.qcow2
+tests/loopback/id_*

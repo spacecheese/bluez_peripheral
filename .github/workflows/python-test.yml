@@ -34,7 +34,8 @@ jobs:
         run: |
           cd docs
           make linkcheck
-  test:
+
+  test-unit:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -57,10 +58,10 @@ jobs:
           pip install "coverage[toml]"
       - name: Add DBus Config
         run: |
-          sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
+          sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
-          coverage run --source=. --branch -m unittest discover -s tests -p "test_*.py" -v
+          coverage run --source=. --branch -m unittest discover -s tests/unit -p "test_*.py" -v
       - name: Report Coverage
         run: |
           coverage html
@@ -70,6 +71,7 @@ jobs:
         with:
           name: coverage-${{ matrix.python-version }}
           path: htmlcov/
+  
   format-check:
     runs-on: ubuntu-22.04
     steps:
@@ -88,6 +90,7 @@ jobs:
         run: |
           python -m black --check bluez_peripheral
           python -m black --check tests
+  
   type-hint-check:
     runs-on: ubuntu-22.04
     steps:
@@ -105,6 +108,7 @@ jobs:
       - name: Check type hints
         run: |
           python -m mypy bluez_peripheral
+  
   lint-check:
     runs-on: ubuntu-22.04
     steps:

@@ -4,7 +4,7 @@ import re
 
 from dbus_fast.signature import Variant
 
-from tests.util import *
+from unit.util import *
 
 from bluez_peripheral import get_message_bus
 from bluez_peripheral.gatt import (

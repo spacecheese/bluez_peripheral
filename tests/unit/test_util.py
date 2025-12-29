@@ -1,6 +1,6 @@
 from unittest import IsolatedAsyncioTestCase
 
-from tests.util import *
+from util import *
 
 from bluez_peripheral.util import *
 
