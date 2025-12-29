@@ -93,7 +93,8 @@ async def main():
     adapter = await Adapter.get_first(bus)
 
     # Start an advert that will last for 60 seconds.
-    advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
+    advert = Advertisement("Heart Monitor", ["180D"], 
+        appearance=0x0340, timeout=60)
     await advert.register(bus, adapter)
 
     while True:

@@ -26,7 +26,7 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
         # "180D"          is the uuid16 for a heart rate service.
         # 0x0340          is the appearance code for a generic heart rate sensor.
         # 60              is the time (in seconds) until the advert stops.
-        advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
+        advert = Advertisement("Heart Monitor", ["180D"], appearance=0x0340, timeout=60)
         await advert.register(bus, adapter)
 
     if __name__ == "__main__":
