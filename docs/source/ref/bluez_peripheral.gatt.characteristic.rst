@@ -3,4 +3,5 @@ bluez\_peripheral.gatt.characteristic module
 
 .. automodule:: bluez_peripheral.gatt.characteristic
    :members:
-   :special-members: __call__
+   :show-inheritance:
+   :undoc-members:

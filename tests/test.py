@@ -10,6 +10,7 @@ from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.agent import BaseAgent, TestAgent, AgentCapability
 
+
 class TrivialAgent(BaseAgent):
     @method()
     def Cancel():  # type: ignore
@@ -64,7 +65,9 @@ async def main():
     await adapters[1].set_pairable(True)
 
     print(f"Advertising on {await adapters[0].get_name()}")
-    advert = Advertisement("Heart Monitor", ["180D", "1234"], 0x0340, 60 * 5, duration=5)
+    advert = Advertisement(
+        "Heart Monitor", ["180D", "1234"], 0x0340, 60 * 5, duration=5
+    )
     await advert.register(bus, adapters[0])
 
     print(f"Starting scan on {await adapters[1].get_name()}")
@@ -88,7 +91,7 @@ async def main():
             await d.pair()
 
     print("Sleeping", end="")
-    for _ in range(0,10):
+    for _ in range(0, 10):
         print(".", end="")
     print("")
 
@@ -96,6 +99,7 @@ async def main():
         print(f"Device '{await d.get_name()}'")
         if await d.get_paired():
             print("   Removing")
-            await adapters[1].remove_device(d)
+            d.remove(adapters[1])
+
 
 asyncio.run(main())

@@ -1,25 +1,27 @@
-from dbus_fast import Variant, BusType
-from dbus_fast.aio import MessageBus
-from dbus_fast.errors import DBusError
-
 from typing import Any, Dict
 
-def getattr_variant(object: Dict[str, Variant], key: str, default: Any):
-    if key in object:
-        return object[key].value
-    else:
-        return default
+from dbus_fast import Variant
+from dbus_fast.constants import BusType
+from dbus_fast.errors import DBusError
+from dbus_fast.aio.message_bus import MessageBus
 
 
-def snake_to_kebab(s: str) -> str:
+def _getattr_variant(obj: Dict[str, Variant], key: str, default: Any) -> Any:
+    if key in obj:
+        return obj[key].value
+
+    return default
+
+
+def _snake_to_kebab(s: str) -> str:
     return s.lower().replace("_", "-")
 
 
-def kebab_to_shouting_snake(s: str) -> str:
+def _kebab_to_shouting_snake(s: str) -> str:
     return s.upper().replace("-", "_")
 
 
-def snake_to_pascal(s: str) -> str:
+def _snake_to_pascal(s: str) -> str:
     split = s.split("_")
 
     pascal = ""

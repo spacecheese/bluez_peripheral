@@ -10,7 +10,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: '3.11.x'
           cache: 'pip'
       - name: Install dependencies
         run: |
@@ -22,24 +22,104 @@ jobs:
           cd docs
           make clean
           make html
+      - name: Spelling Check
+        run: |
+          cd docs
+          make spelling
+      - name: Test Code Snippets
+        run: |
+          cd docs
+          make doctest
+      - name: Link Check
+        run: |
+          cd docs
           make linkcheck
   test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+      fail-fast: false
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements.txt
+          pip install "coverage[toml]"
+      - name: Add DBus Config
+        run: |
+          sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
+      - name: Run Tests
+        run: |
+          coverage run --source=. --branch -m unittest discover -s tests -p "test_*.py" -v
+      - name: Report Coverage
+        run: |
+          coverage html
+          coverage report -m
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: htmlcov/
+  format-check:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: '3.11.x'
           cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r tests/requirements.txt
-      - name: Add DBus Config
+          pip install -r requirements.txt
+          pip install black
+      - name: Check Formatting
         run: |
-          sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
-      - name: Run Tests
+          python -m black --check bluez_peripheral
+          python -m black --check tests
+  type-hint-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
         run: |
-          python -m unittest discover -s tests -p "test_*.py" -v
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy
+      - name: Check type hints
+        run: |
+          python -m mypy bluez_peripheral
+  lint-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pylint
+      - name: Run lint checks
+        run: |
+          python -m pylint bluez_peripheral
         

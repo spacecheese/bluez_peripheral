@@ -2,15 +2,16 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.case import SkipTest
 
 from tests.util import *
-from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.advert import Advertisement, PacketType, AdvertisingIncludes
+from bluez_peripheral import get_message_bus
+from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
+from bluez_peripheral.flags import AdvertisingPacketType
 
 from uuid import UUID
 
 
 class TestAdvert(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._client_bus = await get_message_bus()
 
     async def asyncTearDown(self):
@@ -21,9 +22,9 @@ class TestAdvert(IsolatedAsyncioTestCase):
         advert = Advertisement(
             "Testing Device Name",
             ["180A", "180D"],
-            0x0340,
-            2,
-            packetType=PacketType.PERIPHERAL,
+            appearance=0x0340,
+            timeout=2,
+            packet_type=AdvertisingPacketType.PERIPHERAL,
             includes=AdvertisingIncludes.TX_POWER,
         )
 
@@ -49,15 +50,18 @@ class TestAdvert(IsolatedAsyncioTestCase):
 
         path = "/com/spacecheese/bluez_peripheral/test_advert/advert0"
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter, path)
+        try:
+            await advert.register(self._bus_manager.bus, adapter, path)
+        finally:
+            await advert.unregister()
 
     async def test_includes_empty(self):
         advert = Advertisement(
             "Testing Device Name",
             ["180A", "180D"],
-            0x0340,
-            2,
-            packetType=PacketType.PERIPHERAL,
+            appearance=0x0340,
+            timeout=2,
+            packet_type=AdvertisingPacketType.PERIPHERAL,
             includes=AdvertisingIncludes.NONE,
         )
 
@@ -73,14 +77,17 @@ class TestAdvert(IsolatedAsyncioTestCase):
             assert await interface.get_includes() == []
 
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter)
+        try:
+            await advert.register(self._bus_manager.bus, adapter)
+        finally:
+            await advert.unregister()
 
     async def test_uuid128(self):
         advert = Advertisement(
             "Improv Test",
             [UUID("00467768-6228-2272-4663-277478268000")],
-            0x0340,
-            2,
+            appearance=0x0340,
+            timeout=2,
         )
 
         async def inspector(path):
@@ -95,10 +102,12 @@ class TestAdvert(IsolatedAsyncioTestCase):
             assert [id.lower() for id in await interface.get_service_uui_ds()] == [
                 "00467768-6228-2272-4663-277478268000",
             ]
-            print(await interface.get_service_uui_ds())
 
         adapter = MockAdapter(inspector)
-        await advert.register(self._bus_manager.bus, adapter)
+        try:
+            await advert.register(self._bus_manager.bus, adapter)
+        finally:
+            await advert.unregister()
 
     async def test_real(self):
         await bluez_available_or_skip(self._client_bus)
@@ -111,4 +120,7 @@ class TestAdvert(IsolatedAsyncioTestCase):
             2,
         )
 
-        await advert.register(self._client_bus, adapter)
+        try:
+            await advert.register(self._client_bus, adapter)
+        finally:
+            await advert.unregister()

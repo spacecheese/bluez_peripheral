@@ -6,18 +6,25 @@ from dbus_fast.signature import Variant
 
 from tests.util import *
 
-from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.gatt.characteristic import CharacteristicFlags, characteristic
-from bluez_peripheral.gatt.descriptor import DescriptorFlags, descriptor
-from bluez_peripheral.gatt.service import Service
+from bluez_peripheral import get_message_bus
+from bluez_peripheral.gatt import (
+    CharacteristicFlags,
+    characteristic,
+    DescriptorFlags,
+    descriptor,
+    Service,
+)
 
 last_opts = None
 write_desc_val = None
 async_write_desc_val = None
 
+
 class TestService(Service):
     def __init__(self):
         super().__init__("180A")
+
+    read_write_val = b"\x05"
 
     @characteristic("2A37", CharacteristicFlags.RELIABLE_WRITE)
     def some_char(self, _):
@@ -38,10 +45,10 @@ class TestService(Service):
 
     @descriptor("2A39", some_char, DescriptorFlags.WRITE)
     def write_desc(self, _):
-        pass
+        return bytes()
 
     @write_desc.setter
-    def write_desc(self, val, opts):
+    def write_desc_set(self, val, opts):
         global last_opts
         last_opts = opts
         global write_desc_val
@@ -49,21 +56,29 @@ class TestService(Service):
 
     @descriptor("3A39", some_char, DescriptorFlags.WRITE)
     async def async_write_desc(self, _):
-        pass
+        return bytes()
 
     @async_write_desc.setter
-    async def async_write_desc(self, val, opts):
+    async def async_write_desc_set(self, val, opts):
         global last_opts
         last_opts = opts
         await asyncio.sleep(0.05)
         global async_write_desc_val
         async_write_desc_val = val
 
+    @descriptor("3A33", some_char, DescriptorFlags.WRITE | DescriptorFlags.READ)
+    def read_write_desc(self, opts):
+        return self.read_write_val
+
+    @read_write_desc.setter
+    def read_write_desc(self, val, opts):
+        self.read_write_val = val
+
 
 class TestDescriptor(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._client_bus = await get_message_bus()
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._path = "/com/spacecheese/bluez_peripheral/test_descriptor"
 
     async def asyncTearDown(self):
@@ -73,7 +88,11 @@ class TestDescriptor(IsolatedAsyncioTestCase):
     async def test_structure(self):
         async def inspector(path):
             char = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180A", char_uuid="2A37"
+                self._client_bus,
+                self._bus_manager.name,
+                path,
+                UUID16("180A"),
+                UUID16("2A37"),
             )
 
             child_names = [path.split("/")[-1] for path in char.child_paths]
@@ -87,7 +106,10 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_read(self):
         async def inspector(path):
@@ -102,9 +124,9 @@ class TestDescriptor(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A37",
-                    desc_uuid="2A38",
+                    UUID16("180A"),
+                    UUID16("2A37"),
+                    UUID16("2A38"),
                 )
             ).get_interface("org.bluez.GattDescriptor1")
             resp = await interface.call_read_value(opts)
@@ -131,7 +153,10 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_write(self):
         async def inspector(path):
@@ -148,9 +173,9 @@ class TestDescriptor(IsolatedAsyncioTestCase):
                     self._client_bus,
                     self._bus_manager.name,
                     path,
-                    "180A",
-                    char_uuid="2A37",
-                    desc_uuid="2A39",
+                    UUID16("180A"),
+                    UUID16("2A37"),
+                    UUID16("2A39"),
                 )
             ).get_interface("org.bluez.GattDescriptor1")
             await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
@@ -179,11 +204,43 @@ class TestDescriptor(IsolatedAsyncioTestCase):
         service = TestService()
         adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await service.unregister()
 
     async def test_bluez(self):
         await bluez_available_or_skip(self._client_bus)
         await get_first_adapter_or_skip(self._client_bus)
 
         service = TestService()
-        await service.register(self._client_bus, self._path)
+        try:
+            await service.register(self._client_bus, self._path)
+        finally:
+            await service.unregister()
+
+    async def test_empty_opts(self):
+        async def inspector(path):
+            interface = (
+                await get_attrib(
+                    self._client_bus,
+                    self._bus_manager.name,
+                    path,
+                    UUID16("180A"),
+                    UUID16("2A37"),
+                    UUID16("3A33"),
+                )
+            ).get_interface("org.bluez.GattDescriptor1")
+            assert await interface.call_read_value({}) == b"\x05"
+            await interface.call_write_value(bytes("Test Write Value", "utf-8"), {})
+            assert await interface.call_read_value({}) == bytes(
+                "Test Write Value", "utf-8"
+            )
+
+        service = TestService()
+        adapter = MockAdapter(inspector)
+
+        try:
+            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
+        finally:
+            await service.unregister()

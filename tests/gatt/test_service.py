@@ -1,11 +1,12 @@
-from tests.util import BusManager, MockAdapter, get_attrib
+from tests.util import ParallelBus, MockAdapter, get_attrib
 
 import re
 from typing import Collection
 from unittest import IsolatedAsyncioTestCase
 
-from bluez_peripheral.util import get_message_bus
-from bluez_peripheral.gatt.service import Service, ServiceCollection
+from bluez_peripheral.uuid16 import UUID16
+from bluez_peripheral import get_message_bus
+from bluez_peripheral.gatt import Service, ServiceCollection
 
 
 class TestService1(Service):
@@ -26,7 +27,7 @@ class TestService3(Service):
 class TestService(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self._client_bus = await get_message_bus()
-        self._bus_manager = BusManager()
+        self._bus_manager = ParallelBus()
         self._path = "/com/spacecheese/bluez_peripheral/test_service"
 
     async def asyncTearDown(self):
@@ -54,8 +55,10 @@ class TestService(IsolatedAsyncioTestCase):
 
         adapter = MockAdapter(inspector)
 
-        await collection.register(self._bus_manager.bus, self._path, adapter)
-        await collection.unregister()
+        try:
+            await collection.register(self._bus_manager.bus, self._path, adapter)
+        finally:
+            await collection.unregister()
 
     async def test_include_modify(self):
         service3 = TestService3()
@@ -67,13 +70,13 @@ class TestService(IsolatedAsyncioTestCase):
 
         async def inspector(path):
             service1 = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180A"
+                self._client_bus, self._bus_manager.name, path, UUID16("180A")
             )
             service = service1.get_interface("org.bluez.GattService1")
             includes = await service.get_includes()
 
             service2 = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, "180B"
+                self._client_bus, self._bus_manager.name, path, UUID16("180B")
             )
             # Services must include themselves.
             assert service1.path in includes
@@ -81,20 +84,32 @@ class TestService(IsolatedAsyncioTestCase):
 
             if expect_service3:
                 service3 = await get_attrib(
-                    self._client_bus, self._bus_manager.name, path, "180C"
+                    self._client_bus, self._bus_manager.name, path, UUID16("180C")
                 )
                 assert service3.path in includes
 
         adapter = MockAdapter(inspector)
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await collection.unregister()
+        try:
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
+        finally:
+            await collection.unregister()
 
-        collection.add_service(service3)
+        collection.add_child(service3)
         expect_service3 = True
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-        await collection.unregister()
+        try:
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
+        finally:
+            await collection.unregister()
 
-        collection.remove_service(service3)
+        collection.remove_child(service3)
         expect_service3 = False
-        await collection.register(self._bus_manager.bus, self._path, adapter=adapter)
-
+        try:
+            await collection.register(
+                self._bus_manager.bus, self._path, adapter=adapter
+            )
+        finally:
+            await collection.unregister()

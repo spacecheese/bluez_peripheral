@@ -1,71 +1,149 @@
 Pairing
 =======
-Before pairing devices will exchange their input/ output capabilities in order to select a pairing approach.
-In some situations **out of band (OOB)** data (using alternative communication channels like NFC) may also be used in pairing though this is currently **unsupported**.
 
-Pairing can be quite difficult to debug.
-In between attempts you should make sure to fully remove both the peripheral from the host and the host from the peripheral.
-Using bluez you can list paired devices using ``bluetoothctl list`` then remove any unwanted devices using ``bluetoothctl remove <device id>``.
+Pairing requires that the host and client exchange encryption keys in order to communicate securely. 
 
 Agents
 ------
 
-An agent is a program that bluez uses to interface with the user during pairing.
-bluez uses agents to determine what pairing mode should be used based on their indicated input/ output capabilities.
+.. TODO: Investigate OOB pairing.
 
-Selecting an Agent
-------------------
+.. hint:: 
+    Some devices use "out of band" data (for example communicated using NFC) to verify pairing. This approach is currently **unsupported** by bluez_peripheral agents.
 
-There are three sources of potential agents:
+.. warning:: 
+    By default bluez_peripheral agents are registered as default (see the :py:func:`~bluez_peripheral.agent.BaseAgent.register` function ``default`` argument). This generally requires superuser permission. If an agent is not registered as default it will not be called in response to inbound pairing requests (only those outbound from the source program).
 
-* Use a :ref:`bluez built in agent <bluez agent>` (Not recommended)
-* Use a :ref:`bluez_peripheral built in agent <bluez_peripheral agent>` (NoInputNoOutput or YesNoInput only)
-* Use a :ref:`custom agent <custom agent>`
+An agent is a program used to authorize and secure a pairing. Each agent has associated Input/ Output capabilities (see :py:class:`~bluez_peripheral.agent.AgentCapability`) which are exchanged at the start of the pairing process. Devices with limited IO capabilities cannot support authentication which prevents access to attributes with certain flags (see :ref:`pairing-io`).
 
-.. _bluez agent:
+Using an Agent
+--------------
 
-bluez Agents
-------------
+.. hint:: 
+    The "message bus" referred to here is a :py:class:`dbus_fast.aio.MessageBus`.
 
-bluez supports a number of built in agents.
-You can select an agent with given capability by using the following command in your terminal::
+There are three potential sources of agents:
 
-    bluetoothctl agent <capability>
+.. tab:: bluez
 
-This approach is not recommended since the bluez agents seem to be slightly unreliable.
+    Bluez supports a number of built in agents. You can select an agent with given capability by using the following command in your terminal:
 
-.. _bluez_peripheral agent:
+    .. code-block:: shell
 
-bluez_peripheral Agents
------------------------
+        bluetoothctl agent <capability>
 
-Using a bluez_peripheral agent is the preferred approach where possible. The README makes use of a bluez agent using the following code:
+    These agents are unreliable but the simplest to set up.
 
-.. code-block:: python
+.. tab:: bluez_peripheral
 
-    from bluez_peripheral.agent import NoIoAgent
+    bluez_peripheral includes built in :py:class:`~bluez_peripheral.agent.NoIoAgent` and :py:class:`~bluez_peripheral.agent.YesNoAgent` agents which can be used as below:
 
-    agent = NoIoAgent()
-    await agent.register(bus)
+    .. testcode::
 
-Note that if using a bluez_peripheral or custom agent your program must be run with root permissions.
-Without root permission you do not have permission to set the default agent which is required to intercept incoming pairing requests.
+        from bluez_peripheral import get_message_bus
+        from bluez_peripheral.agent import NoIoAgent
 
-.. _custom agent:
+        async def agent_builtin():
+            bus = await get_message_bus()
 
-Custom Agents
--------------
+            agent = NoIoAgent()
+            # By default agents are registered as default.
+            await agent.register(bus, default=True)
 
-You can write a custom agent by sub-classing the :class:`bluez_peripheral.agent.BaseAgent` in the same way as the built in agents.
-The recommended approach is first to instance and register the :class:`bluez_peripheral.agent.TestAgent` with your chosen capability setting.
+        # OR
 
-.. code-block:: python
+        def accept_pairing(code: int) -> bool:
+            # TODO: Show the user the code and ask if it's correct.
+            # if (correct):
+            #   return True
+            # else:
+            #   return False
 
-    from bluez_peripheral.agent import TestAgent
+            return True
 
-    agent = TestAgent()
-    await agent.register(bus)
+        def cancel_pairing():
+            # TODO: Notify the user that pairing was cancelled by the other device.
+            pass
 
-Once you've registered this agent, assuming that you are broadcasting a valid advertisement, you may connect to your peripheral from another device.
-During the pairing process the test agent will encounter breakpoints whenever one of its methods is called.
-To implement your agent you should check which methods are called during the pairing process then implement them as required using the test agent as a template.
+        async def agent_custom():
+            agent = YesNoAgent(accept_pairing, cancel_pairing)
+            await agent.register(bus)
+
+        if __name__ == "__main__":
+            asyncio.run(agent_builtin())
+            asyncio.run(agent_custom())
+
+.. tab:: Custom Agents (Recommended)
+
+    Support for custom agents in bluez_peripheral is limited. The recommended approach is to inherit the :class:`bluez_peripheral.agent.BaseAgent` in the same way as the built in agents. The :class:`bluez_peripheral.agent.TestAgent` can be instanced as shown for testing:
+
+    .. testcode::
+
+        from bluez_peripheral import get_message_bus
+        from bluez_peripheral.agent import TestAgent
+
+        async def main():
+            bus = await get_message_bus()
+
+            agent = TestAgent()
+            await agent.register(bus)
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
+    The test agent will then fire :py:func:`breakpoints<breakpoint>` when each of the interfaces functions is called during the pairing process. Note that when extending this class the type hints as used are important (see :doc:`dbus_fast services<dbus_fast:high-level-service/index>`).
+
+Debugging
+---------
+Pairing can be quite difficult to debug. In between testing attempts ensure that the peripheral has been unpaired from the host **and** vice versa. Using linux you can list paired devices using ``bluetoothctl list`` then remove any unwanted devices using ``bluetoothctl remove <device id>``. Additionally the linux bluetooth daemon stores persistent adapter metadata in the ``/var/lib/bluetooth/`` (see the bluetoothd manpages).
+
+.. _pairing-io:
+
+Pairing Security
+----------------
+
++---------------------+-------------------------------------------------------------------------------------------------------------+
+|                     | Initiator                                                                                                   |
+|                     +---------------------+---------------------+---------------------+---------------------+---------------------+
+| Responder           | Display Only        | Display YesNo       | Keyboard Only       | NoInput NoOutput    | Keyboard Display    |
++=====================+=====================+=====================+=====================+=====================+=====================+
+| Display Only        | Just Works          | Just Works          | Passkey Entry       | Just Works          | Passkey Entry       |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| Display YesNo       | Just Works          | Numeric Comparison  | Passkey Entry       | Just Works          | Numeric Comparison  |
+|                     |                     | (*Just Works\**)    |                     |                     | (*Passkey Entry\**) |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| Keyboard Only       | Passkey Entry       | Passkey Entry       | Passkey Entry       | Just Works          | Passkey Entry       |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| NoInput NoOutput    | Just Works          | Just Works          | Just Works          | Just Works          | Just Works          |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| Keyboard Display    | Passkey Entry       | Numeric Comparison  | Passkey Entry       | Just Works          | Numeric Comparison  |
+|                     |                     | (*Passkey Entry\**) |                     |                     | (*Passkey Entry\**) |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+
+| *\* Types apply to LE Legacy Pairing only (used when the initiator or responder do not support "LE Secure Connection" pairing).*
+|
+
+For completeness these pairing models are described below:
+
+* Just Works - Devices may pair with no user interaction (eg a phone connecting to a headset without a display). Since this has no MITM protection, connections established using this model **may not perform authentication** (ie. access authenticated attributes).
+* Numeric Comparison - The user verifies 6 digit codes displayed by each device match each other.
+* Passkey Entry - The user is shown a 6 digit code on one device and inputs that code on the other.
+* Out of Band - A MITM resistant channel is established between the two devices using a different protocol (eg NFC).
+
+Note that IO Capability is not the only factor in selecting a pairing algorithm. Specifically:
+
+* Where neither device requests Man-In-The-Middle (MITM) protection, Just Works pairing will be used. 
+* Where both devices request it, OOB pairing will be used. 
+
+.. seealso:: 
+
+    Bluetooth SIG Pairing Overview
+        `Part 1 <https://www.bluetooth.com/blog/bluetooth-pairing-part-1-pairing-feature-exchange/>`_
+        `Part 2 <https://www.bluetooth.com/blog/bluetooth-pairing-part-2-key-generation-methods/>`_
+        `Part 3 <https://www.bluetooth.com/blog/bluetooth-pairing-passkey-entry/>`_
+
+    `Bluetooth Core Spec v5.2 <https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=478726>`_
+        Vol 3, Part H, Table 2.8 (source of :ref:`pairing-io`)
+
+    Bluez Documentation
+        `Agent API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.Agent.rst>`_

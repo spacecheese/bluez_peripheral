@@ -13,7 +13,8 @@ Add the dbus config to allow the test process access to the bluetooth daemon.
 ```bash
 sudo cp com.spacecheese.test.conf /etc/dbus-1/system.d
 ```
-
-To run the tests, you can execute the following command:
-
-`python -m unittest discover -s tests -p "test_*.py"`
+# Run the Tests
+Run tests from the root project directory (eg bluez_peripheral).
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
