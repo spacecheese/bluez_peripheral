@@ -141,5 +141,4 @@ cython_debug/
 .vscode/
 
 # Testing images
-tests/loopback/*.qcow2
-tests/loopback/id_*
+tests/loopback/assets

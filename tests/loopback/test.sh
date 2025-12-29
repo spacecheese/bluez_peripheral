@@ -2,8 +2,10 @@
 set -euo pipefail
 
 IMAGE="${1}"
+KEY_FILE="${2}"
+PROJ_ROOT="${3}"
 
-SSH="ssh -i id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+SSH="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 echo "[*] Starting QEMU session"
 qemu-system-x86_64 \
@@ -45,20 +47,29 @@ fi
 
 echo "[*] Copying bluez_peripheral"
 rsync -a --progress --rsync-path="sudo rsync" \
-  -e "$SSH -p 2244" --exclude bluez_images \
-  "../" tester@localhost:/bluez_peripheral
+  -e "$SSH -p 2244" --delete \
+  --exclude $IMAGE \
+  --exclude $KEY_FILE \
+  --exclude .git \
+  --exclude serial.log \
+  $PROJ_ROOT tester@localhost:/bluez_peripheral
 
-echo "[*] Testing adapter"
 $SSH -p 2244 tester@localhost "
+    set -euo pipefail
+
+    echo '[*] Setting Up Dependencies'
     python3 -m venv ~/venv
     source ~/venv/bin/activate
-    pip install -r /bluez_peripheral/tests/requirements.txt
+    python3 -m pip install -r /bluez_peripheral/tests/requirements.txt
 
     sudo nohup btvirt -L -l2 >/dev/null 2>&1 &
     sudo service bluetooth start
 
+    echo '[*] Running Tests'
     cd /bluez_peripheral
-    python3 -m tests.test
+    sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
+    python3 -m unittest discover -s tests/unit -p 'test_*.py' -v
+    python3 -m unittest discover -s tests/loopback -p 'test_*.py' -v
     sudo shutdown -h now
 "
 wait $QEMU_PID

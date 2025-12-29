@@ -66,7 +66,7 @@ async def main():
 
     print(f"Advertising on {await adapters[0].get_name()}")
     advert = Advertisement(
-        "Heart Monitor", ["180D", "1234"], 0x0340, 60 * 5, duration=5
+        "Heart Monitor", ["180D", "1234"], appearance=0x0340, timeout=60 * 5, duration=5
     )
     await advert.register(bus, adapters[0])
 

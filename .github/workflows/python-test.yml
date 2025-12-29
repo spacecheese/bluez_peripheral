@@ -35,7 +35,7 @@ jobs:
           cd docs
           make linkcheck
 
-  test-unit:
+  test-container:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -71,6 +71,28 @@ jobs:
         with:
           name: coverage-${{ matrix.python-version }}
           path: htmlcov/
+
+  test-qemu:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        image_id: ["ubuntu-24.04-bluez-5.64", "ubuntu-24.04-bluez-5.66", "ubuntu-24.04-bluez-5.70"]
+      fail-fast: false
+    steps:
+      - name: Download qemu images
+        env:
+          image_repo: "spacecheese/bluez_images"
+        run: |
+          image_id=${{ matrix.image_id }}
+          mkdir -p tests/loopback/assets
+          curl -L -o tests/loopback/assets/id_ed25519 \
+            https://github.com/$image_repo/releases/latest/download/id_ed25519
+          chmod 600 tests/loopback/assets/id_ed25519
+          curl -L -o tests/loopback/assets/image.qcow2 \
+            https://github.com/$image_repo/releases/latest/download/${image_id}.qcow2
+      - name: Run loopback Tests
+        run: |
+          tests/loopback/test.sh tests/loopback/assets/image.qcow2 tests/loopback/assets/id_ed25519 .
   
   format-check:
     runs-on: ubuntu-24.04
