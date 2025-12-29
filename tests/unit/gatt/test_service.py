@@ -1,4 +1,4 @@
-from unit.util import ParallelBus, MockAdapter, get_attrib
+from tests.unit.util import ParallelBus, MockAdapter, get_attrib
 
 import re
 from typing import Collection

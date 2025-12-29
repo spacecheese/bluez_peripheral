@@ -1,6 +1,6 @@
 from unittest import IsolatedAsyncioTestCase
 from threading import Event
-from unit.util import *
+from tests.unit.util import *
 import re
 
 from bluez_peripheral.uuid16 import UUID16
