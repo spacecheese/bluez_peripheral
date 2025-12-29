@@ -13,8 +13,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from dbus_fast import Variant
-from dbus_fast.errors import DBusError
+from dbus_fast import Variant, DBusError
 from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import method, ServiceInterface, dbus_property
 from dbus_fast.aio.message_bus import MessageBus

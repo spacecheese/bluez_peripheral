@@ -113,14 +113,23 @@ class TestAdvert(IsolatedAsyncioTestCase):
         await bluez_available_or_skip(self._client_bus)
         adapter = await get_first_adapter_or_skip(self._client_bus)
 
+        initial_powered = await adapter.get_powered()
+        initial_discoverable = await adapter.get_discoverable()
+
+        await adapter.set_powered(True)
+        await adapter.set_discoverable(True)
+
         advert = Advertisement(
             "Testing Device Name",
             ["180A", "180D"],
-            0x0340,
-            2,
+            appearance=0x0340,
+            timeout=2,
         )
 
         try:
             await advert.register(self._client_bus, adapter)
         finally:
             await advert.unregister()
+
+            await adapter.set_discoverable(initial_discoverable)
+            await adapter.set_powered(initial_powered)

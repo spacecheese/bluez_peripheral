@@ -2,7 +2,7 @@ from typing import Sequence
 
 from dbus_fast.aio import MessageBus, ProxyInterface
 from dbus_fast.aio.proxy_object import ProxyObject
-from dbus_fast.errors import InvalidIntrospectionError, InterfaceNotFoundError
+from dbus_fast import InvalidIntrospectionError, InterfaceNotFoundError
 
 from .util import _kebab_to_shouting_snake
 from .flags import AdvertisingIncludes

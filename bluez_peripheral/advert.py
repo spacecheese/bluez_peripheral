@@ -113,9 +113,6 @@ class Advertisement(ServiceInterface):
             )
             Advertisement._defaultPathAdvertCount += 1
 
-        self._export_bus = bus
-        self._export_path = path
-
         # Export this advert to the dbus.
         bus.export(path, self)
 
@@ -127,6 +124,9 @@ class Advertisement(ServiceInterface):
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
         await interface.call_register_advertisement(path, {})  # type: ignore
+
+        self._export_bus = bus
+        self._export_path = path
 
     @method("Release")
     def _release(self):  # type: ignore

@@ -41,21 +41,27 @@ class TestUtil(IsolatedAsyncioTestCase):
 
     async def test_discoverable(self):
         initial_discoverable = await self._adapter.get_discoverable()
+        initial_powered = await self._adapter.get_powered()
+
+        await self._adapter.set_powered(True)
 
         await self._adapter.set_discoverable(False)
         assert await self._adapter.get_discoverable() == False
         await self._adapter.set_discoverable(True)
         assert await self._adapter.get_discoverable() == True
         await self._adapter.set_discoverable(initial_discoverable)
+        await self._adapter.set_powered(initial_powered)
 
     async def test_pairable(self):
         initial_pairable = await self._adapter.get_pairable()
+        initial_powered = await self._adapter.get_powered()
 
         await self._adapter.set_pairable(False)
         assert await self._adapter.get_pairable() == False
         await self._adapter.set_pairable(True)
         assert await self._adapter.get_pairable() == True
         await self._adapter.set_pairable(initial_pairable)
+        await self._adapter.set_powered(initial_powered)
 
     async def test_pairable_timeout(self):
         initial_pairable_timeout = await self._adapter.get_pairable_timeout()

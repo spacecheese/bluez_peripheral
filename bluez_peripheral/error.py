@@ -1,4 +1,4 @@
-from dbus_fast.errors import DBusError
+from dbus_fast import DBusError
 
 
 class FailedError(DBusError):

@@ -79,8 +79,9 @@ class Service(HierarchicalServiceInterface):
             path: The base dbus path to export this service to.
             adapter: The adapter that will provide this service or None to select the first adapter.
         """
-        self._collection = ServiceCollection([self])
-        await self._collection.register(bus, path, adapter)
+        collection = ServiceCollection([self])
+        await collection.register(bus, path, adapter)
+        self._collection = collection
 
     async def unregister(self) -> None:
         """Unregister this service.
@@ -90,6 +91,7 @@ class Service(HierarchicalServiceInterface):
             return
 
         await self._collection.unregister()
+        self._collection = None
 
     @dbus_property(PropertyAccess.READ, "UUID")
     def _get_uuid(self) -> "s":  # type: ignore
@@ -147,14 +149,15 @@ class ServiceCollection(HierarchicalServiceInterface):
                 Each service will be an automatically numbered child of this base.
             adapter: The adapter that should be used to deliver the collection of services.
         """
-        self._path = path
-        self._bus = bus
         self._adapter = await Adapter.get_first(bus) if adapter is None else adapter
 
-        self.export(self._bus, path=path)
+        self.export(bus, path=path)
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_register_application(self._path, {})  # type: ignore
+        await manager.call_register_application(path, {})  # type: ignore
+
+        self._path = path
+        self._bus = bus
 
     async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""

@@ -1,8 +1,7 @@
 from typing import Any, Dict
 
-from dbus_fast import Variant
+from dbus_fast import Variant, DBusError
 from dbus_fast.constants import BusType
-from dbus_fast.errors import DBusError
 from dbus_fast.aio.message_bus import MessageBus
 
 

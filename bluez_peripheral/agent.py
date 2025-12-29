@@ -79,14 +79,15 @@ class BaseAgent(ServiceInterface):
                 The invoking process requires superuser if this is true.
             path: The path to expose this message bus on.
         """
-        self._path = path
         bus.export(path, self)
 
         interface = await self._get_manager_interface(bus)
         await interface.call_register_agent(path, self._get_capability())  # type: ignore
 
+        self._path = path
+
         if default:
-            await interface.call_request_default_agent(self._path)  # type: ignore
+            await interface.call_request_default_agent(path)  # type: ignore
 
     async def unregister(self, bus: MessageBus) -> None:
         """Unregister this agent with bluez and remove it from the specified message bus.
@@ -101,6 +102,7 @@ class BaseAgent(ServiceInterface):
         await interface.call_unregister_agent(self._path)  # type: ignore
 
         bus.unexport(self._path, self._INTERFACE)
+        self._path = None
 
 
 class TestAgent(BaseAgent):
