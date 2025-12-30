@@ -16,7 +16,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r docs/requirements.txt
-          sudo apt-get update && sudo apt-get install -y enchant-2 aspell-en
+          sudo apt-get update && sudo apt-get install -y enchant-2
       - name: Build Docs
         run: |
           cd docs
