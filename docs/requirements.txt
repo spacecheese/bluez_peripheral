@@ -3,5 +3,5 @@ sphinx
 sphinx-inline-tabs
 sphinxcontrib-spelling
 furo
-m2r2
+sphinx_mdinclude
 interrogate

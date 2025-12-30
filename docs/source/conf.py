@@ -39,7 +39,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.doctest",
     "sphinx_inline_tabs",
-    "m2r2",
+    "sphinx_mdinclude",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
