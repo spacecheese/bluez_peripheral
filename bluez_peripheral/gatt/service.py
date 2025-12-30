@@ -11,9 +11,9 @@ from ..uuid16 import UUID16, UUIDCompatible
 from ..adapter import Adapter
 
 
-# See https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattService.rst
 class Service(HierarchicalServiceInterface):
     """Create a bluetooth service with the specified uuid.
+    Represents an `org.bluez.GattService1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattService.rst>`_ instance.
 
     Args:
         uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_

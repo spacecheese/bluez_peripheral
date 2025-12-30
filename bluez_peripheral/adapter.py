@@ -9,7 +9,9 @@ from .flags import AdvertisingIncludes
 
 
 class Device:
-    """A bluetooth device discovered by an adapter."""
+    """A bluetooth device discovered by an adapter.
+    Represents an `org.bluez.Device1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.Device.rst>`_ instance.
+    """
 
     _INTERFACE = "org.bluez.Device1"
     _device_interface: ProxyInterface
@@ -37,7 +39,9 @@ class Device:
 
 
 class Adapter:
-    """A bluetooth adapter."""
+    """A bluetooth adapter.
+    Represents an `org.bluez.Adapter1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.Adapter.rst>`_ instance.
+    """
 
     BUS_INTERFACE = "org.bluez.Adapter1"
     _GATT_MANAGER_INTERFACE = "org.bluez.GattManager1"

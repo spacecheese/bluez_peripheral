@@ -116,6 +116,7 @@ class descriptor(
     HierarchicalServiceInterface,
 ):  # pylint: disable=invalid-name
     """Create a new descriptor with a specified UUID and flags associated with the specified parent characteristic.
+    Represents an `org.bluez.GattDescriptor1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattDescriptor.rst>`_ instance.
 
     Args:
         uuid: The UUID of this GATT descriptor. A list of standard ids is provided by the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_

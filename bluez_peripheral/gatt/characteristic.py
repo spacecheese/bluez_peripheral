@@ -170,6 +170,7 @@ class characteristic(
     HierarchicalServiceInterface,
 ):  # pylint: disable=invalid-name
     """Create a new characteristic with a specified UUID and flags.
+    Represents an `org.bluez.GattCharacteristic1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattCharacteristic.rst>`_ instance.
 
     Args:
         uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://www.bluetooth.com/specifications/assigned-numbers/>`_
