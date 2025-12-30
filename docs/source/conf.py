@@ -60,19 +60,26 @@ linkcheck_timeout = 10
 def _get_git_ref():
     try:
         ref = (
-            subprocess.check_output(["git", "describe", "--tags", "--exact-match"], stderr=subprocess.DEVNULL)
+            subprocess.check_output(
+                ["git", "describe", "--tags", "--exact-match"],
+                stderr=subprocess.DEVNULL,
+            )
             .decode()
             .strip()
         )
     except subprocess.CalledProcessError:
         ref = (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
+            subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL
+            )
             .decode()
             .strip()
         )
     return ref
 
+
 GIT_REF = _get_git_ref()
+
 
 def linkcode_resolve(domain, info):
     if domain != "py":
@@ -95,7 +102,7 @@ def linkcode_resolve(domain, info):
         lines, lineno = inspect.getsourcelines(obj)
     except Exception:
         return None
-    
+
     if src is None:
         return None
 
