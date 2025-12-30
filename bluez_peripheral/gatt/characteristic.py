@@ -107,7 +107,7 @@ class CharacteristicWriteOptions:
 
 class CharacteristicFlags(Flag):
     """Flags to use when specifying the read/ write routines that can be used when accessing the characteristic.
-    These are converted to `bluez flags <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattCharacteristic.rst>`_.
+    These are converted to `bluez flags <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.GattCharacteristic.rst>`_.
     """
 
     INVALID = 0
@@ -170,7 +170,7 @@ class characteristic(
     HierarchicalServiceInterface,
 ):  # pylint: disable=invalid-name
     """Create a new characteristic with a specified UUID and flags.
-    Represents an `org.bluez.GattCharacteristic1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattCharacteristic.rst>`_ instance.
+    Represents an `org.bluez.GattCharacteristic1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.GattCharacteristic.rst>`_ instance.
 
     Args:
         uuid: The UUID of the GATT characteristic. A list of standard ids is provided by the `Bluetooth SIG <https://www.bluetooth.com/specifications/assigned-numbers/>`_

@@ -13,7 +13,7 @@ from ..adapter import Adapter
 
 class Service(HierarchicalServiceInterface):
     """Create a bluetooth service with the specified uuid.
-    Represents an `org.bluez.GattService1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.GattService.rst>`_ instance.
+    Represents an `org.bluez.GattService1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.GattService.rst>`_ instance.
 
     Args:
         uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_

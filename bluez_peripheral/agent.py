@@ -34,7 +34,7 @@ class AgentCapability(Enum):
 class BaseAgent(ServiceInterface):
     """The abstract base agent for all bluez agents. Subclass this if one of the existing agents does not meet your requirements.
     Alternatively bluez supports several built in agents which can be selected using the bluetoothctl cli.
-    Represents an `org.bluez.Agent1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.Agent.rst>`_ instance.
+    Represents an `org.bluez.Agent1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.Agent.rst>`_ instance.
 
     Args:
         capability: The IO capabilities of the agent.

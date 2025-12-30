@@ -38,4 +38,4 @@ A minimal :py:class:`advert<bluez_peripheral.advert.Advertisement>` requires:
 .. seealso:: 
 
     Bluez Documentation
-        `Advertising API <https://github.com/bluez/bluez/blob/master/doc/org.bluez.LEAdvertisement.rst>`_
+        `Advertising API <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.LEAdvertisement.rst>`_

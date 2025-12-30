@@ -17,7 +17,7 @@ from .flags import AdvertisingPacketType
 class Advertisement(ServiceInterface):
     """
     An advertisement for a particular service or collection of services that can be registered and broadcast to nearby devices.
-    Represents an `org.bluez.LEAdvertisement1 <https://github.com/bluez/bluez/blob/master/doc/org.bluez.LEAdvertisement.rst>`_ instance.
+    Represents an `org.bluez.LEAdvertisement1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.LEAdvertisement.rst>`_ instance.
 
     Args:
         localName: The device name to advertise.
