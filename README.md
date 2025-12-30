@@ -25,7 +25,7 @@ Install bluez (eg. `sudo apt-get install bluez`)
 GATT is a protocol that allows you to offer services to other devices. 
 You can find a list of standardized services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/).
 
-![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-5/images/peripheral-structure.png)
+![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-6/images/peripheral-structure.png)
 
 _Courtesey of Qt documentation (GNU Free Documentation License)_
 
