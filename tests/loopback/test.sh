@@ -61,7 +61,6 @@ $SSH -p 2244 tester@localhost "
     python3 -m venv ~/venv
     source ~/venv/bin/activate
     python3 -m pip install -r /bluez_peripheral/tests/requirements.txt
-    python3 -m pip install -e /bluez_peripheral
 
     sudo nohup btvirt -L -l2 >/dev/null 2>&1 &
     sudo service bluetooth start
