@@ -1,12 +1,13 @@
 from typing import Awaitable, Callable, Optional
 from enum import Enum
 
-from dbus_fast.service import ServiceInterface, method
+from dbus_fast.service import method
 from dbus_fast.aio.message_bus import MessageBus
 from dbus_fast.aio.proxy_object import ProxyInterface
 
 from .util import _snake_to_pascal
 from .error import RejectedError
+from .base import BaseServiceInterface
 
 
 class AgentCapability(Enum):
@@ -31,7 +32,7 @@ class AgentCapability(Enum):
     """
 
 
-class BaseAgent(ServiceInterface):
+class BaseAgent(BaseServiceInterface):
     """The abstract base agent for all bluez agents. Subclass this if one of the existing agents does not meet your requirements.
     Alternatively bluez supports several built in agents which can be selected using the bluetoothctl cli.
     Represents an `org.bluez.Agent1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.Agent.rst>`_ instance.
@@ -42,6 +43,7 @@ class BaseAgent(ServiceInterface):
 
     _INTERFACE = "org.bluez.Agent1"
     _MANAGER_INTERFACE = "org.bluez.AgentManager1"
+    _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/agent"
 
     def __init__(
         self,
@@ -50,7 +52,7 @@ class BaseAgent(ServiceInterface):
         self._capability: AgentCapability = capability
         self._path: Optional[str] = None
 
-        super().__init__(self._INTERFACE)
+        super().__init__()
 
     @method("Release")
     def _release(self):  # type: ignore
@@ -69,7 +71,7 @@ class BaseAgent(ServiceInterface):
         return proxy.get_interface(self._MANAGER_INTERFACE)
 
     async def register(
-        self, bus: MessageBus, default: bool = True, path: str = "/com/spacecheese/ble"
+        self, bus: MessageBus, *, path: Optional[str] = None, default: bool = True
     ) -> None:
         """Expose this agent on the specified message bus and register it with the bluez agent manager.
 
@@ -80,7 +82,7 @@ class BaseAgent(ServiceInterface):
                 The invoking process requires superuser if this is true.
             path: The path to expose this message bus on.
         """
-        bus.export(path, self)
+        self.export(bus, path=path)
 
         interface = await self._get_manager_interface(bus)
         await interface.call_register_agent(path, self._get_capability())  # type: ignore
@@ -90,19 +92,20 @@ class BaseAgent(ServiceInterface):
         if default:
             await interface.call_request_default_agent(path)  # type: ignore
 
-    async def unregister(self, bus: MessageBus) -> None:
+    async def unregister(self) -> None:
         """Unregister this agent with bluez and remove it from the specified message bus.
 
         Args:
             bus: The message bus used to expose the agent.
         """
-        if self._path is None:
-            return
+        if not self.is_exported:
+            raise ValueError("agent has not been registered")
+        assert self._export_bus is not None
 
-        interface = await self._get_manager_interface(bus)
+        interface = await self._get_manager_interface(self._export_bus)
         await interface.call_unregister_agent(self._path)  # type: ignore
 
-        bus.unexport(self._path, self._INTERFACE)
+        self.unexport()
         self._path = None
 
 

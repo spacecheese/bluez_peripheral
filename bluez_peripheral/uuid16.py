@@ -2,7 +2,7 @@ import builtins
 from typing import Union, Optional
 from uuid import UUID
 
-UUIDCompatible = Union[str, bytes, UUID, "UUID16", int]
+UUIDLike = Union[str, bytes, UUID, "UUID16", int]
 
 
 class UUID16:
@@ -74,7 +74,7 @@ class UUID16:
         return uuid.fields[1:5] == cls._FIELDS[1:5]
 
     @classmethod
-    def parse_uuid(cls, uuid: UUIDCompatible) -> Union[UUID, "UUID16"]:
+    def parse_uuid(cls, uuid: UUIDLike) -> Union[UUID, "UUID16"]:
         """Attempts to parse a supplied UUID representation to a UUID16.
         If the resulting value is out of range a UUID128 will be returned instead."""
         if isinstance(uuid, UUID16):

@@ -1,50 +1,30 @@
-from unittest import IsolatedAsyncioTestCase
+import pytest
+import asyncio
+from unittest.mock import MagicMock, AsyncMock
 
-from util import *
-
-from bluez_peripheral.util import get_message_bus
 from bluez_peripheral.agent import AgentCapability, BaseAgent
 
+from .util import make_message_bus_mock
 
-class MockBus:
-    async def introspect(self, name, path):
-        return self
+@pytest.mark.asyncio
+async def test_base_agent_capability():
+    mock_bus = make_message_bus_mock()
+    mock_proxy = mock_bus.get_proxy_object.return_value
+    mock_interface = mock_proxy.get_interface.return_value
+    bus_path = "/com/spacecheese/bluez_peripheral/agent0"
 
-    def get_proxy_object(self, object, path, intro):
-        return self
+    agent = BaseAgent(AgentCapability.KEYBOARD_DISPLAY)
+    
+    await agent.register(mock_bus, path=bus_path)
+    mock_interface.call_register_agent.assert_awaited_once_with(bus_path, "KeyboardDisplay")
+    await agent.unregister()
 
-    def get_interface(self, int):
-        return self
+    mock_bus.reset_mock()
+    agent = BaseAgent(AgentCapability.NO_INPUT_NO_OUTPUT)
 
-    def export(self, path, obj):
-        self._path = path
-        return self
+    await agent.register(mock_bus, path=bus_path, default=True)
+    mock_interface.call_register_agent.assert_awaited_once_with(bus_path, "NoInputNoOutput")
+    mock_interface.call_request_default_agent.assert_awaited_once_with(bus_path)
+    await agent.unregister()
 
-    async def call_register_agent(self, path, capability):
-        assert path == path
-        self._capability = capability
-        return self
-
-    async def call_request_default_agent(self, path):
-        assert path == path
-
-
-class TestAgent(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        self._bus_manager = ParallelBus()
-        self._client_bus = await get_message_bus()
-
-    async def asyncTearDown(self):
-        self._client_bus.disconnect()
-        self._bus_manager.close()
-
-    async def test_base_agent_capability(self):
-        agent = BaseAgent(AgentCapability.KEYBOARD_DISPLAY)
-        bus = MockBus()
-        await agent.register(bus)
-        assert bus._capability == "KeyboardDisplay"
-
-        agent = BaseAgent(AgentCapability.NO_INPUT_NO_OUTPUT)
-        bus = MockBus()
-        await agent.register(bus)
-        assert bus._capability == "NoInputNoOutput"
+    mock_interface.call_unregister_agent.assert_awaited_once_with(bus_path)

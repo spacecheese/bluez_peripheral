@@ -6,7 +6,7 @@ from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import method, dbus_property
 
 from .base import HierarchicalServiceInterface, ServiceAttribute
-from ..uuid16 import UUIDCompatible, UUID16
+from ..uuid16 import UUIDLike, UUID16
 from ..util import _snake_to_kebab, _getattr_variant
 from ..error import NotSupportedError
 from .descriptor import DescriptorFlags, descriptor
@@ -180,12 +180,12 @@ class characteristic(
         :ref:`services`
     """
 
-    BUS_PREFIX = "char"
-    BUS_INTERFACE = "org.bluez.GattCharacteristic1"
+    _INTERFACE = "org.bluez.GattCharacteristic1"
+    _BUS_PREFIX = "char"
 
     def __init__(
         self,
-        uuid: UUIDCompatible,
+        uuid: UUIDLike,
         flags: CharacteristicFlags = CharacteristicFlags.READ,
     ):
         super().__init__()
@@ -238,7 +238,7 @@ class characteristic(
 
     def descriptor(
         self,
-        uuid: UUIDCompatible,
+        uuid: UUIDLike,
         flags: DescriptorFlags = DescriptorFlags.READ,
     ) -> descriptor:
         """Create a new descriptor with the specified UUID and Flags.

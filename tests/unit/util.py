@@ -1,52 +1,96 @@
 import asyncio
-from typing import Tuple, Optional
-from threading import Thread, Event
-from unittest.case import SkipTest
+from typing import Dict, Union, Optional
+from unittest.mock import MagicMock, AsyncMock, create_autospec
+from uuid import UUID
+import threading
+
+import pytest
 
 from dbus_fast.introspection import Node
+from dbus_fast.aio.proxy_object import ProxyInterface, ProxyObject
 
 from bluez_peripheral.util import (
     get_message_bus,
     is_bluez_available,
     MessageBus,
 )
+from bluez_peripheral.gatt.service import ServiceCollection
 from bluez_peripheral.adapter import Adapter
-from bluez_peripheral.uuid16 import UUID16
+from bluez_peripheral.uuid16 import UUID16, UUIDLike
+from bluez_peripheral.advert import Advertisement
 
 
-class ParallelBus:
-    def __init__(self, name="com.spacecheese.test"):
-        bus_ready = Event()
-        self.name = name
-        self.bus: MessageBus
+def make_adapter_mock() -> MagicMock:
+    adapter = MagicMock()
 
-        async def operate_bus_async():
-            # Setup the bus.
-            self.bus = await get_message_bus()
-            await self.bus.request_name(name)
+    advertising_manager = MagicMock()
+    advertising_manager.call_register_advertisement = AsyncMock()
+    advertising_manager.call_unregister_advertisement = AsyncMock()
+    adapter.get_advertising_manager.return_value = advertising_manager
 
-            bus_ready.set()
+    gatt_manager = MagicMock()
+    gatt_manager.call_register_application = AsyncMock()
+    gatt_manager.call_unregister_application = AsyncMock()
+    adapter.get_gatt_manager.return_value = gatt_manager
 
-            await self.bus.wait_for_disconnect()
+    return adapter
 
-        def operate_bus():
-            asyncio.run(operate_bus_async())
 
-        self._thread = Thread(target=operate_bus)
-        self._thread.start()
+def make_message_bus_mock() -> MagicMock:
+    bus = create_autospec(MessageBus, instance=True)
 
-        bus_ready.wait()
-        assert self.bus is not None
+    proxy = create_autospec(ProxyObject, instance=True)
+    interface = MagicMock()
 
-    def close(self):
-        assert self.bus is not None
-        self.bus.disconnect()
+    interface.call_register_agent = AsyncMock()
+    interface.call_request_default_agent = AsyncMock()
+    interface.call_unregister_agent = AsyncMock()
+
+    proxy.get_interface.return_value = interface
+    bus.get_proxy_object.return_value = proxy
+
+    return bus
+
+
+class BackgroundLoopWrapper:
+    event_loop: asyncio.AbstractEventLoop
+    thread: threading.Thread
+
+    def __init__(self):
+        self.event_loop = asyncio.new_event_loop()
+
+        def _func():
+            self.event_loop.run_forever()
+            self.event_loop.close()
+
+        self.thread = threading.Thread(
+            target=_func,
+            daemon=True
+        )
+
+    @property
+    def running(self):
+        return self.thread.is_alive()
+
+    def start(self):
+        self.thread.start()
+
+    def stop(self):
+        if self.thread is None or not self.thread.is_alive():
+            return
+
+        def _func():
+            if self.event_loop is not None and self.event_loop.is_running():
+                self.event_loop.stop()
+
+        self.event_loop.call_soon_threadsafe(_func)
+        self.thread.join()
 
 
 async def get_first_adapter_or_skip(bus: MessageBus) -> Adapter:
     adapters = await Adapter.get_all(bus)
     if not len(adapters) > 0:
-        raise SkipTest("No adapters detected for testing.")
+        pytest.skip("No adapters detected for testing.")
     else:
         return adapters[0]
 
@@ -55,72 +99,175 @@ async def bluez_available_or_skip(bus: MessageBus):
     if await is_bluez_available(bus):
         return
     else:
-        raise SkipTest("bluez is not available for testing.")
+        pytest.skip("bluez is not available for testing.")
 
 
-class MockAdapter(Adapter):
-    def __init__(self, inspector):
-        self._inspector = inspector
-        self._proxy = self
+class ServiceNode:
+    bus_name: str
+    bus_path: str
+    attr_interface: Optional[ProxyInterface]
+    attr_type: Optional[str]
 
-    def get_interface(self, name):
-        return self
+    _intf_hierarchy = [
+        None,
+        "org.bluez.GattService1",
+        "org.bluez.GattCharacteristic1",
+        "org.bluez.GattDescriptor1",
+    ]
 
-    async def call_register_advertisement(self, path, obj):
-        await self._inspector(path)
+    def __init__(
+        self,
+        node: Node,
+        *,
+        bus: MessageBus,
+        bus_name: str,
+        bus_path: str,
+        proxy: Optional[ProxyObject] = None,
+        attr_interface: Optional[ProxyInterface] = None,
+        attr_type: Optional[str] = None,
+    ):
+        self.node = node
+        self.bus = bus
+        self.bus_name = bus_name
+        self.bus_path = bus_path
+        self.proxy = proxy
+        self.attr_interface = attr_interface
+        self.attr_type = attr_type
 
-    async def call_register_application(self, path, obj):
-        await self._inspector(path)
+    @staticmethod
+    async def from_service_collection(
+        bus: MessageBus, bus_name: str, bus_path: str
+    ) -> "ServiceNode":
+        node = await bus.introspect(bus_name, bus_path)
+        return ServiceNode(node, bus=bus, bus_name=bus_name, bus_path=bus_path)
 
-    async def call_unregister_application(self, path):
-        pass
+    @staticmethod
+    def _node_has_intf(node: Node, intf: str):
+        return any(i.name == intf for i in node.interfaces)
 
-    async def call_unregister_advertisement(self, path):
-        pass
+    async def get_children(self) -> Dict[Union[UUID16, UUID], "ServiceNode"]:
+        children = []
+        for node in self.node.nodes:
+            assert node.name is not None
+            path = self.bus_path + "/" + node.name
+
+            attr_idx = self._intf_hierarchy.index(self.attr_type)
+            attr_type = self._intf_hierarchy[attr_idx + 1]
+
+            expanded_node = await self.bus.introspect(self.bus_name, path)
+
+            proxy = None
+            attr_interface = None
+            if attr_type is not None and self._node_has_intf(expanded_node, attr_type):
+                proxy = self.bus.get_proxy_object(self.bus_name, path, expanded_node)
+                attr_interface = proxy.get_interface(attr_type)
+
+            children.append(
+                ServiceNode(
+                    expanded_node,
+                    bus=self.bus,
+                    bus_name=self.bus_name,
+                    bus_path=path,
+                    proxy=proxy,
+                    attr_type=attr_type,
+                    attr_interface=attr_interface,
+                )
+            )
+
+        res = {}
+        for c in children:
+            uuid = UUID16.parse_uuid(await c.attr_interface.get_uuid())
+            res[uuid] = c
+        return res
+
+    async def get_child(self, *uuid: UUIDLike):
+        child = self
+        for u in uuid:
+            children = await child.get_children()
+            child = children[UUID16.parse_uuid(u)]
+
+        return child
 
 
-async def find_attrib(bus, bus_name, path, nodes, target_uuid) -> Tuple[Node, str]:
-    for node in nodes:
-        node_path = path + "/" + node.name
+class BackgroundBusManager:
+    _background_bus: Optional[MessageBus]
 
-        introspection = await bus.introspect(bus_name, node_path)
-        proxy = bus.get_proxy_object(bus_name, node_path, introspection)
+    def __init__(self):
+        self._background_wrapper = BackgroundLoopWrapper()
+        self._foreground_loop = None
 
-        uuid = None
-        interface_names = [interface.name for interface in introspection.interfaces]
-        if "org.bluez.GattService1" in interface_names:
-            uuid = await proxy.get_interface("org.bluez.GattService1").get_uuid()
-        elif "org.bluez.GattCharacteristic1" in interface_names:
-            uuid = await proxy.get_interface("org.bluez.GattCharacteristic1").get_uuid()
-        elif "org.bluez.GattDescriptor1" in interface_names:
-            uuid = await proxy.get_interface("org.bluez.GattDescriptor1").get_uuid()
-        else:
-            raise ValueError("No supported interfaces found")
+    @property
+    def foreground_loop(self):
+        return self._foreground_loop
 
-        if UUID16.parse_uuid(uuid) == UUID16.parse_uuid(target_uuid):
-            return introspection, node_path
+    @property
+    def background_loop(self):
+        return self._background_wrapper.event_loop
 
-    raise ValueError(
-        "The attribute with uuid '" + str(target_uuid) + "' could not be found."
-    )
+    async def start(self, bus_name: str):
+        self._foreground_loop = asyncio.get_running_loop()
 
+        async def _serve():
+            await self._background_bus.wait_for_disconnect()
 
-async def get_attrib(bus, bus_name, path, service_uuid, char_uuid=None, desc_uuid=None):
-    introspection = await bus.introspect(bus_name, path)
+        self._background_wrapper.start()
+        
+        async def _start():
+            self._background_bus = await get_message_bus()
+            await self._background_bus.request_name(bus_name)
+        
+        asyncio.run_coroutine_threadsafe(_start(), self.background_loop).result()
+        self._idle_task = asyncio.run_coroutine_threadsafe(
+            _serve(), self.background_loop
+        )
 
-    nodes = introspection.nodes
-    introspection, path = await find_attrib(bus, bus_name, path, nodes, service_uuid)
+    async def stop(self):
+        async def _stop():  
+            self._background_bus.disconnect()
 
-    if char_uuid is None:
-        return bus.get_proxy_object(bus_name, path, introspection)
+        asyncio.run_coroutine_threadsafe(_stop(), self.background_loop).result()
+        self._idle_task.result()
+        self._background_wrapper.stop()
 
-    nodes = introspection.nodes
-    introspection, path = await find_attrib(bus, bus_name, path, nodes, char_uuid)
+    @property
+    def background_bus(self):
+        return self._background_bus
 
-    if desc_uuid is None:
-        return bus.get_proxy_object(bus_name, path, introspection)
+class BackgroundServiceManager(BackgroundBusManager):
+    def __init__(self):
+        self.adapter = make_adapter_mock()
+        super().__init__()
 
-    nodes = introspection.nodes
-    introspection, path = await find_attrib(bus, bus_name, path, nodes, desc_uuid)
+    def register(self, services: ServiceCollection, bus_path: str):
+        self._services = services
+        asyncio.run_coroutine_threadsafe(
+            services.register(self.background_bus, path=bus_path, adapter=self.adapter), 
+            self.background_loop
+        ).result()
 
-    return bus.get_proxy_object(bus_name, path, introspection)
+    def unregister(self):
+        asyncio.run_coroutine_threadsafe(
+            self._services.unregister(), 
+            self.background_loop
+        ).result()
+        self._services = None
+
+    
+class BackgroundAdvertManager(BackgroundBusManager):
+    def __init__(self):
+        self.adapter = make_adapter_mock()
+        super().__init__()
+
+    def register(self, advert: Advertisement, bus_path: str):
+        self._advert = advert
+        asyncio.run_coroutine_threadsafe(
+            advert.register(self.background_bus, path=bus_path, adapter=self.adapter), 
+            self.background_loop
+        ).result()
+
+    def unregister(self):
+        asyncio.run_coroutine_threadsafe(
+            self._advert.unregister(), 
+            self.background_loop
+        ).result()
+        self._advert = None

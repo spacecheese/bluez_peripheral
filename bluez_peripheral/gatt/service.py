@@ -7,7 +7,7 @@ from dbus_fast.aio.message_bus import MessageBus
 
 from .base import HierarchicalServiceInterface
 from .characteristic import characteristic
-from ..uuid16 import UUID16, UUIDCompatible
+from ..uuid16 import UUID16, UUIDLike
 from ..adapter import Adapter
 
 
@@ -22,8 +22,8 @@ class Service(HierarchicalServiceInterface):
             Services must be registered at the time Includes is read to be included.
     """
 
-    BUS_INTERFACE = "org.bluez.GattService1"
-    BUS_PREFIX = "service"
+    _INTERFACE = "org.bluez.GattService1"
+    _BUS_PREFIX = "service"
 
     def _populate(self) -> None:
         # Only interested in characteristic members.
@@ -38,7 +38,7 @@ class Service(HierarchicalServiceInterface):
 
     def __init__(
         self,
-        uuid: UUIDCompatible,
+        uuid: UUIDLike,
         primary: bool = True,
         includes: Optional[Collection["Service"]] = None,
     ):
@@ -68,7 +68,8 @@ class Service(HierarchicalServiceInterface):
     async def register(
         self,
         bus: MessageBus,
-        path: str = "/com/spacecheese/bluez_peripheral",
+        *,
+        path: str,
         adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this service as a standalone service.
@@ -80,7 +81,7 @@ class Service(HierarchicalServiceInterface):
             adapter: The adapter that will provide this service or None to select the first adapter.
         """
         collection = ServiceCollection([self])
-        await collection.register(bus, path, adapter)
+        await collection.register(bus, path=path, adapter=adapter)
         self._collection = collection
 
     async def unregister(self) -> None:
@@ -117,7 +118,7 @@ class Service(HierarchicalServiceInterface):
 class ServiceCollection(HierarchicalServiceInterface):
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
-    BUS_INTERFACE = "org.spacecheese.ServiceCollection1"
+    _INTERFACE = "org.spacecheese.ServiceCollection1"
 
     def __init__(self, services: Optional[List[Service]] = None):
         """Create a service collection populated with the specified list of services.
@@ -130,13 +131,13 @@ class ServiceCollection(HierarchicalServiceInterface):
             for s in services:
                 self.add_child(s)
 
-        self._path: Optional[str] = None
         self._bus: Optional[MessageBus] = None
         self._adapter: Optional[Adapter] = None
 
     async def register(
         self,
         bus: MessageBus,
+        *,
         path: str = "/com/spacecheese/bluez_peripheral",
         adapter: Optional[Adapter] = None,
     ) -> None:
@@ -156,23 +157,19 @@ class ServiceCollection(HierarchicalServiceInterface):
         manager = self._adapter.get_gatt_manager()
         await manager.call_register_application(path, {})  # type: ignore
 
-        self._path = path
         self._bus = bus
 
     async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""
         if not self.is_exported:
             return
-        assert self._path is not None
         assert self._bus is not None
         assert self._adapter is not None
 
         manager = self._adapter.get_gatt_manager()
+        await manager.call_unregister_application(self.export_path)  # type: ignore
 
-        await manager.call_unregister_application(self._path)  # type: ignore
+        self.unexport()
 
-        self.unexport(self._bus)
-
-        self._path = None
         self._adapter = None
         self._bus = None

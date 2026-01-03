@@ -1,135 +1,130 @@
-from unittest import IsolatedAsyncioTestCase
-from unittest.case import SkipTest
+from uuid import UUID
 
-from tests.unit.util import *
-from bluez_peripheral import get_message_bus
+import asyncio
+import pytest
+
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
 from bluez_peripheral.flags import AdvertisingPacketType
 
-from uuid import UUID
+from .util import get_first_adapter_or_skip, bluez_available_or_skip, make_adapter_mock, BackgroundAdvertManager
 
 
-class TestAdvert(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        self._bus_manager = ParallelBus()
-        self._client_bus = await get_message_bus()
+@pytest.fixture
+def bus_name():
+    return "com.spacecheese.test"
 
-    async def asyncTearDown(self):
-        self._client_bus.disconnect()
-        self._bus_manager.close()
 
-    async def test_basic(self):
-        advert = Advertisement(
-            "Testing Device Name",
-            ["180A", "180D"],
-            appearance=0x0340,
-            timeout=2,
-            packet_type=AdvertisingPacketType.PERIPHERAL,
-            includes=AdvertisingIncludes.TX_POWER,
-        )
+@pytest.fixture
+def bus_path():
+    return "/com/spacecheese/bluez_peripheral/test"
 
-        async def inspector(path):
-            introspection = await self._client_bus.introspect(
-                self._bus_manager.name, path
-            )
-            proxy_object = self._client_bus.get_proxy_object(
-                self._bus_manager.name, path, introspection
-            )
-            interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
 
-            assert await interface.get_type() == "peripheral"
-            # Case of UUIDs is not important.
-            assert [id.lower() for id in await interface.get_service_uui_ds()] == [
-                "180a",
-                "180d",
-            ]
-            assert await interface.get_local_name() == "Testing Device Name"
-            assert await interface.get_appearance() == 0x0340
-            assert await interface.get_timeout() == 2
-            assert await interface.get_includes() == ["tx-power"]
+@pytest.mark.asyncio
+async def test_basic(message_bus, bus_name, bus_path):
+    advert = Advertisement(
+        "Testing Device Name",
+        ["180A", "180D"],
+        appearance=0x0340,
+        timeout=2,
+        packet_type=AdvertisingPacketType.PERIPHERAL,
+        includes=AdvertisingIncludes.TX_POWER,
+    )
+    manager = BackgroundAdvertManager()
+    await manager.start(bus_name)
+    manager.register(advert, bus_path)
 
-        path = "/com/spacecheese/bluez_peripheral/test_advert/advert0"
-        adapter = MockAdapter(inspector)
-        try:
-            await advert.register(self._bus_manager.bus, adapter, path)
-        finally:
-            await advert.unregister()
+    introspection = await message_bus.introspect(bus_name, bus_path)
+    proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
+    interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
 
-    async def test_includes_empty(self):
-        advert = Advertisement(
-            "Testing Device Name",
-            ["180A", "180D"],
-            appearance=0x0340,
-            timeout=2,
-            packet_type=AdvertisingPacketType.PERIPHERAL,
-            includes=AdvertisingIncludes.NONE,
-        )
+    assert await interface.get_type() == "peripheral"
+    # Case of UUIDs is not important.
+    assert [id.lower() for id in await interface.get_service_uui_ds()] == [
+        "180a",
+        "180d",
+    ]
+    assert await interface.get_local_name() == "Testing Device Name"
+    assert await interface.get_appearance() == 0x0340
+    assert await interface.get_timeout() == 2
+    assert await interface.get_includes() == ["tx-power"]
 
-        async def inspector(path):
-            introspection = await self._client_bus.introspect(
-                self._bus_manager.name, path
-            )
-            proxy_object = self._client_bus.get_proxy_object(
-                self._bus_manager.name, path, introspection
-            )
-            interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+    manager.unregister()
+    await manager.stop()
 
-            assert await interface.get_includes() == []
 
-        adapter = MockAdapter(inspector)
-        try:
-            await advert.register(self._bus_manager.bus, adapter)
-        finally:
-            await advert.unregister()
+@pytest.mark.asyncio
+async def test_includes_empty(message_bus, bus_name, bus_path):
+    advert = Advertisement(
+        "Testing Device Name",
+        ["180A", "180D"],
+        appearance=0x0340,
+        timeout=2,
+        packet_type=AdvertisingPacketType.PERIPHERAL,
+        includes=AdvertisingIncludes.NONE,
+    )
+    manager = BackgroundAdvertManager()
+    await manager.start(bus_name)
+    manager.register(advert, bus_path)
 
-    async def test_uuid128(self):
-        advert = Advertisement(
-            "Improv Test",
-            [UUID("00467768-6228-2272-4663-277478268000")],
-            appearance=0x0340,
-            timeout=2,
-        )
+    introspection = await message_bus.introspect(bus_name, bus_path)
+    proxy_object = message_bus.get_proxy_object(
+        bus_name, bus_path, introspection
+    )
+    interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+    assert await interface.get_includes() == []
 
-        async def inspector(path):
-            introspection = await self._client_bus.introspect(
-                self._bus_manager.name, path
-            )
-            proxy_object = self._client_bus.get_proxy_object(
-                self._bus_manager.name, path, introspection
-            )
-            interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+    manager.unregister()
+    await manager.stop()
 
-            assert [id.lower() for id in await interface.get_service_uui_ds()] == [
-                "00467768-6228-2272-4663-277478268000",
-            ]
+@pytest.mark.asyncio
+async def test_uuid128(message_bus, bus_name, bus_path):
+    advert = Advertisement(
+        "Improv Test",
+        [UUID("00467768-6228-2272-4663-277478268000")],
+        appearance=0x0340,
+        timeout=2,
+    )
+    manager = BackgroundAdvertManager()
+    await manager.start(bus_name)
+    manager.register(advert, bus_path)
 
-        adapter = MockAdapter(inspector)
-        try:
-            await advert.register(self._bus_manager.bus, adapter)
-        finally:
-            await advert.unregister()
+    introspection = await message_bus.introspect(bus_name, bus_path)
+    proxy_object = message_bus.get_proxy_object(
+        bus_name, bus_path, introspection
+    )
+    interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+    assert [
+        id.lower() for id in await interface.get_service_uui_ds()
+    ] == [
+        "00467768-6228-2272-4663-277478268000",
+    ]
 
-    async def test_real(self):
-        await bluez_available_or_skip(self._client_bus)
-        adapter = await get_first_adapter_or_skip(self._client_bus)
+    manager.unregister()
+    await manager.stop()
 
-        initial_powered = await adapter.get_powered()
-        initial_discoverable = await adapter.get_discoverable()
 
-        await adapter.set_powered(True)
-        await adapter.set_discoverable(True)
+@pytest.mark.asyncio
+async def test_real(message_bus):
+    await bluez_available_or_skip(message_bus)
+    adapter = await get_first_adapter_or_skip(message_bus)
 
-        advert = Advertisement(
-            "Testing Device Name",
-            ["180A", "180D"],
-            appearance=0x0340,
-            timeout=2,
-        )
+    initial_powered = await adapter.get_powered()
+    initial_discoverable = await adapter.get_discoverable()
 
-        try:
-            await advert.register(self._client_bus, adapter)
-        finally:
-            await advert.unregister()
+    await adapter.set_powered(True)
+    await adapter.set_discoverable(True)
 
-            await adapter.set_discoverable(initial_discoverable)
-            await adapter.set_powered(initial_powered)
+    advert = Advertisement(
+        "Testing Device Name",
+        ["180A", "180D"],
+        appearance=0x0340,
+        timeout=2,
+    )
+
+    try:
+        await advert.register(message_bus, adapter=adapter)
+    finally:
+        await advert.unregister()
+
+        await adapter.set_discoverable(initial_discoverable)
+        await adapter.set_powered(initial_powered)

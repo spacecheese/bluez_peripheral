@@ -16,5 +16,5 @@ sudo cp com.spacecheese.test.conf /etc/dbus-1/system.d
 # Run the Tests
 Run tests from the root project directory (eg bluez_peripheral).
 ```bash
-python -m unittest discover -s tests -p "test_*.py"
+python3 -m pytest tests/unit
 ```

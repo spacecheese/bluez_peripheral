@@ -1,115 +1,123 @@
-from tests.unit.util import ParallelBus, MockAdapter, get_attrib
-
 import re
 from typing import Collection
-from unittest import IsolatedAsyncioTestCase
 
-from bluez_peripheral.uuid16 import UUID16
-from bluez_peripheral import get_message_bus
-from bluez_peripheral.gatt import Service, ServiceCollection
+import pytest
+import pytest_asyncio
+
+from bluez_peripheral.gatt.service import Service, ServiceCollection
+
+from ..util import ServiceNode
 
 
-class TestService1(Service):
+class MockService1(Service):
     def __init__(self, includes: Collection[Service]):
         super().__init__("180A", primary=False, includes=includes)
 
 
-class TestService2(Service):
+class MockService2(Service):
     def __init__(self):
         super().__init__("180B")
 
 
-class TestService3(Service):
+class MockService3(Service):
     def __init__(self):
         super().__init__("180C")
 
 
-class TestService(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        self._client_bus = await get_message_bus()
-        self._bus_manager = ParallelBus()
-        self._path = "/com/spacecheese/bluez_peripheral/test_service"
+@pytest.fixture
+def service1(service2, service3):
+    return MockService1([service2, service3])
 
-    async def asyncTearDown(self):
-        self._client_bus.disconnect()
-        self._bus_manager.close()
 
-    async def test_structure(self):
-        async def inspector(path):
-            introspection = await self._client_bus.introspect(
-                self._bus_manager.name, path
-            )
+@pytest.fixture
+def service2():
+    return MockService2()
 
-            child_names = [node.name for node in introspection.nodes]
-            child_names = sorted(child_names)
 
-            i = 0
-            for name in child_names:
-                assert re.match(r"^service0?" + str(i) + "$", name)
-                i += 1
+@pytest.fixture
+def service3():
+    return MockService3()
 
-        service1 = TestService1([])
-        service2 = TestService2()
-        service3 = TestService3()
-        collection = ServiceCollection([service1, service2, service3])
 
-        adapter = MockAdapter(inspector)
+@pytest.fixture
+def services(service1, service2, service3):
+    return ServiceCollection([service1, service2, service3])
 
-        try:
-            await collection.register(self._bus_manager.bus, self._path, adapter)
-        finally:
-            await collection.unregister()
 
-    async def test_include_modify(self):
-        service3 = TestService3()
-        service2 = TestService2()
-        service1 = TestService1([service2, service3])
-        collection = ServiceCollection([service1, service2])
+@pytest.fixture
+def bus_name():
+    return "com.spacecheese.test"
 
-        expect_service3 = False
 
-        async def inspector(path):
-            service1 = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, UUID16("180A")
-            )
-            service = service1.get_interface("org.bluez.GattService1")
-            includes = await service.get_includes()
+@pytest.fixture
+def bus_path():
+    return "/com/spacecheese/bluez_peripheral/test"
 
-            service2 = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, UUID16("180B")
-            )
-            # Services must include themselves.
-            assert service1.path in includes
-            assert service2.path in includes
 
-            if expect_service3:
-                service3 = await get_attrib(
-                    self._client_bus, self._bus_manager.name, path, UUID16("180C")
-                )
-                assert service3.path in includes
+@pytest.mark.asyncio
+async def test_structure(message_bus, background_service, bus_name, bus_path):
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
 
-        adapter = MockAdapter(inspector)
-        try:
-            await collection.register(
-                self._bus_manager.bus, self._path, adapter=adapter
-            )
-        finally:
-            await collection.unregister()
+    children = await service_collection.get_children()
+    child_names = [c.bus_path.split("/")[-1] for c in children.values()]
+    child_names = sorted(child_names)
 
-        collection.add_child(service3)
-        expect_service3 = True
-        try:
-            await collection.register(
-                self._bus_manager.bus, self._path, adapter=adapter
-            )
-        finally:
-            await collection.unregister()
+    assert len(child_names) == 3
 
-        collection.remove_child(service3)
-        expect_service3 = False
-        try:
-            await collection.register(
-                self._bus_manager.bus, self._path, adapter=adapter
-            )
-        finally:
-            await collection.unregister()
+    # Numbering may not have gaps.
+    i = 0
+    for name in child_names:
+        assert re.match(r"^service0?" + str(i) + "$", name)
+        i += 1
+
+
+@pytest.mark.asyncio
+async def test_include_modify(
+    message_bus,
+    service3,
+    services,
+    bus_name,
+    bus_path,
+    background_service,
+):
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    service1_node = await service_collection.get_child("180A")
+    service2_node = await service_collection.get_child("180B")
+    service3_node = await service_collection.get_child("180C")
+
+    includes = await service1_node.attr_interface.get_includes()
+    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path, service3_node.bus_path])
+
+    background_service.unregister()
+    services.remove_child(service3)
+    background_service.register(services, bus_path)
+
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    service1_node = await service_collection.get_child("180A")
+    service2_node = await service_collection.get_child("180B")
+
+    includes = await service1_node.attr_interface.get_includes()
+    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path])
+
+    with pytest.raises(KeyError):
+        await service_collection.get_child("180C")
+
+    background_service.unregister()
+    services.add_child(service3)
+    background_service.register(services, bus_path)
+
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    service1_node = await service_collection.get_child("180A")
+    service2_node = await service_collection.get_child("180B")
+    service3_node = await service_collection.get_child("180C")
+
+    includes = await service1_node.attr_interface.get_includes()
+    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path, service3_node.bus_path])

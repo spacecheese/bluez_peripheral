@@ -50,7 +50,7 @@ rsync -a --progress --rsync-path="sudo rsync" \
   -e "$SSH -p 2244" --delete \
   --exclude $IMAGE \
   --exclude $KEY_FILE \
-  --exclude .git \
+  --exclude docs \
   --exclude serial.log \
   $PROJ_ROOT tester@localhost:/bluez_peripheral
 
@@ -61,15 +61,17 @@ $SSH -p 2244 tester@localhost "
     python3 -m venv ~/venv
     source ~/venv/bin/activate
     python3 -m pip install -r /bluez_peripheral/tests/requirements.txt
+    python3 -m pip install -e /bluez_peripheral
 
     sudo nohup btvirt -L -l2 >/dev/null 2>&1 &
     sudo service bluetooth start
 
-    echo '[*] Running Tests'
     cd /bluez_peripheral
     sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
+
+    echo '[*] Running Tests'
     python3 -m unittest discover -s tests/unit -p 'test_*.py' -v
-    python3 -m unittest discover -s tests/loopback -p 'test_*.py' -v
+    pytest tests/loopback -s
     sudo shutdown -h now
 "
 wait $QEMU_PID

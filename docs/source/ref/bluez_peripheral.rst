@@ -18,6 +18,7 @@ Submodules
    bluez_peripheral.adapter
    bluez_peripheral.advert
    bluez_peripheral.agent
+   bluez_peripheral.base
    bluez_peripheral.error
    bluez_peripheral.flags
    bluez_peripheral.util

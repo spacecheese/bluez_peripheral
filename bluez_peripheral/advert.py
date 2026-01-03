@@ -4,17 +4,18 @@ from uuid import UUID
 
 from dbus_fast import Variant
 from dbus_fast.constants import PropertyAccess
-from dbus_fast.service import ServiceInterface, method, dbus_property
+from dbus_fast.service import method, dbus_property
 from dbus_fast.aio.message_bus import MessageBus
 
-from .uuid16 import UUID16, UUIDCompatible
+from .uuid16 import UUID16, UUIDLike
 from .util import _snake_to_kebab
 from .adapter import Adapter
 from .flags import AdvertisingIncludes
 from .flags import AdvertisingPacketType
+from .base import BaseServiceInterface
 
 
-class Advertisement(ServiceInterface):
+class Advertisement(BaseServiceInterface):
     """
     An advertisement for a particular service or collection of services that can be registered and broadcast to nearby devices.
     Represents an `org.bluez.LEAdvertisement1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.LEAdvertisement.rst>`_ instance.
@@ -37,21 +38,20 @@ class Advertisement(ServiceInterface):
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
-
-    _defaultPathAdvertCount = 0
+    _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/advert"
 
     def __init__(
         self,
         local_name: str,
-        service_uuids: Collection[UUIDCompatible],
+        service_uuids: Collection[UUIDLike],
         *,
         appearance: Union[int, bytes],
         timeout: int = 0,
         discoverable: bool = True,
         packet_type: AdvertisingPacketType = AdvertisingPacketType.PERIPHERAL,
         manufacturer_data: Optional[Dict[int, bytes]] = None,
-        solicit_uuids: Optional[Collection[UUIDCompatible]] = None,
-        service_data: Optional[List[Tuple[UUIDCompatible, bytes]]] = None,
+        solicit_uuids: Optional[Collection[UUIDLike]] = None,
+        service_data: Optional[List[Tuple[UUIDLike, bytes]]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
         release_callback: Optional[Callable[[], None]] = None,
@@ -88,17 +88,16 @@ class Advertisement(ServiceInterface):
         self._duration = duration
         self._release_callback = release_callback
 
-        self._export_bus: Optional[MessageBus] = None
-        self._export_path: Optional[str] = None
         self._adapter: Optional[Adapter] = None
 
-        super().__init__(self._INTERFACE)
+        super().__init__()
 
     async def register(
         self,
         bus: MessageBus,
-        adapter: Optional[Adapter] = None,
+        *,
         path: Optional[str] = None,
+        adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this advert with bluez to start advertising.
 
@@ -107,47 +106,33 @@ class Advertisement(ServiceInterface):
             adapter: The adapter to use.
             path: The dbus path to use for registration.
         """
-        # Generate a unique path name for this advert if one isn't already given.
-        if path is None:
-            path = "/com/spacecheese/bluez_peripheral/advert" + str(
-                Advertisement._defaultPathAdvertCount
-            )
-            Advertisement._defaultPathAdvertCount += 1
 
-        # Export this advert to the dbus.
-        bus.export(path, self)
+        self.export(bus, path=path)
 
         if adapter is None:
             adapter = await Adapter.get_first(bus)
-
-        self._adapter = adapter
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
         await interface.call_register_advertisement(path, {})  # type: ignore
 
-        self._export_bus = bus
-        self._export_path = path
+        self._adapter = adapter
 
     @method("Release")
     def _release(self):  # type: ignore
-        assert self._export_bus is not None
-        assert self._export_path is not None
-        self._export_bus.unexport(self._export_path, self._INTERFACE)
+        self.unexport()
 
     async def unregister(self) -> None:
         """
         Unregister this advertisement from bluez to stop advertising.
         """
-        if not self._export_bus or not self._adapter or not self._export_path:
-            return
+        if not self._adapter:
+            raise ValueError("This advertisement is not registered")
 
         interface = self._adapter.get_advertising_manager()
 
         await interface.call_unregister_advertisement(self._export_path)  # type: ignore
-        self._export_bus = None
         self._adapter = None
-        self._export_path = None
 
         if self._release_callback is not None:
             self._release_callback()

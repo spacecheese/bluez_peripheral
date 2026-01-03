@@ -6,7 +6,7 @@ from dbus_fast.service import dbus_property
 from dbus_fast.constants import PropertyAccess
 
 from .base import HierarchicalServiceInterface, ServiceAttribute
-from ..uuid16 import UUID16, UUIDCompatible
+from ..uuid16 import UUID16, UUIDLike
 from ..util import _snake_to_kebab, _getattr_variant
 
 if TYPE_CHECKING:
@@ -127,12 +127,12 @@ class descriptor(
         :ref:`services`
     """
 
-    BUS_PREFIX = "desc"
-    BUS_INTERFACE = "org.bluez.GattDescriptor1"
+    _INTERFACE = "org.bluez.GattDescriptor1"
+    _BUS_PREFIX = "desc"
 
     def __init__(
         self,
-        uuid: UUIDCompatible,
+        uuid: UUIDLike,
         characteristic: "characteristic",
         flags: DescriptorFlags = DescriptorFlags.READ,
     ):

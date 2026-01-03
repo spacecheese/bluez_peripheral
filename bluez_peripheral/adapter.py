@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Collection, Dict, Tuple, List
 
 from dbus_fast.aio import MessageBus, ProxyInterface
 from dbus_fast.aio.proxy_object import ProxyObject
@@ -6,6 +6,7 @@ from dbus_fast import InvalidIntrospectionError, InterfaceNotFoundError
 
 from .util import _kebab_to_shouting_snake
 from .flags import AdvertisingIncludes
+from .uuid16 import UUID16, UUIDLike
 
 
 class Device:
@@ -28,22 +29,44 @@ class Device:
         """Attempts to pair the parent adapter with this device."""
         await self._device_interface.call_pair()  # type: ignore
 
-    async def get_name(self) -> str:
-        """Returns the display name of this device."""
-        return await self._device_interface.get_name()  # type: ignore
-
     async def remove(self, adapter: "Adapter") -> None:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
         await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
 
+    async def get_name(self) -> str:
+        """Returns the display name of this device (use alias instead to get the display name)."""
+        return await self._device_interface.get_name()  # type: ignore
+
+    async def get_alias(self) -> str:
+        """Returns the alias of this device."""
+        return await self._device_interface.get_alias()  # type: ignore
+
+    async def get_appearance(self) -> int:
+        """Returns the appearance of the device."""
+        return await self._device_interface.get_appearance()  # type: ignore
+
+    async def get_uuids(self) -> Collection[UUIDLike]:
+        """Returns the collection of UUIDs representing the services available on this device."""
+        ids = await self._device_interface.get_uui_ds()  # type: ignore
+        return [UUID16.parse_uuid(i) for i in ids]
+
+    async def get_manufacturer_data(self) -> Dict[int, bytes]:
+        """Returns the manufacturer data."""
+        return await self._device_interface.get_manufacturer_data()  # type: ignore
+
+    async def get_service_data(self) -> List[Tuple[UUIDLike, bytes]]:
+        """Returns the service data."""
+        data = await self._device_interface.get_service_data()  # type: ignore
+        return [(UUID16.parse_uuid(u), d) for u, d in data]
+
 
 class Adapter:
     """A bluetooth adapter.
-    Represents an `org.bluez.Adapter1 https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.Adapter.rst>`_ instance.
+    Represents an `org.bluez.Adapter1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.Adapter.rst>`_ instance.
     """
 
-    BUS_INTERFACE = "org.bluez.Adapter1"
+    _INTERFACE = "org.bluez.Adapter1"
     _GATT_MANAGER_INTERFACE = "org.bluez.GattManager1"
     _ADVERTISING_MANAGER_INTERFACE = "org.bluez.LEAdvertisingManager1"
     _proxy: ProxyObject
@@ -51,7 +74,7 @@ class Adapter:
 
     def __init__(self, proxy: ProxyObject):
         self._proxy = proxy
-        self._adapter_interface = proxy.get_interface(self.BUS_INTERFACE)
+        self._adapter_interface = proxy.get_interface(self._INTERFACE)
 
     def get_adapter_interface(self) -> ProxyInterface:
         """Returns the org.bluez.Adapter associated with this adapter."""
@@ -146,8 +169,8 @@ class Adapter:
         """Stop searching for other bluetooth devices."""
         await self._adapter_interface.call_stop_discovery()  # type: ignore
 
-    async def get_devices(self) -> Sequence[Device]:
-        """Returns a sequence of devices which have been discovered by this adapter."""
+    async def get_devices(self) -> List[Device]:
+        """Returns a list of devices which have been discovered by this adapter."""
         assert self._adapter_interface is not None
 
         path = self._adapter_interface.path
@@ -173,7 +196,7 @@ class Adapter:
         return devices
 
     @classmethod
-    async def get_all(cls, bus: MessageBus) -> Sequence["Adapter"]:
+    async def get_all(cls, bus: MessageBus) -> List["Adapter"]:
         """Get a list of available Bluetooth adapters.
 
         Args:

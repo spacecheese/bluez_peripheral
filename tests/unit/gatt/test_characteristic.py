@@ -1,42 +1,34 @@
-from unittest import IsolatedAsyncioTestCase
-from threading import Event
-from tests.unit.util import *
+import asyncio
 import re
 
-from bluez_peripheral.uuid16 import UUID16
-from bluez_peripheral.util import get_message_bus
+import pytest
+import pytest_asyncio
+
+from dbus_fast import Variant
+
 from bluez_peripheral.gatt.characteristic import (
     CharacteristicFlags,
     CharacteristicWriteType,
     characteristic,
 )
 from bluez_peripheral.gatt.descriptor import descriptor
-from bluez_peripheral.gatt.service import Service
+from bluez_peripheral.gatt.service import Service, ServiceCollection
 
-from dbus_fast import Variant
-
-last_opts = None
-write_notify_char_val = None
-write_only_char_val = None
+from ..util import ServiceNode
 
 
-class TestService(Service):
+class MockService(Service):
     def __init__(self):
         super().__init__("180A")
 
-    read_write_val = b"\x05"
-
     @characteristic("2A37", CharacteristicFlags.READ)
     def read_only_char(self, opts):
-        global last_opts
-        last_opts = opts
+        self.last_opts = opts
         return bytes("Test Message", "utf-8")
 
     @characteristic("3A37", CharacteristicFlags.READ)
     async def async_read_only_char(self, opts):
-        global last_opts
-        last_opts = opts
-        await asyncio.sleep(0.05)
+        self.last_opts = opts
         return bytes("Test Message", "utf-8")
 
     # Not testing other characteristic flags since their functionality is handled by bluez.
@@ -46,10 +38,8 @@ class TestService(Service):
 
     @write_notify_char.setter
     def write_notify_char(self, val, opts):
-        global last_opts
-        last_opts = opts
-        global write_notify_char_val
-        write_notify_char_val = val
+        self.last_opts = opts
+        self.val = val
 
     @characteristic("3A38", CharacteristicFlags.WRITE)
     async def aysnc_write_only_char(self, _):
@@ -57,353 +47,215 @@ class TestService(Service):
 
     @aysnc_write_only_char.setter
     async def aysnc_write_only_char(self, val, opts):
-        global last_opts
-        last_opts = opts
-        global write_only_char_val
-        write_only_char_val = val
-        await asyncio.sleep(0.05)
+        self.last_opts = opts
+        self.val = val
 
     @characteristic("3A33", CharacteristicFlags.WRITE | CharacteristicFlags.READ)
     def read_write_char(self, opts):
-        return self.read_write_val
+        self.last_opts = opts
+        return self.val
 
     @read_write_char.setter
     def read_write_char(self, val, opts):
-        self.read_write_val = val
+        self.last_opts = opts
+        self.val = val
 
 
-class TestCharacteristic(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
-        self._client_bus = await get_message_bus()
-        self._bus_manager = ParallelBus()
-        self._path = "/com/spacecheese/bluez_peripheral/test_characteristic"
+@pytest.fixture
+def service():
+    return MockService()
 
-    async def asyncTearDown(self):
-        self._client_bus.disconnect()
-        self._bus_manager.close()
 
-    async def test_structure(self):
-        async def inspector(path):
-            service = await get_attrib(
-                self._client_bus, self._bus_manager.name, path, UUID16("180A")
-            )
+@pytest.fixture
+def services(service):
+    return ServiceCollection([service])
 
-            child_names = [path.split("/")[-1] for path in service.child_paths]
-            child_names = sorted(child_names)
 
-            i = 0
-            # Characteristic numbering can't have gaps.
-            for name in child_names:
-                assert re.match(r"^char0{0,3}" + str(i) + "$", name)
-                i += 1
+@pytest.fixture
+def bus_name():
+    return "com.spacecheese.test"
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
 
-        await service.register(self._bus_manager.bus, self._path, adapter)
-        await service.unregister()
+@pytest.fixture
+def bus_path():
+    return "/com/spacecheese/bluez_peripheral/test"
 
-    async def test_read(self):
-        async def inspector(path):
-            global last_opts
-            opts = {
-                "offset": Variant("q", 0),
-                "mtu": Variant("q", 128),
-                "device": Variant("s", "blablabla/.hmm"),
-            }
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    UUID16("180A"),
-                    UUID16("2A37"),
-                )
-            ).get_interface("org.bluez.GattCharacteristic1")
-            resp = await interface.call_read_value(opts)
-            cache = await interface.get_value()
 
-            assert resp.decode("utf-8") == "Test Message"
-            assert last_opts.offset == 0
-            assert last_opts.mtu == 128
-            assert last_opts.device == "blablabla/.hmm"
-            assert cache == resp
+@pytest.mark.asyncio
+async def test_structure(message_bus, background_service, bus_name, bus_path):
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    service = await service_collection.get_child("180A")
+    char = await service.get_children()
 
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    "180A",
-                    char_uuid="3A37",
-                )
-            ).get_interface("org.bluez.GattCharacteristic1")
-            resp = await interface.call_read_value(opts)
-            cache = await interface.get_value()
+    child_names = [c.bus_path.split("/")[-1] for c in char.values()]
+    child_names.sort()
 
-            assert resp.decode("utf-8") == "Test Message"
-            assert cache == resp
+    assert len(child_names) == 5
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
+    i = 0
+    # Numbering may not have gaps.
+    for name in child_names:
+        assert re.match(r"^char0{0,3}" + str(i) + "$", name)
+        i += 1
 
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter)
-        finally:
-            await service.unregister()
 
-    async def test_write(self):
-        async def inspector(path):
-            global last_opts
-            opts = {
-                "offset": Variant("q", 10),
-                "type": Variant("s", "request"),
-                "mtu": Variant("q", 128),
-                "device": Variant("s", "blablabla/.hmm"),
-                "link": Variant("s", "yuyuyuy"),
-                "prepare-authorize": Variant("b", False),
-            }
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    UUID16("180A"),
-                    UUID16("2A38"),
-                )
-            ).get_interface("org.bluez.GattCharacteristic1")
-            await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
+@pytest.mark.asyncio
+async def test_read(
+    message_bus, service, background_service, bus_name, bus_path
+):
+    opts = {
+        "offset": Variant("q", 0),
+        "mtu": Variant("q", 128),
+        "device": Variant("s", "blablabla/.hmm"),
+    }
 
-            assert last_opts.offset == 10
-            assert last_opts.type == CharacteristicWriteType.REQUEST
-            assert last_opts.mtu == 128
-            assert last_opts.device == "blablabla/.hmm"
-            assert last_opts.link == "yuyuyuy"
-            assert last_opts.prepare_authorize == False
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    char = await service_collection.get_child("180A", "2A37")
+    resp = await char.attr_interface.call_read_value(opts)
+    cache = await char.attr_interface.get_value()
 
-            assert write_notify_char_val.decode("utf-8") == "Test Write Value"
+    assert resp.decode("utf-8") == "Test Message"
+    assert service.last_opts.offset == 0
+    assert service.last_opts.mtu == 128
+    assert service.last_opts.device == "blablabla/.hmm"
+    assert cache == resp
 
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    "180A",
-                    char_uuid="3A38",
-                )
-            ).get_interface("org.bluez.GattCharacteristic1")
-            await interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
+    char = await service_collection.get_child("180A", "3A37")
+    resp = await char.attr_interface.call_read_value(opts)
+    cache = await char.attr_interface.get_value()
 
-            assert write_only_char_val.decode("utf-8") == "Test Write Value"
+    assert resp.decode("utf-8") == "Test Message"
+    assert cache == resp
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
 
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter)
-        finally:
-            await service.unregister()
+@pytest.mark.asyncio
+async def test_write(
+    message_bus, service, background_service, bus_name, bus_path
+):
+    opts = {
+        "offset": Variant("q", 10),
+        "type": Variant("s", "request"),
+        "mtu": Variant("q", 128),
+        "device": Variant("s", "blablabla/.hmm"),
+        "link": Variant("s", "yuyuyuy"),
+        "prepare-authorize": Variant("b", False),
+    }
 
-    async def test_notify_no_start(self):
-        property_changed = Event()
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    char = await service_collection.get_child("180A", "2A38")
+    await char.attr_interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
 
-        async def inspector(path):
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    UUID16("180A"),
-                    UUID16("2A38"),
-                )
-            ).get_interface("org.freedesktop.DBus.Properties")
+    assert service.last_opts.offset == 10
+    assert service.last_opts.type == CharacteristicWriteType.REQUEST
+    assert service.last_opts.mtu == 128
+    assert service.last_opts.device == "blablabla/.hmm"
+    assert service.last_opts.link == "yuyuyuy"
+    assert service.last_opts.prepare_authorize == False
 
-            def on_properties_changed(_0, _1, _2):
-                property_changed.set()
+    assert service.val.decode("utf-8") == "Test Write Value"
 
-            interface.on_properties_changed(on_properties_changed)
+    char = await service_collection.get_child("180A", "3A38")
+    await char.attr_interface.call_write_value(bytes("Test Write Value", "utf-8"), opts)
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
+    assert service.val.decode("utf-8") == "Test Write Value"
 
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter)
-            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
 
-            # Expect a timeout since start notify has not been called.
-            if property_changed.wait(timeout=0.1):
-                raise Exception(
-                    "The characteristic signalled a notification before StartNotify() was called."
-                )
-        finally:
-            await service.unregister()
+@pytest.mark.asyncio
+async def test_notify_no_start(
+    message_bus, service, background_service, bus_name, bus_path
+):
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    char = await service_collection.get_child("180A", "2A38")
+    prop_interface = char.proxy.get_interface("org.freedesktop.DBus.Properties")
 
-    async def test_notify_start(self):
-        property_changed = Event()
+    def on_properties_changed(_0, _1, _2):
+        property_changed.set()
 
-        async def inspector(path):
-            proxy = await get_attrib(
-                self._client_bus,
-                self._bus_manager.name,
-                path,
-                UUID16("180A"),
-                UUID16("2A38"),
-            )
-            properties_interface = proxy.get_interface(
-                "org.freedesktop.DBus.Properties"
-            )
-            char_interface = proxy.get_interface("org.bluez.GattCharacteristic1")
+    prop_interface.on_properties_changed(on_properties_changed)
 
-            def on_properties_changed(interface, values, invalid_props):
-                assert interface == "org.bluez.GattCharacteristic1"
-                assert len(values) == 1
-                assert values["Value"].value.decode("utf-8") == "Test Notify Value"
-                property_changed.set()
 
-            properties_interface.on_properties_changed(on_properties_changed)
-            await char_interface.call_start_notify()
+@pytest.mark.asyncio
+async def test_notify_start_stop(
+    message_bus, service, background_service, bus_name, bus_path
+):
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
+    char = await service_collection.get_child("180A", "2A38")
+    properties_interface = char.proxy.get_interface("org.freedesktop.DBus.Properties")
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
+    foreground_loop = asyncio.get_running_loop()
+    properties_changed = foreground_loop.create_future()
 
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter)
-            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+    def _good_on_properties_changed(interface, values, invalid_props):
+        assert interface == "org.bluez.GattCharacteristic1"
+        assert len(values) == 1
+        assert values["Value"].value.decode("utf-8") == "Test Notify Value"
+        foreground_loop.call_soon_threadsafe(properties_changed.set_result, ())
 
-            await asyncio.sleep(0.01)
+    properties_interface.on_properties_changed(_good_on_properties_changed)
+    await char.attr_interface.call_start_notify()
 
-            # Block until the properties changed notification propagates.
-            if not property_changed.wait(timeout=0.1):
-                raise TimeoutError(
-                    "The characteristic did not send a notification in time."
-                )
-        finally:
-            await service.unregister()
+    service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+    async with asyncio.timeout(0.1):
+        await properties_changed
 
-    async def test_notify_stop(self):
-        property_changed = Event()
+    properties_changed = foreground_loop.create_future()
 
-        async def inspector(path):
-            proxy = await get_attrib(
-                self._client_bus,
-                self._bus_manager.name,
-                path,
-                UUID16("180A"),
-                UUID16("2A38"),
-            )
-            property_interface = proxy.get_interface("org.freedesktop.DBus.Properties")
-            char_interface = proxy.get_interface("org.bluez.GattCharacteristic1")
+    def _bad_on_properties_changed(interface, values, invalid_props):
+        ex = AssertionError(
+            "on_properties_changed triggered after call_stop_notify called"
+        )
+        foreground_loop.call_soon_threadsafe(properties_changed.set_exception, (ex))
 
-            def on_properties_changed(_0, _1, _2):
-                property_changed.set()
+    properties_interface.on_properties_changed(_bad_on_properties_changed)
+    await char.attr_interface.call_stop_notify()
 
-            property_interface.on_properties_changed(on_properties_changed)
+    service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.1):
+            await properties_changed
 
-            await char_interface.call_start_notify()
-            await char_interface.call_stop_notify()
 
-        service = TestService()
-        adapter = MockAdapter(inspector)
+@pytest.mark.asyncio
+async def test_modify(
+    message_bus, service, services, background_service, bus_name, bus_path
+):
+    opts = {
+        "offset": Variant("q", 0),
+        "mtu": Variant("q", 128),
+        "device": Variant("s", "blablabla/.hmm"),
+    }
 
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter)
-            service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
+    service_collection = await ServiceNode.from_service_collection(
+        message_bus, bus_name, bus_path
+    )
 
-            # Expect a timeout since start notify has not been called.
-            if property_changed.wait(timeout=0.01):
-                raise Exception(
-                    "The characteristic signalled a notification before after StopNotify() was called."
-                )
-        finally:
-            await service.unregister()
+    with pytest.raises(KeyError):
+        await service_collection.get_child("180A", "2A38", "2D56")
 
-    async def test_modify(self):
-        service = TestService()
+    background_service.unregister()
 
-        @descriptor("2D56", service.write_notify_char)
-        def some_desc(service, opts):
-            return bytes("Some Test Value", "utf-8")
+    @descriptor("2D56", service.write_notify_char)
+    def some_desc(service, opts):
+        return bytes("Some Test Value", "utf-8")
 
-        global expect_descriptor
-        expect_descriptor = True
+    background_service.register(services, bus_path)
+    desc = await service_collection.get_child("180A", "2A38", "2D56")
+    resp = await desc.attr_interface.call_read_value(opts)
+    assert resp.decode("utf-8") == "Some Test Value"
 
-        async def inspector(path):
-            global expect_descriptor
+    background_service.unregister()
+    service.write_notify_char.remove_child(some_desc)
 
-            opts = {
-                "offset": Variant("q", 0),
-                "mtu": Variant("q", 128),
-                "device": Variant("s", "blablabla/.hmm"),
-            }
-
-            if expect_descriptor:
-                proxy = await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    UUID16("180A"),
-                    UUID16("2A38"),
-                    UUID16("2D56"),
-                )
-                desc = proxy.get_interface("org.bluez.GattDescriptor1")
-                assert (await desc.call_read_value(opts)).decode(
-                    "utf-8"
-                ) == "Some Test Value"
-            else:
-                with self.assertRaises(ValueError):
-                    await get_attrib(
-                        self._client_bus,
-                        self._bus_manager.name,
-                        path,
-                        UUID16("180A"),
-                        UUID16("2A38"),
-                        UUID16("2D56"),
-                    )
-
-        adapter = MockAdapter(inspector)
-
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-            with self.assertRaises(ValueError):
-                service.write_notify_char.remove_child(some_desc)
-        finally:
-            await service.unregister()
-        service.write_notify_char.remove_child(some_desc)
-        expect_descriptor = False
-
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-            with self.assertRaises(ValueError):
-                service.write_notify_char.add_child(some_desc)
-        finally:
-            await service.unregister()
-
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        finally:
-            await service.unregister()
-
-    async def test_empty_opts(self):
-        async def inspector(path):
-            interface = (
-                await get_attrib(
-                    self._client_bus,
-                    self._bus_manager.name,
-                    path,
-                    UUID16("180A"),
-                    UUID16("3A33"),
-                )
-            ).get_interface("org.bluez.GattCharacteristic1")
-            assert await interface.call_read_value({}) == b"\x05"
-            await interface.call_write_value(bytes("Test Write Value", "utf-8"), {})
-            assert await interface.call_read_value({}) == bytes(
-                "Test Write Value", "utf-8"
-            )
-
-        service = TestService()
-        adapter = MockAdapter(inspector)
-
-        try:
-            await service.register(self._bus_manager.bus, self._path, adapter=adapter)
-        finally:
-            await service.unregister()
+    background_service.register(services, bus_path)
+    with pytest.raises(KeyError):
+        await service_collection.get_child("180A", "2A38", "2D56")

@@ -15,34 +15,29 @@ from typing import (
 
 from dbus_fast import Variant, DBusError
 from dbus_fast.constants import PropertyAccess
-from dbus_fast.service import method, ServiceInterface, dbus_property
+from dbus_fast.service import method, dbus_property
 from dbus_fast.aio.message_bus import MessageBus
 
 from ..error import FailedError, NotSupportedError
+from ..base import BaseServiceInterface
 
 if TYPE_CHECKING:
     from .service import Service
 
 
-class HierarchicalServiceInterface(ServiceInterface):
+class HierarchicalServiceInterface(BaseServiceInterface):
     """
     Base class for a member of a hierarchy of ServiceInterfaces which should be exported and unexported as a group.
     """
 
-    BUS_PREFIX = ""
+    _BUS_PREFIX = ""
     """
-        The prefix used by default when exporting this ServiceInterface as a child of another component.
-    """
-
-    BUS_INTERFACE = ""
-    """
-        The dbus interface name implemented by this component.
+    The prefix used by default when exporting this ServiceInterface as a child of another component.
     """
 
     def __init__(self) -> None:
-        super().__init__(name=self.BUS_INTERFACE)
+        super().__init__()
 
-        self._export_path: Optional[str] = None
         self._parent: Optional["HierarchicalServiceInterface"] = None
         self._children: list["HierarchicalServiceInterface"] = []
 
@@ -66,20 +61,6 @@ class HierarchicalServiceInterface(ServiceInterface):
         self._children.remove(child)
         child._parent = None  # pylint: disable=protected-access
 
-    @property
-    def export_path(self) -> Optional[str]:
-        """
-        The path on which this service is exported (or None).
-        """
-        return self._export_path
-
-    @property
-    def is_exported(self) -> bool:
-        """
-        Indicates whether this service is exported or not.
-        """
-        return self._export_path is not None
-
     def export(
         self, bus: MessageBus, *, num: Optional[int] = 0, path: Optional[str] = None
     ) -> None:
@@ -92,34 +73,27 @@ class HierarchicalServiceInterface(ServiceInterface):
             path: An optional absolute path indicating where this component should be exported.
                 If no ``path`` is specified then this component must have been registered using another components :class:`HierarchicalServiceInterface.add_child()` method.
         """
-        if self.is_exported:
-            raise ValueError("Cannot export an already exported component")
-
         if path is None:
             if self._parent is not None:
-                path = f"{self._parent.export_path}/{self.BUS_PREFIX}{num}"
+                path = f"{self._parent.export_path}/{self._BUS_PREFIX}{num}"
             else:
                 raise ValueError("path or parent must be specified")
 
-        bus.export(path, self)
-        self._export_path = path
-
+        super().export(bus, path=path)
         for i, c in enumerate(self._children):
             c.export(bus, num=i)
 
-    def unexport(self, bus: MessageBus) -> None:
+    def unexport(self) -> None:
         """
         Attempts to unexport this component and all registered children from the specified message bus.
         """
         if not self.is_exported:
             raise ValueError("Cannot unexport a component which is not exported")
-        assert self._export_path is not None
 
         for c in self._children:
-            c.unexport(bus)
+            c.unexport()
 
-        bus.unexport(self._export_path, self.BUS_INTERFACE)
-        self._export_path = None
+        super().unexport()
 
 
 ReadOptionsT = TypeVar("ReadOptionsT")
