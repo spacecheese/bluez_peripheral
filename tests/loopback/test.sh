@@ -70,7 +70,7 @@ $SSH -p 2244 tester@localhost "
     sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
 
     echo '[*] Running Tests'
-    python3 -m unittest discover -s tests/unit -p 'test_*.py' -v
+    pytest tests/unit -s
     pytest tests/loopback -s
     sudo shutdown -h now
 "

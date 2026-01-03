@@ -61,7 +61,7 @@ jobs:
           sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
-          coverage run --source=. --branch -m unittest discover -s tests/unit -p "test_*.py" -v
+          coverage run --source=. --branch -m pytest tests/unit -v
       - name: Report Coverage
         run: |
           coverage html
