@@ -201,8 +201,7 @@ async def test_notify_start_stop(
     await char.attr_interface.call_start_notify()
 
     service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
-    async with asyncio.timeout(0.1):
-        await properties_changed
+    await asyncio.wait_for(properties_changed, timeout=0.1)
 
     properties_changed = foreground_loop.create_future()
 
@@ -217,8 +216,7 @@ async def test_notify_start_stop(
 
     service.write_notify_char.changed(bytes("Test Notify Value", "utf-8"))
     with pytest.raises(TimeoutError):
-        async with asyncio.timeout(0.1):
-            await properties_changed
+        await asyncio.wait_for(properties_changed, timeout=0.1)
 
 
 @pytest.mark.asyncio
