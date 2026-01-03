@@ -90,7 +90,9 @@ async def test_include_modify(
     service3_node = await service_collection.get_child("180C")
 
     includes = await service1_node.attr_interface.get_includes()
-    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path, service3_node.bus_path])
+    assert set(includes) == set(
+        [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
+    )
 
     background_service.unregister()
     services.remove_child(service3)
@@ -120,4 +122,6 @@ async def test_include_modify(
     service3_node = await service_collection.get_child("180C")
 
     includes = await service1_node.attr_interface.get_includes()
-    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path, service3_node.bus_path])
+    assert set(includes) == set(
+        [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
+    )

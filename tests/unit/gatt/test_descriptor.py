@@ -107,9 +107,7 @@ async def test_structure(message_bus, background_service, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
-async def test_read(
-    message_bus, service, background_service, bus_name, bus_path
-):
+async def test_read(message_bus, service, background_service, bus_name, bus_path):
     opts = {
         "offset": Variant("q", 0),
         "link": Variant("s", "dododo"),
@@ -134,9 +132,7 @@ async def test_read(
 
 
 @pytest.mark.asyncio
-async def test_write(
-    message_bus, service, background_service, bus_name, bus_path
-):
+async def test_write(message_bus, service, background_service, bus_name, bus_path):
     opts = {
         "offset": Variant("q", 1),
         "device": Variant("s", "bebealbl/.afal"),
@@ -164,9 +160,7 @@ async def test_write(
 
 
 @pytest.mark.asyncio
-async def test_empty_opts(
-    message_bus, service, background_service, bus_name, bus_path
-):
+async def test_empty_opts(message_bus, service, background_service, bus_name, bus_path):
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )

@@ -63,10 +63,7 @@ class BackgroundLoopWrapper:
             self.event_loop.run_forever()
             self.event_loop.close()
 
-        self.thread = threading.Thread(
-            target=_func,
-            daemon=True
-        )
+        self.thread = threading.Thread(target=_func, daemon=True)
 
     @property
     def running(self):
@@ -211,18 +208,18 @@ class BackgroundBusManager:
             await self._background_bus.wait_for_disconnect()
 
         self._background_wrapper.start()
-        
+
         async def _start():
             self._background_bus = await get_message_bus()
             await self._background_bus.request_name(bus_name)
-        
+
         asyncio.run_coroutine_threadsafe(_start(), self.background_loop).result()
         self._idle_task = asyncio.run_coroutine_threadsafe(
             _serve(), self.background_loop
         )
 
     async def stop(self):
-        async def _stop():  
+        async def _stop():
             self._background_bus.disconnect()
 
         asyncio.run_coroutine_threadsafe(_stop(), self.background_loop).result()
@@ -233,6 +230,7 @@ class BackgroundBusManager:
     def background_bus(self):
         return self._background_bus
 
+
 class BackgroundServiceManager(BackgroundBusManager):
     def __init__(self):
         self.adapter = make_adapter_mock()
@@ -241,18 +239,17 @@ class BackgroundServiceManager(BackgroundBusManager):
     def register(self, services: ServiceCollection, bus_path: str):
         self._services = services
         asyncio.run_coroutine_threadsafe(
-            services.register(self.background_bus, path=bus_path, adapter=self.adapter), 
-            self.background_loop
+            services.register(self.background_bus, path=bus_path, adapter=self.adapter),
+            self.background_loop,
         ).result()
 
     def unregister(self):
         asyncio.run_coroutine_threadsafe(
-            self._services.unregister(), 
-            self.background_loop
+            self._services.unregister(), self.background_loop
         ).result()
         self._services = None
 
-    
+
 class BackgroundAdvertManager(BackgroundBusManager):
     def __init__(self):
         self.adapter = make_adapter_mock()
@@ -261,13 +258,12 @@ class BackgroundAdvertManager(BackgroundBusManager):
     def register(self, advert: Advertisement, bus_path: str):
         self._advert = advert
         asyncio.run_coroutine_threadsafe(
-            advert.register(self.background_bus, path=bus_path, adapter=self.adapter), 
-            self.background_loop
+            advert.register(self.background_bus, path=bus_path, adapter=self.adapter),
+            self.background_loop,
         ).result()
 
     def unregister(self):
         asyncio.run_coroutine_threadsafe(
-            self._advert.unregister(), 
-            self.background_loop
+            self._advert.unregister(), self.background_loop
         ).result()
         self._advert = None

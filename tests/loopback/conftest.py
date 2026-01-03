@@ -6,6 +6,7 @@ from dbus_fast.service import dbus_method
 from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.agent import AgentCapability, BaseAgent
 
+
 class TrivialAgent(BaseAgent):
     @dbus_method()
     def Cancel():  # type: ignore
@@ -80,4 +81,3 @@ async def paired_adapters(message_bus, unpaired_adapters):
     devices[0].remove()
 
     await agent.unregister(message_bus)
-

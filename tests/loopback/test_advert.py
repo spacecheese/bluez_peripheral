@@ -27,7 +27,7 @@ async def test_advertisement(message_bus, unpaired_adapters):
 
     await adapters[1].start_discovery()
     devices = await adapters[1].get_devices()
-    
+
     assert len(devices) == 1
     assert await devices[0].get_alias() == "Heart Monitor"
     assert await devices[0].get_appearance() == 0x0340

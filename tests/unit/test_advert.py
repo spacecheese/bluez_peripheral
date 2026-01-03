@@ -6,7 +6,12 @@ import pytest
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
 from bluez_peripheral.flags import AdvertisingPacketType
 
-from .util import get_first_adapter_or_skip, bluez_available_or_skip, make_adapter_mock, BackgroundAdvertManager
+from .util import (
+    get_first_adapter_or_skip,
+    bluez_available_or_skip,
+    make_adapter_mock,
+    BackgroundAdvertManager,
+)
 
 
 @pytest.fixture
@@ -67,14 +72,13 @@ async def test_includes_empty(message_bus, bus_name, bus_path):
     manager.register(advert, bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
-    proxy_object = message_bus.get_proxy_object(
-        bus_name, bus_path, introspection
-    )
+    proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
     interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
     assert await interface.get_includes() == []
 
     manager.unregister()
     await manager.stop()
+
 
 @pytest.mark.asyncio
 async def test_uuid128(message_bus, bus_name, bus_path):
@@ -89,13 +93,9 @@ async def test_uuid128(message_bus, bus_name, bus_path):
     manager.register(advert, bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
-    proxy_object = message_bus.get_proxy_object(
-        bus_name, bus_path, introspection
-    )
+    proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
     interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
-    assert [
-        id.lower() for id in await interface.get_service_uui_ds()
-    ] == [
+    assert [id.lower() for id in await interface.get_service_uui_ds()] == [
         "00467768-6228-2272-4663-277478268000",
     ]
 
