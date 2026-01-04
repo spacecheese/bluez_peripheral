@@ -155,5 +155,5 @@ jobs:
           pip install -r tests/requirements.txt
       - name: Run package lint checks
         run: |
-          python -m pylint --rcfile=tests/.pylintrc tests/unit
+          python -m pylint --rcfile=tests/.pylintrc tests
         
