@@ -82,6 +82,7 @@ if (( INTERACTIVE )); then
 else
   $SSH -p 2244 tester@localhost "
     echo '[*] Running Tests'
+    source ~/venv/bin/activate
     pytest tests/unit -s
     pytest tests/loopback -s
     sudo shutdown -h now
