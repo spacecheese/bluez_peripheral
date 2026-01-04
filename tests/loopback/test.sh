@@ -82,10 +82,11 @@ else
   $SSH -p 2244 tester@localhost "
     set -euo pipefail
 
-    echo '[*] Running Tests'
     source ~/venv/bin/activate
     cd /bluez_peripheral
+    echo '[*] Running Unit Tests'
     pytest tests/unit -s
+    echo '[*] Running Loopback Tests'
     pytest tests/loopback -s
     sudo shutdown -h now
   "
