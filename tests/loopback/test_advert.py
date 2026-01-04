@@ -23,7 +23,7 @@ async def test_advertisement(message_bus, unpaired_adapters):
         timeout=300,
         duration=5,
     )
-    await advert.register(message_bus, adapters[0])
+    await advert.register(message_bus, adapter=adapters[0])
 
     await adapters[1].start_discovery()
     devices = await adapters[1].get_devices()
