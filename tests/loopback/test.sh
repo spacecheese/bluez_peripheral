@@ -81,6 +81,8 @@ if (( INTERACTIVE )); then
   $SSH -p 2244 tester@localhost
 else
   $SSH -p 2244 tester@localhost "
+    set -euo pipefail
+
     echo '[*] Running Tests'
     source ~/venv/bin/activate
     pytest tests/unit -s
