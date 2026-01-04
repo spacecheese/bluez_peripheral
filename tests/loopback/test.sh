@@ -73,8 +73,7 @@ $SSH -p 2244 tester@localhost "
     sudo nohup btvirt -L -l2 >/dev/null 2>&1 &
     sudo service bluetooth start
 
-    cd /bluez_peripheral
-    sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
+    sudo cp /bluez_peripheral/tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
 "
 
 if (( INTERACTIVE )); then
@@ -85,6 +84,7 @@ else
 
     echo '[*] Running Tests'
     source ~/venv/bin/activate
+    cd /bluez_peripheral
     pytest tests/unit -s
     pytest tests/loopback -s
     sudo shutdown -h now
