@@ -1,5 +1,7 @@
 dbus_fast
 sphinx
-sphinx_rtd_theme
+sphinx-inline-tabs
 sphinxcontrib-spelling
-m2r2
+furo
+sphinx_mdinclude
+interrogate

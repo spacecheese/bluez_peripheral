@@ -4,42 +4,153 @@ on: [ pull_request, workflow_dispatch ]
 
 jobs:
   test-docs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: '3.11.x'
           cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r docs/requirements.txt
-          sudo apt-get update && sudo apt-get install -y enchant-2 aspell-en
+          sudo apt-get update && sudo apt-get install -y enchant-2
       - name: Build Docs
         run: |
           cd docs
           make clean
           make html
+      - name: Spelling Check
+        run: |
+          cd docs
+          make spelling
+      - name: Test Code Snippets
+        run: |
+          cd docs
+          make doctest
+      - name: Link Check
+        run: |
+          cd docs
           make linkcheck
-  test:
-    runs-on: ubuntu-22.04
+
+  test-container:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+      fail-fast: false
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9.x'
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r tests/requirements.txt
+          pip install "coverage[toml]"
       - name: Add DBus Config
         run: |
-          sudo cp tests/com.spacecheese.test.conf /etc/dbus-1/system.d
+          sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
       - name: Run Tests
         run: |
-          python -m unittest discover -s tests -p "test_*.py" -v
+          coverage run --source=. --branch -m pytest tests/unit -v
+      - name: Report Coverage
+        run: |
+          coverage html
+          coverage report -m
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: htmlcov/
+
+  test-qemu:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        image_id: ["ubuntu-24.04-bluez-5.64", "ubuntu-24.04-bluez-5.66", "ubuntu-24.04-bluez-5.70"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils
+      - name: Download qemu images
+        env:
+          image_repo: "spacecheese/bluez_images"
+        run: |
+          image_id=${{ matrix.image_id }}
+          mkdir -p tests/loopback/assets
+          curl -L -o tests/loopback/assets/id_ed25519 \
+            https://github.com/$image_repo/releases/latest/download/id_ed25519
+          chmod 600 tests/loopback/assets/id_ed25519
+          curl -L -o tests/loopback/assets/image.qcow2 \
+            https://github.com/$image_repo/releases/latest/download/${image_id}.qcow2
+      - name: Run loopback Tests
+        run: |
+          tests/loopback/test.sh tests/loopback/assets/image.qcow2 tests/loopback/assets/id_ed25519 .
+  
+  format-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black
+      - name: Check Formatting
+        run: |
+          python -m black --check bluez_peripheral
+          python -m black --check tests
+  
+  type-hint-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy
+      - name: Check type hints
+        run: |
+          python -m mypy bluez_peripheral
+  
+  lint-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pylint
+      - name: Run lint checks
+        run: |
+          python -m pylint bluez_peripheral
         

@@ -7,3 +7,31 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+
+[tool.pylint]
+disable = [
+    "missing-module-docstring",
+    "line-too-long",
+    "too-many-instance-attributes",
+    "too-many-return-statements",
+    "too-many-branches",
+    "too-many-arguments",
+    "too-many-locals",
+    "too-few-public-methods",
+    "too-many-public-methods",
+    "duplicate-code",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.coverage.run]
+omit = [
+    "setup.py",
+]

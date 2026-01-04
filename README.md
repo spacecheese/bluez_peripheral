@@ -22,29 +22,25 @@ Install bluez (eg. `sudo apt-get install bluez`)
 
 ## GATT Overview
 
-GATT is a BLE protocol that allows you to offer services to other devices.
-You can find a list of standardised services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/) (you can largely ignore profiles when working with BLE). You should refer to the "Service Characteristics" in these specifications for the purposes of this library.
+GATT is a protocol that allows you to offer services to other devices. 
+You can find a list of standardized services on the [Bluetooth SIG website](https://www.bluetooth.com/specifications/specs/).
 
-![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-5/images/peripheral-structure.png)
+![Peripheral Hierarchy Diagram](https://doc.qt.io/qt-6/images/peripheral-structure.png)
 
 _Courtesey of Qt documentation (GNU Free Documentation License)_
 
-A peripheral defines a list of services that it provides. Services are a collection of characteristics which expose particular data (eg. a heart rate or mouse position). Characteristics may also have descriptors that contain metadata (eg. the units of a characteristic). Services can optionally include other services. All BLE attributes (Services, Characterisics and Descriptors) are identified by a 16-bit number [assigned by the Bluetooth SIG](https://www.bluetooth.com/specifications/assigned-numbers/).
+A peripheral defines a list of services that it provides. Services are a collection of characteristics which expose particular data (eg. a heart rate or mouse position). Characteristics may also have descriptors that contain metadata (eg. the units of a characteristic). Services can optionally include other services. All BLE attributes (Services, Characteristics and Descriptors) are identified by a 16-bit number [assigned by the Bluetooth SIG](https://www.bluetooth.com/specifications/assigned-numbers/).
 
-Characteristics may operate in a number of modes depending on their purpose. By default characteristics are read-only in this library however they may also be writable and provide notification (like an event system) when their value changes. Additionally some characteristics require security protection. You can read more about BLE on the [Bluetooth SIG blog](https://www.bluetooth.com/blog/a-developers-guide-to-bluetooth/).
+Characteristics may operate in a number of modes depending on their purpose. By default characteristics are read-only in this library however they may also be writable and provide notification (like an event system) when their value changes. Additionally some characteristics may require security protection. You can read more about BLE on the [Bluetooth SIG blog](https://www.bluetooth.com/blog/a-developers-guide-to-bluetooth/). [This video](https://www.youtube.com/watch?v=BZwOrQ6zkzE) gives a more in-depth overview of BLE.
 
 ## Usage
 
-There are a few important things you need to remember when using this library:
-
-- **Do not attempt to create the Generic Access Service or a Client Characteristic Configuration Descriptor** (if you don't know what this means don't worry). These are both handled automatically by Bluez and attempting to define them will result in errors.
-- Services are not implicitly threaded. **If you register a service in your main thread blocking that thread will stop your service (and particularly notifications) from working**. Therefore you must frequently yeild to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
+When using this library please remember that services are not implicitly threaded. **The thread used to register your service must regularly yeild otherwise your service will not work** (particularly notifications). Therefore you must frequently yield to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
 
 The easiest way to use the library is to create a class describing the service that you wish to provide.
 
 ```python
-from bluez_peripheral.gatt.service import Service
-from bluez_peripheral.gatt.characteristic import characteristic, CharacteristicFlags as CharFlags
+from bluez_peripheral.gatt import Service, characteristic, CharacteristicFlags as CharFlags
 
 import struct
 
@@ -89,15 +85,16 @@ async def main():
     service = HeartRateService()
     await service.register(bus)
 
-    # An agent is required to handle pairing
+    # An agent is required if you wish to handle pairing.
     agent = NoIoAgent()
-    # This script needs superuser for this to work.
+    # This line needs superuser for this to work.
     await agent.register(bus)
 
     adapter = await Adapter.get_first(bus)
 
     # Start an advert that will last for 60 seconds.
-    advert = Advertisement("Heart Monitor", ["180D"], 0x0340, 60)
+    advert = Advertisement("Heart Monitor", ["180D"], 
+        appearance=0x0340, timeout=60)
     await advert.register(bus, adapter)
 
     while True:

@@ -1,120 +1,77 @@
-from dbus_fast.aio.proxy_object import ProxyObject
-from dbus_fast.constants import PropertyAccess
-from dbus_fast.service import ServiceInterface, dbus_property
-from dbus_fast.aio import MessageBus
-
-from .characteristic import characteristic
-from ..uuid16 import UUID16
-from ..util import *
-
-from uuid import UUID
-from typing import Union
 import inspect
+from typing import List, Optional, Collection
 
-# See https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
-class Service(ServiceInterface):
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import dbus_property
+from dbus_fast.aio.message_bus import MessageBus
+
+from .base import HierarchicalServiceInterface
+from .characteristic import characteristic
+from ..uuid16 import UUID16, UUIDLike
+from ..adapter import Adapter
+
+
+class Service(HierarchicalServiceInterface):
     """Create a bluetooth service with the specified uuid.
+    Represents an `org.bluez.GattService1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.GattService.rst>`_ instance.
 
     Args:
-        uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG <https://btprodspecificationrefs.blob.core.windows.net/assigned-values/16-bit%20UUID%20Numbers%20Document.pdf>`_
+        uuid: The UUID of this service. A full list of recognized values is provided by the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_
         primary: True if this service is a primary service (instead of a secondary service). False otherwise. Defaults to True.
         includes: Any services to include in this service.
             Services must be registered at the time Includes is read to be included.
     """
 
     _INTERFACE = "org.bluez.GattService1"
+    _BUS_PREFIX = "service"
 
-    def _populate(self):
+    def _populate(self) -> None:
         # Only interested in characteristic members.
-        members = inspect.getmembers(type(self), lambda m: type(m) is characteristic)
+        members = inspect.getmembers(
+            type(self), lambda m: isinstance(m, characteristic)
+        )
 
         for _, member in members:
-            member._set_service(self)
-
             # Some characteristics will occur multiple times due to different decorators.
-            if not member in self._characteristics:
-                self.add_characteristic(member)
+            if not member in self._children:
+                self.add_child(member)
 
     def __init__(
         self,
-        uuid: Union[str, bytes, UUID, UUID16, int],
+        uuid: UUIDLike,
         primary: bool = True,
-        includes: Collection["Service"] = [],
+        includes: Optional[Collection["Service"]] = None,
     ):
-        # Make sure uuid is a uuid16.
+        super().__init__()
+
         self._uuid = UUID16.parse_uuid(uuid)
         self._primary = primary
-        self._characteristics = []
-        self._path = None
+        self._path: Optional[str] = None
+        if includes is None:
+            includes = []
         self._includes = includes
         self._populate()
+        self._collection: Optional[ServiceCollection] = None
 
-        super().__init__(self._INTERFACE)
+    def add_child(self, child: HierarchicalServiceInterface) -> None:
+        if not isinstance(child, characteristic):
+            raise ValueError("service child must be characteristic")
+        child.service = self
+        super().add_child(child)
 
-    def is_registered(self) -> bool:
-        """Check if this service is registered with the bluez service manager.
-
-        Returns:
-            bool: True if the service is registered. False otherwise.
+    def add_characteristic(self, char: characteristic) -> None:
         """
-        return not self._path is None
-
-    def add_characteristic(self, char: characteristic):
-        """Add the specified characteristic to this service declaration.
-
-        Args:
-            char: The characteristic to add.
-
-        Raises:
-            ValueError: Raised when the service is registered with the bluez service manager and thus cannot be modified.
+        Associated a characteristic with this service.
         """
-        if self.is_registered():
-            raise ValueError(
-                "Registered services cannot be modified. Please unregister the containing application."
-            )
-
-        self._characteristics.append(char)
-
-    def remove_characteristic(self, char: characteristic):
-        """Remove the specified characteristic from this service declaration.
-
-        Args:
-            char: The characteristic to remove.
-
-        Raises:
-            ValueError: Raised if the service is registered with the bluez service manager and thus cannot be modified.
-        """
-        if self.is_registered():
-            raise ValueError(
-                "Registered services cannot be modified. Please unregister the containing application."
-            )
-
-        self._characteristics.remove(char)
-
-    def _export(self, bus: MessageBus, path: str):
-        self._path = path
-
-        # Export this and number each child characteristic.
-        bus.export(path, self)
-        i = 0
-        for char in self._characteristics:
-            char._export(bus, path, i)
-            i += 1
-
-    def _unexport(self, bus: MessageBus):
-        # Unexport this and every child characteristic.
-        bus.unexport(self._path, self._INTERFACE)
-        for char in self._characteristics:
-            char._unexport(bus)
-
-        self._path = None
+        self.add_child(char)
 
     async def register(
         self,
         bus: MessageBus,
-        path: str = "/com/spacecheese/bluez_peripheral",
-        adapter: Adapter = None,
-    ):
+        *,
+        path: str,
+        adapter: Optional[Adapter] = None,
+    ) -> None:
         """Register this service as a standalone service.
         Using this multiple times will cause path conflicts.
 
@@ -123,103 +80,67 @@ class Service(ServiceInterface):
             path: The base dbus path to export this service to.
             adapter: The adapter that will provide this service or None to select the first adapter.
         """
-        self._collection = ServiceCollection([self])
-        await self._collection.register(bus, path, adapter)
+        collection = ServiceCollection([self])
+        await collection.register(bus, path=path, adapter=adapter)
+        self._collection = collection
 
-    async def unregister(self):
+    async def unregister(self) -> None:
         """Unregister this service.
         You may only use this if the service was registered using :class:`Service.register()`
         """
-        collection = getattr(self, "_collection", None)
-
-        if collection is None:
+        if self._collection is None:
             return
 
-        await collection.unregister()
+        await self._collection.unregister()
+        self._collection = None
 
-    @dbus_property(PropertyAccess.READ)
-    def UUID(self) -> "s":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "UUID")
+    def _get_uuid(self) -> "s":  # type: ignore
         return str(self._uuid)
 
-    @dbus_property(PropertyAccess.READ)
-    def Primary(self) -> "b":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Primary")
+    def _get_primary(self) -> "b":  # type: ignore
         return self._primary
 
-    @dbus_property(PropertyAccess.READ)
-    def Includes(self) -> "ao":  # type: ignore
+    @dbus_property(PropertyAccess.READ, "Includes")
+    def _get_includes(self) -> "ao":  # type: ignore
         paths = []
 
         for service in self._includes:
-            if not service._path is None:
-                paths.append(service._path)
+            if not service.export_path is None:
+                paths.append(service.export_path)
 
-        paths.append(self._path)
+        if not self.export_path is None:
+            paths.append(self.export_path)
         return paths
 
 
-class ServiceCollection:
+class ServiceCollection(HierarchicalServiceInterface):
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
-    _MANAGER_INTERFACE = "org.bluez.GattManager1"
+    _INTERFACE = "org.spacecheese.ServiceCollection1"
 
-    def _init(self, services: Collection[Service]):
-        self._path = None
-        self._adapter = None
-        self._services = services
-
-    def __init__(self, services: Collection[Service] = []):
+    def __init__(self, services: Optional[List[Service]] = None):
         """Create a service collection populated with the specified list of services.
 
         Args:
             services: The services to provide.
         """
-        self._path = None
-        self._adapter = None
-        self._services = services
+        super().__init__()
+        if services is not None:
+            for s in services:
+                self.add_child(s)
 
-    def add_service(self, service: Service):
-        """Add the specified service to this service collection.
-
-        Args:
-            service: The service to add.
-        """
-        if self.is_registered():
-            raise ValueError(
-                "You may not modify a registered service or service collection."
-            )
-
-        self._services.append(service)
-
-    def remove_service(self, service: Service):
-        """Remove the specified service from this collection.
-
-        Args:
-            service: The service to remove.
-        """
-        if self.is_registered():
-            raise ValueError(
-                "You may not modify a registered service or service collection."
-            )
-
-        self._services.remove(service)
-
-    async def _get_manager_interface(self):
-        return self._adapter._proxy.get_interface(self._MANAGER_INTERFACE)
-
-    def is_registered(self) -> bool:
-        """Check if this service collection is registered with the bluez service manager.
-
-        Returns:
-            True if the service is registered. False otherwise.
-        """
-        return not self._path is None
+        self._bus: Optional[MessageBus] = None
+        self._adapter: Optional[Adapter] = None
 
     async def register(
         self,
         bus: MessageBus,
+        *,
         path: str = "/com/spacecheese/bluez_peripheral",
-        adapter: Adapter = None,
-    ):
+        adapter: Optional[Adapter] = None,
+    ) -> None:
         """Register this collection of services with the bluez service manager.
         Services and service collections that are registered may not be modified until they are unregistered.
 
@@ -229,42 +150,26 @@ class ServiceCollection:
                 Each service will be an automatically numbered child of this base.
             adapter: The adapter that should be used to deliver the collection of services.
         """
-        if self.is_registered():
-            return
-
-        self._bus = bus
-        self._path = path
         self._adapter = await Adapter.get_first(bus) if adapter is None else adapter
 
-        manager = await self._get_manager_interface()
+        self.export(bus, path=path)
 
-        # Number and export each service.
-        i = 0
-        for service in self._services:
-            service._export(bus, self._path + "/service{:d}".format(i))
-            i += 1
+        manager = self._adapter.get_gatt_manager()
+        await manager.call_register_application(self.export_path, {})  # type: ignore
 
-        class EmptyServiceInterface(ServiceInterface):
-            pass
+        self._bus = bus
 
-        # Export an empty interface on the root path so that bluez has an object manager to find.
-        bus.export(self._path, EmptyServiceInterface(self._path.replace("/", ".")[1:]))
-        await manager.call_register_application(self._path, {})
-
-    async def unregister(self):
+    async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""
-        if not self.is_registered():
+        if not self.is_exported:
             return
+        assert self._bus is not None
+        assert self._adapter is not None
 
-        manager = await self._get_manager_interface()
+        manager = self._adapter.get_gatt_manager()
+        await manager.call_unregister_application(self.export_path)  # type: ignore
 
-        await manager.call_unregister_application(self._path)
+        self.unexport()
 
-        for service in self._services:
-            service._unexport(self._bus)
-        # Unexport the root object manager.
-        self._bus.unexport(self._path)
-
-        self._path = None
         self._adapter = None
         self._bus = None
