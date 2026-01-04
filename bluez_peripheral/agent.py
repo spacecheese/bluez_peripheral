@@ -50,7 +50,6 @@ class BaseAgent(BaseServiceInterface):
         capability: AgentCapability,
     ):
         self._capability: AgentCapability = capability
-        self._path: Optional[str] = None
 
         super().__init__()
 
@@ -87,10 +86,8 @@ class BaseAgent(BaseServiceInterface):
         interface = await self._get_manager_interface(bus)
         await interface.call_register_agent(path, self._get_capability())  # type: ignore
 
-        self._path = path
-
         if default:
-            await interface.call_request_default_agent(path)  # type: ignore
+            await interface.call_request_default_agent(self.export_path)  # type: ignore
 
     async def unregister(self) -> None:
         """Unregister this agent with bluez and remove it from the specified message bus.
@@ -103,10 +100,9 @@ class BaseAgent(BaseServiceInterface):
         assert self._export_bus is not None
 
         interface = await self._get_manager_interface(self._export_bus)
-        await interface.call_unregister_agent(self._path)  # type: ignore
+        await interface.call_unregister_agent(self.export_path)  # type: ignore
 
         self.unexport()
-        self._path = None
 
 
 class TestAgent(BaseAgent):

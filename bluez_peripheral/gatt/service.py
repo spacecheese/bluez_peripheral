@@ -155,7 +155,7 @@ class ServiceCollection(HierarchicalServiceInterface):
         self.export(bus, path=path)
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_register_application(path, {})  # type: ignore
+        await manager.call_register_application(self.export_path, {})  # type: ignore
 
         self._bus = bus
 

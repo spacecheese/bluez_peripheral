@@ -114,7 +114,7 @@ class Advertisement(BaseServiceInterface):
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
-        await interface.call_register_advertisement(path, {})  # type: ignore
+        await interface.call_register_advertisement(self.export_path, {})  # type: ignore
 
         self._adapter = adapter
 
