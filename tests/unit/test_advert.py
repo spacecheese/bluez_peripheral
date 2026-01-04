@@ -9,7 +9,6 @@ from bluez_peripheral.flags import AdvertisingPacketType
 from .util import (
     get_first_adapter_or_skip,
     bluez_available_or_skip,
-    make_adapter_mock,
     BackgroundAdvertManager,
 )
 
@@ -104,7 +103,7 @@ async def test_uuid128(message_bus, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
-async def test_real(message_bus):
+async def test_bluez(message_bus):
     await bluez_available_or_skip(message_bus)
     adapter = await get_first_adapter_or_skip(message_bus)
 
