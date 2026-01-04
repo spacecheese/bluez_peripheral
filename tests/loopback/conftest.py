@@ -47,15 +47,26 @@ class TrivialAgent(BaseAgent):
 @pytest_asyncio.fixture
 async def unpaired_adapters(message_bus):
     adapters = await Adapter.get_all(message_bus)
-    # TODO: Ideally we don't just take the first 2 since an end user may have some real adapters.
 
-    assert len(adapters) >= 2
+    adapter0 = None
+    adapter1 = None
 
-    for device in await adapters[1].get_devices():
-        if await device.get_paired():
-            await device.remove(adapters[1])
+    for adapter in adapters:
+        addr = await adapter.get_address()
+        if addr == "00:AA:01:00:00:00":
+            adapter0 = adapter
+        elif addr == "00:AA:01:01:00:01":
+            adapter1 = adapter
 
-    yield adapters[0:2]
+    assert adapter0 is not None
+    assert adapter1 is not None
+
+    for adapter in [adapter0, adapter1]:
+        for device in await adapter.get_devices():
+            if await device.get_paired():
+                await device.remove(adapters[1])
+
+    yield adapter0, adapter1
 
 
 @pytest_asyncio.fixture
