@@ -57,8 +57,8 @@ fi
 echo "[*] Copying bluez_peripheral"
 rsync -a --progress --rsync-path="sudo rsync" \
   -e "$SSH -p 2244" --delete \
-  --exclude tests/loopback/assets \
-  --exclude docs \
+  --exclude tests/loopback/assets/ \
+  --exclude docs/ \
   --exclude serial.log \
   $PROJ_ROOT tester@localhost:/bluez_peripheral
 
@@ -77,7 +77,9 @@ $SSH -p 2244 tester@localhost "
 "
 
 if (( INTERACTIVE )); then
-  $SSH -p 2244 tester@localhost
+  $SSH -p 2244 tester@localhost || true
+
+  wait $QEMU_PID
 else
   $SSH -p 2244 tester@localhost "
     set -euo pipefail
@@ -90,5 +92,6 @@ else
     pytest tests/loopback -s
     sudo shutdown -h now
   "
+
   wait $QEMU_PID
 fi
