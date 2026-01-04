@@ -14,11 +14,8 @@ from bluez_peripheral.gatt.characteristic import (
 from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
-from ..util import (
-    ServiceNode,
-    get_first_adapter_or_skip,
-    bluez_available_or_skip,
-)
+from ..util import ServiceNode
+from ...conftest import adapter_available
 
 
 class MockService(Service):
@@ -260,10 +257,8 @@ async def test_modify(
 
 
 @pytest.mark.asyncio
-async def test_bluez(message_bus, services):
-    await bluez_available_or_skip(message_bus)
-    adapter = await get_first_adapter_or_skip(message_bus)
-
+@pytest.mark.skipif(not adapter_available())
+async def test_bluez(message_bus, adapter, services):
     initial_powered = await adapter.get_powered()
     initial_discoverable = await adapter.get_discoverable()
 

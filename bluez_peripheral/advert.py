@@ -126,13 +126,14 @@ class Advertisement(BaseServiceInterface):
         """
         Unregister this advertisement from bluez to stop advertising.
         """
-        if not self._adapter:
+        if not self._adapter or not self.is_exported:
             raise ValueError("This advertisement is not registered")
 
         interface = self._adapter.get_advertising_manager()
 
-        await interface.call_unregister_advertisement(self._export_path)  # type: ignore
+        await interface.call_unregister_advertisement(self.export_path)  # type: ignore
         self._adapter = None
+        self.unexport()
 
         if self._release_callback is not None:
             self._release_callback()
