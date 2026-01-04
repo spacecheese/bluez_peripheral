@@ -4,6 +4,15 @@ set -euo pipefail
 IMAGE="${1}"
 KEY_FILE="${2}"
 PROJ_ROOT="${3}"
+shift 3
+
+INTERACTIVE=0
+while getopts ":i" opt; do
+  case $opt in
+    i) INTERACTIVE=1 ;;
+    \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
+  esac
+done
 
 SSH="ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
@@ -54,6 +63,8 @@ rsync -a --progress --rsync-path="sudo rsync" \
   --exclude serial.log \
   $PROJ_ROOT tester@localhost:/bluez_peripheral
 
+TEST_STEPS=""
+
 $SSH -p 2244 tester@localhost "
     set -euo pipefail
 
@@ -67,10 +78,16 @@ $SSH -p 2244 tester@localhost "
 
     cd /bluez_peripheral
     sudo cp tests/unit/com.spacecheese.test.conf /etc/dbus-1/system.d
+"
 
+if (( INTERACTIVE )); then
+  $SSH -p 2244 tester@localhost
+else
+  $SSH -p 2244 tester@localhost "
     echo '[*] Running Tests'
     pytest tests/unit -s
     pytest tests/loopback -s
     sudo shutdown -h now
-"
-wait $QEMU_PID
+  "
+  wait $QEMU_PID
+fi
