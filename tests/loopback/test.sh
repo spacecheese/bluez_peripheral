@@ -57,13 +57,10 @@ fi
 echo "[*] Copying bluez_peripheral"
 rsync -a --progress --rsync-path="sudo rsync" \
   -e "$SSH -p 2244" --delete \
-  --exclude $IMAGE \
-  --exclude $KEY_FILE \
+  --exclude tests/loopback/assets \
   --exclude docs \
   --exclude serial.log \
   $PROJ_ROOT tester@localhost:/bluez_peripheral
-
-TEST_STEPS=""
 
 $SSH -p 2244 tester@localhost "
     set -euo pipefail
