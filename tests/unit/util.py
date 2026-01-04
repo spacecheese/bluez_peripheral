@@ -18,10 +18,11 @@ from bluez_peripheral.gatt.service import ServiceCollection
 from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.uuid16 import UUID16, UUIDLike
 from bluez_peripheral.advert import Advertisement
+from bluez_peripheral.adapter import Adapter
 
 
 def make_adapter_mock() -> MagicMock:
-    adapter = MagicMock()
+    adapter = create_autospec(Adapter)
 
     advertising_manager = MagicMock()
     advertising_manager.call_register_advertisement = AsyncMock()
@@ -37,9 +38,9 @@ def make_adapter_mock() -> MagicMock:
 
 
 def make_message_bus_mock() -> MagicMock:
-    bus = create_autospec(MessageBus, instance=True)
+    bus = create_autospec(MessageBus)
 
-    proxy = create_autospec(ProxyObject, instance=True)
+    proxy = create_autospec(ProxyObject)
     interface = MagicMock()
 
     interface.call_register_agent = AsyncMock()
@@ -82,21 +83,6 @@ class BackgroundLoopWrapper:
 
         self.event_loop.call_soon_threadsafe(_func)
         self.thread.join()
-
-
-async def get_first_adapter_or_skip(bus: MessageBus) -> Adapter:
-    adapters = await Adapter.get_all(bus)
-    if not len(adapters) > 0:
-        pytest.skip("No adapters detected for testing.")
-    else:
-        return adapters[0]
-
-
-async def bluez_available_or_skip(bus: MessageBus):
-    if await is_bluez_available(bus):
-        return
-    else:
-        pytest.skip("bluez is not available for testing.")
 
 
 class ServiceNode:
@@ -237,16 +223,34 @@ class BackgroundServiceManager(BackgroundBusManager):
         super().__init__()
 
     def register(self, services: ServiceCollection, bus_path: str):
-        self._services = services
+        gatt_manager = self.adapter.get_gatt_manager.return_value
+
+        before_calls = len(gatt_manager.mock_calls)
+        before_awaits = gatt_manager.call_register_application.await_count
         asyncio.run_coroutine_threadsafe(
             services.register(self.background_bus, path=bus_path, adapter=self.adapter),
             self.background_loop,
         ).result()
+        gatt_manager.call_register_application.assert_awaited_with(bus_path, {})
+        assert len(gatt_manager.mock_calls) == before_calls + 1
+        assert gatt_manager.call_register_application.await_count == before_awaits + 1
+        if bus_path is not None:
+            assert services.export_path == bus_path
+
+        self._services = services
 
     def unregister(self):
+        gatt_manager = self.adapter.get_gatt_manager.return_value
+
+        before_path = self._services.export_path
+        before_calls = len(gatt_manager.mock_calls)
+        before_awaits = gatt_manager.call_unregister_application.await_count
         asyncio.run_coroutine_threadsafe(
             self._services.unregister(), self.background_loop
         ).result()
+        gatt_manager.call_unregister_application.assert_awaited_with(before_path)
+        assert len(gatt_manager.mock_calls) == before_calls + 1
+        assert gatt_manager.call_unregister_application.await_count == before_awaits + 1
         self._services = None
 
 
@@ -256,14 +260,44 @@ class BackgroundAdvertManager(BackgroundBusManager):
         super().__init__()
 
     def register(self, advert: Advertisement, bus_path: str):
-        self._advert = advert
+        advertising_manager = self.adapter.get_advertising_manager.return_value
+
+        before_calls = len(advertising_manager.mock_calls)
+        before_awaits = advertising_manager.call_register_advertisement.await_count
         asyncio.run_coroutine_threadsafe(
             advert.register(self.background_bus, path=bus_path, adapter=self.adapter),
             self.background_loop,
         ).result()
+        advertising_manager.call_register_advertisement.assert_awaited_with(
+            bus_path, {}
+        )
+        assert len(advertising_manager.mock_calls) == before_calls + 1
+        assert (
+            advertising_manager.call_register_advertisement.await_count
+            == before_awaits + 1
+        )
+        if bus_path is not None:
+            assert advert.export_path == bus_path
+
+        self._advert = advert
 
     def unregister(self):
+        advertising_manager = self.adapter.get_advertising_manager.return_value
+
+        before_path = self._advert.export_path
+        before_calls = len(advertising_manager.mock_calls)
+        before_awaits = advertising_manager.call_unregister_advertisement.await_count
         asyncio.run_coroutine_threadsafe(
             self._advert.unregister(), self.background_loop
         ).result()
+        advertising_manager.call_unregister_advertisement.assert_awaited_once_with(
+            before_path
+        )
+        assert len(advertising_manager.mock_calls) == before_calls + 1
+        assert (
+            advertising_manager.call_unregister_advertisement.await_count
+            == before_awaits + 1
+        )
+        assert self._advert.export_path is None
+
         self._advert = None
