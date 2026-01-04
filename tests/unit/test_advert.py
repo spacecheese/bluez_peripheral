@@ -5,12 +5,10 @@ import pytest
 
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
 from bluez_peripheral.flags import AdvertisingPacketType
+from bluez_peripheral.adapter import Adapter
 
-from .util import (
-    get_first_adapter_or_skip,
-    bluez_available_or_skip,
-    BackgroundAdvertManager,
-)
+from .util import BackgroundAdvertManager
+from ..conftest import adapter_available
 
 
 @pytest.fixture
@@ -35,6 +33,7 @@ async def test_basic(message_bus, bus_name, bus_path):
     )
     manager = BackgroundAdvertManager()
     await manager.start(bus_name)
+
     manager.register(advert, bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
@@ -103,9 +102,9 @@ async def test_uuid128(message_bus, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not adapter_available())
 async def test_bluez(message_bus):
-    await bluez_available_or_skip(message_bus)
-    adapter = await get_first_adapter_or_skip(message_bus)
+    adapter = await Adapter.get_first(message_bus)
 
     initial_powered = await adapter.get_powered()
     initial_discoverable = await adapter.get_discoverable()
