@@ -58,7 +58,7 @@ class BaseAgent(BaseServiceInterface):
         pass
 
     @method("Cancel")
-    def _cancle(self):  # type: ignore
+    def _cancel(self):  # type: ignore
         pass
 
     def _get_capability(self) -> str:

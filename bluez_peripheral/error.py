@@ -1,6 +1,16 @@
 from dbus_fast import DBusError
 
 
+class BluezNotAvailableError(RuntimeError):
+    """
+    Raised when org.bluez is not present on the dbus.
+    This is normally because the bluetooth service is not running.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 class FailedError(DBusError):
     """Raised when an operation failed."""
 

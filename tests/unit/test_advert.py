@@ -1,6 +1,5 @@
 from uuid import UUID
 
-import asyncio
 import pytest
 
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
@@ -8,7 +7,7 @@ from bluez_peripheral.flags import AdvertisingPacketType
 from bluez_peripheral.adapter import Adapter
 
 from .util import BackgroundAdvertManager
-from ..conftest import adapter_available
+from ..conftest import requires_adapter
 
 
 @pytest.fixture
@@ -102,7 +101,7 @@ async def test_uuid128(message_bus, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not adapter_available())
+@requires_adapter
 async def test_bluez(message_bus):
     adapter = await Adapter.get_first(message_bus)
 

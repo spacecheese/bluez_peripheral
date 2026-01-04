@@ -2,7 +2,6 @@ import re
 from typing import Collection
 
 import pytest
-import pytest_asyncio
 
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 

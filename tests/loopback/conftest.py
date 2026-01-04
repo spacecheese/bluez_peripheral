@@ -1,4 +1,3 @@
-import pytest
 import pytest_asyncio
 
 from dbus_fast.service import dbus_method
@@ -8,40 +7,40 @@ from bluez_peripheral.agent import AgentCapability, BaseAgent
 
 
 class TrivialAgent(BaseAgent):
-    @dbus_method()
-    def Cancel():  # type: ignore
+    @dbus_method("Cancel")
+    def _cancel(self):  # type: ignore
         return
 
-    @dbus_method()
-    def Release():  # type: ignore
+    @dbus_method("Release")
+    def _release(self):  # type: ignore
         return
 
-    @dbus_method()
-    def RequestPinCode(self, device: "o") -> "s":  # type: ignore
+    @dbus_method("RequestPinCode")
+    def _request_pin_code(self, device: "o") -> "s":  # type: ignore
         return "0000"
 
-    @dbus_method()
-    def DisplayPinCode(self, device: "o", pincode: "s"):  # type: ignore
+    @dbus_method("DisplayPinCode")
+    def _display_pin_code(self, device: "o", pincode: "s"):  # type: ignore
         return
 
-    @dbus_method()
-    def RequestPasskey(self, device: "o") -> "u":  # type: ignore
+    @dbus_method("RequestPasskey")
+    def _request_passkey(self, device: "o") -> "u":  # type: ignore
         return 0
 
-    @dbus_method()
-    def DisplayPasskey(self, device: "o", passkey: "u", entered: "q"):  # type: ignore
+    @dbus_method("DisplayPasskey")
+    def _display_passkey(self, device: "o", passkey: "u", entered: "q"):  # type: ignore
         return
 
-    @dbus_method()
-    def RequestConfirmation(self, device: "o", passkey: "u"):  # type: ignore
+    @dbus_method("RequestConfirmation")
+    def _request_confirmation(self, device: "o", passkey: "u"):  # type: ignore
         return
 
-    @dbus_method()
-    def RequestAuthorization(self, device: "o"):  # type: ignore
+    @dbus_method("RequestAuthorization")
+    def _request_authorization(self, device: "o"):  # type: ignore
         return
 
-    @dbus_method()
-    def AuthorizeService(self, device: "o", uuid: "s"):  # type: ignore
+    @dbus_method("AuthorizeService")
+    def _authorize_service(self, device: "o", uuid: "s"):  # type: ignore
         return
 
 
@@ -80,4 +79,4 @@ async def paired_adapters(message_bus, unpaired_adapters):
 
     devices[0].remove()
 
-    await agent.unregister(message_bus)
+    await agent.unregister()

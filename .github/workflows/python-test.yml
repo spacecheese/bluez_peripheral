@@ -153,4 +153,5 @@ jobs:
       - name: Run lint checks
         run: |
           python -m pylint bluez_peripheral
+          python -m pylint --rcfile=tests/.pylintrc tests/unit
         

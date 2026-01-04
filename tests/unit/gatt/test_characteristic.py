@@ -2,7 +2,6 @@ import asyncio
 import re
 
 import pytest
-import pytest_asyncio
 
 from dbus_fast import Variant
 
@@ -15,7 +14,7 @@ from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
 from ..util import ServiceNode
-from ...conftest import adapter_available
+from ...conftest import requires_adapter
 
 
 class MockService(Service):
@@ -153,7 +152,7 @@ async def test_write(message_bus, service, background_service, bus_name, bus_pat
     assert service.last_opts.mtu == 128
     assert service.last_opts.device == "blablabla/.hmm"
     assert service.last_opts.link == "yuyuyuy"
-    assert service.last_opts.prepare_authorize == False
+    assert not service.last_opts.prepare_authorize
 
     assert service.val.decode("utf-8") == "Test Write Value"
 
@@ -173,10 +172,15 @@ async def test_notify_no_start(
     char = await service_collection.get_child("180A", "2A38")
     prop_interface = char.proxy.get_interface("org.freedesktop.DBus.Properties")
 
+    foreground_loop = asyncio.get_running_loop()
+    properties_changed = foreground_loop.create_future()
+
     def on_properties_changed(_0, _1, _2):
-        property_changed.set()
+        properties_changed.set()
 
     prop_interface.on_properties_changed(on_properties_changed)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(properties_changed, timeout=0.1)
 
 
 @pytest.mark.asyncio
@@ -257,7 +261,7 @@ async def test_modify(
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not adapter_available())
+@requires_adapter
 async def test_bluez(message_bus, adapter, services):
     initial_powered = await adapter.get_powered()
     initial_discoverable = await adapter.get_discoverable()

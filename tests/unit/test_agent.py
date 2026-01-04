@@ -1,6 +1,4 @@
 import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
 
 from bluez_peripheral.agent import AgentCapability, BaseAgent
 

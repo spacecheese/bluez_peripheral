@@ -3,10 +3,12 @@ from typing import Collection, Dict, Tuple, List
 from dbus_fast.aio import MessageBus, ProxyInterface
 from dbus_fast.aio.proxy_object import ProxyObject
 from dbus_fast import InvalidIntrospectionError, InterfaceNotFoundError
+from dbus_fast.errors import DBusError
 
 from .util import _kebab_to_shouting_snake
 from .flags import AdvertisingIncludes
 from .uuid16 import UUID16, UUIDLike
+from .error import BluezNotAvailableError
 
 
 class Device:
@@ -205,7 +207,10 @@ class Adapter:
         Returns:
             A list of available bluetooth adapters.
         """
-        adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
+        try:
+            adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
+        except DBusError as e:
+            raise BluezNotAvailableError("org.bluez could not be introspected") from e
 
         adapters = []
         for node in adapter_nodes:

@@ -1,6 +1,4 @@
-import asyncio
 import pytest
-import pytest_asyncio
 
 from bluez_peripheral.advert import Advertisement
 from bluez_peripheral.uuid16 import UUID16

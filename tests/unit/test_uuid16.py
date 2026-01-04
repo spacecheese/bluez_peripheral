@@ -124,7 +124,7 @@ def test_eq():
     assert uuid16_a == uuid_a
     assert uuid16_b == uuid_b
     assert uuid16_a != uuid_b
-    assert not uuid16_a == object()
+    assert not uuid16_a == object()  # pylint: disable=unnecessary-negation
     assert uuid16_a != object()
 
 

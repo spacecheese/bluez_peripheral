@@ -2,7 +2,6 @@ import asyncio
 import re
 
 import pytest
-import pytest_asyncio
 
 from dbus_fast import Variant
 
@@ -149,7 +148,7 @@ async def test_write(message_bus, service, background_service, bus_name, bus_pat
     assert service.last_opts.offset == 1
     assert service.last_opts.device == "bebealbl/.afal"
     assert service.last_opts.link == "gogog"
-    assert service.last_opts.prepare_authorize == True
+    assert service.last_opts.prepare_authorize
 
     assert service.write_desc_val.decode("utf-8") == "Test Write Value"
 

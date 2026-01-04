@@ -1,13 +1,11 @@
 import pytest
-import pytest_asyncio
 
 from bluez_peripheral.adapter import Adapter
-from bluez_peripheral.util import get_message_bus
-from ..conftest import bluez_available, adapter_available
+from ..conftest import requires_bluez, requires_adapter
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not bluez_available())
+@requires_bluez
 async def test_get_first(message_bus):
     if not len(await Adapter.get_all(message_bus)) > 0:
         with pytest.raises(ValueError):
@@ -17,21 +15,21 @@ async def test_get_first(message_bus):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not adapter_available())
+@requires_adapter
 async def test_alias_set(adapter):
     await adapter.set_alias("Some test name")
     assert await adapter.get_alias() == "Some test name"
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not adapter_available())
+@requires_adapter
 async def test_alias_clear(adapter):
     await adapter.set_alias("")
     assert await adapter.get_alias() == await adapter.get_name()
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not adapter_available())
+@requires_adapter
 async def test_powered(adapter):
     initial_powered = await adapter.get_powered()
 
@@ -43,6 +41,7 @@ async def test_powered(adapter):
 
 
 @pytest.mark.asyncio
+@requires_adapter
 async def test_discoverable(adapter):
     initial_discoverable = await adapter.get_discoverable()
     initial_powered = await adapter.get_powered()
@@ -58,6 +57,7 @@ async def test_discoverable(adapter):
 
 
 @pytest.mark.asyncio
+@requires_adapter
 async def test_pairable(adapter):
     initial_pairable = await adapter.get_pairable()
     initial_powered = await adapter.get_powered()
@@ -71,6 +71,7 @@ async def test_pairable(adapter):
 
 
 @pytest.mark.asyncio
+@requires_adapter
 async def test_pairable_timeout(adapter):
     initial_pairable_timeout = await adapter.get_pairable_timeout()
 
@@ -82,6 +83,7 @@ async def test_pairable_timeout(adapter):
 
 
 @pytest.mark.asyncio
+@requires_adapter
 async def test_discoverable_timeout(adapter):
     initial_discoverable_timeout = await adapter.get_discoverable_timeout()
 

@@ -4,21 +4,17 @@ from unittest.mock import MagicMock, AsyncMock, create_autospec
 from uuid import UUID
 import threading
 
-import pytest
-
 from dbus_fast.introspection import Node
 from dbus_fast.aio.proxy_object import ProxyInterface, ProxyObject
 
 from bluez_peripheral.util import (
     get_message_bus,
-    is_bluez_available,
     MessageBus,
 )
 from bluez_peripheral.gatt.service import ServiceCollection
 from bluez_peripheral.adapter import Adapter
 from bluez_peripheral.uuid16 import UUID16, UUIDLike
 from bluez_peripheral.advert import Advertisement
-from bluez_peripheral.adapter import Adapter
 
 
 def make_adapter_mock() -> MagicMock:
@@ -178,6 +174,7 @@ class BackgroundBusManager:
     def __init__(self):
         self._background_wrapper = BackgroundLoopWrapper()
         self._foreground_loop = None
+        self._idle_task = None
 
     @property
     def foreground_loop(self):
@@ -220,6 +217,7 @@ class BackgroundBusManager:
 class BackgroundServiceManager(BackgroundBusManager):
     def __init__(self):
         self.adapter = make_adapter_mock()
+        self._services = None
         super().__init__()
 
     def register(self, services: ServiceCollection, bus_path: str):
@@ -257,6 +255,7 @@ class BackgroundServiceManager(BackgroundBusManager):
 class BackgroundAdvertManager(BackgroundBusManager):
     def __init__(self):
         self.adapter = make_adapter_mock()
+        self._advert = None
         super().__init__()
 
     def register(self, advert: Advertisement, bus_path: str):
