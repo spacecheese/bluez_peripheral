@@ -1,6 +1,5 @@
-from typing import Collection, Dict, Callable, Optional, Union, List, Tuple
+from typing import Collection, Dict, Callable, Optional, Union
 import struct
-from uuid import UUID
 
 from dbus_fast import Variant
 from dbus_fast.constants import PropertyAccess
@@ -51,7 +50,7 @@ class Advertisement(BaseServiceInterface):
         packet_type: AdvertisingPacketType = AdvertisingPacketType.PERIPHERAL,
         manufacturer_data: Optional[Dict[int, bytes]] = None,
         solicit_uuids: Optional[Collection[UUIDLike]] = None,
-        service_data: Optional[List[Tuple[UUIDLike, bytes]]] = None,
+        service_data: Optional[Dict[UUIDLike, bytes]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
         release_callback: Optional[Callable[[], None]] = None,
@@ -69,19 +68,19 @@ class Advertisement(BaseServiceInterface):
 
         if manufacturer_data is None:
             manufacturer_data = {}
-        self._manufacturer_data = {}
-        for key, value in manufacturer_data.items():
-            self._manufacturer_data[key] = Variant("ay", value)
+        self._manufacturer_data = {
+            k: Variant("ay", v) for k, v in manufacturer_data.items()
+        }
 
         if solicit_uuids is None:
             solicit_uuids = []
         self._solicit_uuids = [UUID16.parse_uuid(uuid) for uuid in solicit_uuids]
 
         if service_data is None:
-            service_data = []
-        self._service_data: List[Tuple[UUID16 | UUID, Variant]] = []
-        for i, dat in service_data:
-            self._service_data.append((UUID16.parse_uuid(i), Variant("ay", dat)))
+            service_data = {}
+        self._service_data = {
+            UUID16.parse_uuid(k): Variant("ay", v) for k, v in service_data.items()
+        }
 
         self._discoverable = discoverable
         self._includes = includes
@@ -168,7 +167,7 @@ class Advertisement(BaseServiceInterface):
 
     @dbus_property(PropertyAccess.READ, "ServiceData")
     def _get_service_data(self) -> "a{sv}":  # type: ignore
-        return dict((str(key), val) for key, val in self._service_data)
+        return {str(key): val for key, val in self._service_data.items()}
 
     @dbus_property(PropertyAccess.READ, "Discoverable")
     def _get_discoverable(self) -> "b":  # type: ignore
