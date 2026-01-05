@@ -1,5 +1,6 @@
 import asyncio
-from typing import Dict, Union, Optional
+from abc import ABC
+from typing import Dict, Union, Optional, List
 from unittest.mock import MagicMock, AsyncMock, create_autospec
 from uuid import UUID
 import threading
@@ -168,13 +169,24 @@ class ServiceNode:
         return child
 
 
+class BackgroundBusTask(ABC):
+    def __init__(self, bus_manager: "BackgroundBusManager"):
+        self._bus_manager = bus_manager
+        bus_manager.add_task(self)
+
+    async def cleanup(self):
+        pass
+
+
 class BackgroundBusManager:
     _background_bus: Optional[MessageBus]
+    _tasks: List[BackgroundBusTask]
 
     def __init__(self):
         self._background_wrapper = BackgroundLoopWrapper()
         self._foreground_loop = None
         self._idle_task = None
+        self._tasks = []
 
     @property
     def foreground_loop(self):
@@ -183,6 +195,9 @@ class BackgroundBusManager:
     @property
     def background_loop(self):
         return self._background_wrapper.event_loop
+
+    def add_task(self, task: BackgroundBusTask):
+        self._tasks.append(task)
 
     async def start(self, bus_name: str):
         self._foreground_loop = asyncio.get_running_loop()
@@ -202,6 +217,9 @@ class BackgroundBusManager:
         )
 
     async def stop(self):
+        for task in self._tasks:
+            await task.cleanup()
+
         async def _stop():
             self._background_bus.disconnect()
 
@@ -214,26 +232,35 @@ class BackgroundBusManager:
         return self._background_bus
 
 
-class BackgroundServiceManager(BackgroundBusManager):
-    def __init__(self):
+class BackgroundServiceManager(BackgroundBusTask):
+    def __init__(self, bus_manager: BackgroundBusManager):
         self.adapter = make_adapter_mock()
         self._services = None
-        super().__init__()
+        super().__init__(bus_manager)
 
-    def register(self, services: ServiceCollection, bus_path: str):
+    def register(self, services: ServiceCollection, **kwargs):
         gatt_manager = self.adapter.get_gatt_manager.return_value
 
         before_calls = len(gatt_manager.mock_calls)
         before_awaits = gatt_manager.call_register_application.await_count
+
         asyncio.run_coroutine_threadsafe(
-            services.register(self.background_bus, path=bus_path, adapter=self.adapter),
-            self.background_loop,
+            services.register(
+                self._bus_manager.background_bus, adapter=self.adapter, **kwargs
+            ),
+            self._bus_manager.background_loop,
         ).result()
-        gatt_manager.call_register_application.assert_awaited_with(bus_path, {})
+
+        # Check that export_path matches a specified path or accept the generated default otherwise.
+        path = kwargs.get("path", None)
+        if path is None:
+            path = services.export_path
+        gatt_manager.call_register_application.assert_awaited_with(path, {})
+        if services.is_exported:
+            # If the export didn't fail.
+            assert services.export_path == path
         assert len(gatt_manager.mock_calls) == before_calls + 1
         assert gatt_manager.call_register_application.await_count == before_awaits + 1
-        if bus_path is not None:
-            assert services.export_path == bus_path
 
         self._services = services
 
@@ -243,40 +270,51 @@ class BackgroundServiceManager(BackgroundBusManager):
         before_path = self._services.export_path
         before_calls = len(gatt_manager.mock_calls)
         before_awaits = gatt_manager.call_unregister_application.await_count
+
         asyncio.run_coroutine_threadsafe(
-            self._services.unregister(), self.background_loop
+            self._services.unregister(), self._bus_manager.background_loop
         ).result()
+
         gatt_manager.call_unregister_application.assert_awaited_with(before_path)
         assert len(gatt_manager.mock_calls) == before_calls + 1
         assert gatt_manager.call_unregister_application.await_count == before_awaits + 1
         self._services = None
 
+    async def cleanup(self):
+        if self._services is not None and self._services.is_exported:
+            self.unregister()
 
-class BackgroundAdvertManager(BackgroundBusManager):
-    def __init__(self):
+
+class BackgroundAdvertManager(BackgroundBusTask):
+    def __init__(self, bus_manager: BackgroundBusManager):
         self.adapter = make_adapter_mock()
         self._advert = None
-        super().__init__()
+        super().__init__(bus_manager)
 
-    def register(self, advert: Advertisement, bus_path: str):
+    def register(self, advert: Advertisement, **kwargs):
         advertising_manager = self.adapter.get_advertising_manager.return_value
 
         before_calls = len(advertising_manager.mock_calls)
         before_awaits = advertising_manager.call_register_advertisement.await_count
+
         asyncio.run_coroutine_threadsafe(
-            advert.register(self.background_bus, path=bus_path, adapter=self.adapter),
-            self.background_loop,
+            advert.register(
+                self._bus_manager.background_bus, adapter=self.adapter, **kwargs
+            ),
+            self._bus_manager.background_loop,
         ).result()
-        advertising_manager.call_register_advertisement.assert_awaited_with(
-            bus_path, {}
-        )
+
+        path = kwargs.get("path", None)
+        if path is None:
+            path = advert.export_path
+        advertising_manager.call_register_advertisement.assert_awaited_with(path, {})
+        if advert.is_exported:
+            assert advert.export_path == path
         assert len(advertising_manager.mock_calls) == before_calls + 1
         assert (
             advertising_manager.call_register_advertisement.await_count
             == before_awaits + 1
         )
-        if bus_path is not None:
-            assert advert.export_path == bus_path
 
         self._advert = advert
 
@@ -287,11 +325,13 @@ class BackgroundAdvertManager(BackgroundBusManager):
         before_calls = len(advertising_manager.mock_calls)
         before_awaits = advertising_manager.call_unregister_advertisement.await_count
         asyncio.run_coroutine_threadsafe(
-            self._advert.unregister(), self.background_loop
+            self._advert.unregister(), self._bus_manager.background_loop
         ).result()
+
         advertising_manager.call_unregister_advertisement.assert_awaited_once_with(
             before_path
         )
+
         assert len(advertising_manager.mock_calls) == before_calls + 1
         assert (
             advertising_manager.call_unregister_advertisement.await_count
@@ -300,3 +340,7 @@ class BackgroundAdvertManager(BackgroundBusManager):
         assert self._advert.export_path is None
 
         self._advert = None
+
+    async def cleanup(self):
+        if self._advert is not None and self._advert.is_exported:
+            self.unregister()

@@ -7,8 +7,6 @@ from dbus_fast import Variant
 from bluez_peripheral.advert import Advertisement, AdvertisingIncludes
 from bluez_peripheral.flags import AdvertisingPacketType
 
-from .util import BackgroundAdvertManager
-
 
 @pytest.fixture
 def bus_name():
@@ -21,7 +19,7 @@ def bus_path():
 
 
 @pytest.mark.asyncio
-async def test_basic(message_bus, bus_name, bus_path):
+async def test_basic(bus_name, bus_path, message_bus, background_advert):
     advert = Advertisement(
         "Testing Device Name",
         ["180A", "180D"],
@@ -30,10 +28,7 @@ async def test_basic(message_bus, bus_name, bus_path):
         packet_type=AdvertisingPacketType.PERIPHERAL,
         includes=AdvertisingIncludes.TX_POWER,
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -50,12 +45,9 @@ async def test_basic(message_bus, bus_name, bus_path):
     assert await interface.get_timeout() == 2
     assert await interface.get_includes() == ["tx-power"]
 
-    manager.unregister()
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_includes_empty(message_bus, bus_name, bus_path):
+async def test_includes_empty(bus_name, bus_path, message_bus, background_advert):
     advert = Advertisement(
         "Testing Device Name",
         ["180A", "180D"],
@@ -64,30 +56,23 @@ async def test_includes_empty(message_bus, bus_name, bus_path):
         packet_type=AdvertisingPacketType.PERIPHERAL,
         includes=AdvertisingIncludes.NONE,
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
     interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
     assert await interface.get_includes() == []
 
-    manager.unregister()
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_uuid128(message_bus, bus_name, bus_path):
+async def test_uuid128(bus_name, bus_path, message_bus, background_advert):
     advert = Advertisement(
         "Improv Test",
         [UUID("00467768-6228-2272-4663-277478268000")],
         appearance=0x0340,
         timeout=2,
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -95,9 +80,6 @@ async def test_uuid128(message_bus, bus_name, bus_path):
     assert [id.lower() for id in await interface.get_service_uui_ds()] == [
         "00467768-6228-2272-4663-277478268000",
     ]
-
-    manager.unregister()
-    await manager.stop()
 
 
 @pytest.mark.asyncio
@@ -113,13 +95,11 @@ async def test_illegal_unregister():
 
 
 @pytest.mark.asyncio
-async def test_default_release(message_bus, bus_name, bus_path):
+async def test_default_release(message_bus, bus_name, bus_path, background_advert):
     advert = Advertisement(
         "Attribs Test", ["180A", "180D"], appearance=0x0340, timeout=2
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -128,11 +108,9 @@ async def test_default_release(message_bus, bus_name, bus_path):
 
     assert not advert.is_exported
 
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_custom_sync_release(message_bus, bus_name, bus_path):
+async def test_custom_sync_release(message_bus, bus_name, bus_path, background_advert):
     foreground_loop = asyncio.get_running_loop()
     released = foreground_loop.create_future()
 
@@ -146,9 +124,7 @@ async def test_custom_sync_release(message_bus, bus_name, bus_path):
         timeout=2,
         release_callback=_release_callback,
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -158,12 +134,9 @@ async def test_custom_sync_release(message_bus, bus_name, bus_path):
 
     assert advert.is_exported
 
-    manager.unregister()
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_custom_async_release(message_bus, bus_name, bus_path):
+async def test_custom_async_release(message_bus, bus_name, bus_path, background_advert):
     foreground_loop = asyncio.get_running_loop()
     released = foreground_loop.create_future()
 
@@ -177,9 +150,7 @@ async def test_custom_async_release(message_bus, bus_name, bus_path):
         timeout=2,
         release_callback=_release_callback,
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -189,12 +160,9 @@ async def test_custom_async_release(message_bus, bus_name, bus_path):
 
     assert advert.is_exported
 
-    manager.unregister()
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_args(message_bus, bus_name, bus_path):
+async def test_args(message_bus, bus_name, bus_path, background_advert):
     advert = Advertisement(
         "Attribs Test",
         ["180A", "180D"],
@@ -205,9 +173,7 @@ async def test_args(message_bus, bus_name, bus_path):
             0: b"\0x0\0x1\0x2",
         },
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -217,12 +183,9 @@ async def test_args(message_bus, bus_name, bus_path):
         0: Variant("ay", b"\0x0\0x1\0x2")
     }
 
-    manager.unregister()
-    await manager.stop()
-
 
 @pytest.mark.asyncio
-async def test_args_service_data(message_bus, bus_name, bus_path):
+async def test_args_service_data(message_bus, bus_name, bus_path, background_advert):
     advert = Advertisement(
         "Attribs Test",
         ["180A", "180D"],
@@ -230,9 +193,7 @@ async def test_args_service_data(message_bus, bus_name, bus_path):
         timeout=2,
         service_data={"180A": b"\0x01\0x02"},
     )
-    manager = BackgroundAdvertManager()
-    await manager.start(bus_name)
-    manager.register(advert, bus_path)
+    background_advert(advert, path=bus_path)
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
@@ -241,6 +202,3 @@ async def test_args_service_data(message_bus, bus_name, bus_path):
     assert {k.lower(): v for k, v in data.items()} == {
         "180a": Variant("ay", b"\0x01\0x02")
     }
-
-    manager.unregister()
-    await manager.stop()

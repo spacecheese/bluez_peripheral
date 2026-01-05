@@ -54,7 +54,9 @@ def bus_path():
 
 
 @pytest.mark.asyncio
-async def test_structure(message_bus, background_service, bus_name, bus_path):
+async def test_structure(message_bus, background_service, services, bus_name, bus_path):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -81,6 +83,8 @@ async def test_include_modify(
     bus_path,
     background_service,
 ):
+    service_manager = background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -93,9 +97,9 @@ async def test_include_modify(
         [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
     )
 
-    background_service.unregister()
+    service_manager.unregister()
     services.remove_child(service3)
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
 
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
@@ -109,9 +113,9 @@ async def test_include_modify(
     with pytest.raises(KeyError):
         await service_collection.get_child("180C")
 
-    background_service.unregister()
+    service_manager.unregister()
     services.add_child(service3)
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
 
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path

@@ -81,7 +81,9 @@ def bus_path():
 
 
 @pytest.mark.asyncio
-async def test_structure(message_bus, background_service, bus_name, bus_path):
+async def test_structure(message_bus, services, background_service, bus_name, bus_path):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -101,7 +103,10 @@ async def test_structure(message_bus, background_service, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
-async def test_read(message_bus, service, background_service, bus_name, bus_path):
+async def test_read(
+    message_bus, service, services, background_service, bus_name, bus_path
+):
+    background_service(services, path=bus_path)
     opts = {
         "offset": Variant("q", 0),
         "mtu": Variant("q", 128),
@@ -130,7 +135,10 @@ async def test_read(message_bus, service, background_service, bus_name, bus_path
 
 
 @pytest.mark.asyncio
-async def test_write(message_bus, service, background_service, bus_name, bus_path):
+async def test_write(
+    message_bus, service, services, background_service, bus_name, bus_path
+):
+    background_service(services, path=bus_path)
     opts = {
         "offset": Variant("q", 10),
         "type": Variant("s", "request"),
@@ -163,8 +171,9 @@ async def test_write(message_bus, service, background_service, bus_name, bus_pat
 
 @pytest.mark.asyncio
 async def test_notify_no_start(
-    message_bus, service, background_service, bus_name, bus_path
+    message_bus, services, background_service, bus_name, bus_path
 ):
+    background_service(services, path=bus_path)
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -184,8 +193,10 @@ async def test_notify_no_start(
 
 @pytest.mark.asyncio
 async def test_notify_start_stop(
-    message_bus, service, background_service, bus_name, bus_path
+    message_bus, service, services, background_service, bus_name, bus_path
 ):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -227,6 +238,8 @@ async def test_notify_start_stop(
 async def test_modify(
     message_bus, service, services, background_service, bus_name, bus_path
 ):
+    service_manager = background_service(services, path=bus_path)
+
     opts = {
         "offset": Variant("q", 0),
         "mtu": Variant("q", 128),
@@ -240,20 +253,20 @@ async def test_modify(
     with pytest.raises(KeyError):
         await service_collection.get_child("180A", "2A38", "2D56")
 
-    background_service.unregister()
+    service_manager.unregister()
 
     @descriptor("2D56", service.write_notify_char)
     def some_desc(service, opts):
         return bytes("Some Test Value", "utf-8")
 
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
     desc = await service_collection.get_child("180A", "2A38", "2D56")
     resp = await desc.attr_interface.call_read_value(opts)
     assert resp.decode("utf-8") == "Some Test Value"
 
-    background_service.unregister()
+    service_manager.unregister()
     service.write_notify_char.remove_child(some_desc)
 
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
     with pytest.raises(KeyError):
         await service_collection.get_child("180A", "2A38", "2D56")
