@@ -1,4 +1,5 @@
-from typing import Collection, Dict, Callable, Optional, Union
+import inspect
+from typing import Collection, Dict, Callable, Optional, Union, Awaitable
 import struct
 
 from dbus_fast import Variant
@@ -33,7 +34,7 @@ class Advertisement(BaseServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        release_callback: A function to call when the advert release function is called.
+        release_callback: A function to call when the advert release function is called. The default release callback will unexport the advert.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
@@ -53,7 +54,9 @@ class Advertisement(BaseServiceInterface):
         service_data: Optional[Dict[UUIDLike, bytes]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
-        release_callback: Optional[Callable[[], None]] = None,
+        release_callback: Optional[
+            Union[Callable[[], None], Callable[[], Awaitable[None]]]
+        ] = None,
     ):
         self._type = packet_type
         # Convert any string uuids to uuid16.
@@ -85,7 +88,15 @@ class Advertisement(BaseServiceInterface):
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
-        self._release_callback = release_callback
+
+        def _default_release_callback() -> None:
+            self.unexport()
+
+        self._release_callback: Union[Callable[[], None], Callable[[], Awaitable[None]]]
+        if release_callback is None:
+            self._release_callback = _default_release_callback
+        else:
+            self._release_callback = release_callback
 
         self._adapter: Optional[Adapter] = None
 
@@ -118,8 +129,11 @@ class Advertisement(BaseServiceInterface):
         self._adapter = adapter
 
     @method("Release")
-    def _release(self):  # type: ignore
-        self.unexport()
+    async def _release(self):  # type: ignore
+        if inspect.iscoroutinefunction(self._release_callback):
+            await self._release_callback()
+        else:
+            self._release_callback()
 
     async def unregister(self) -> None:
         """
@@ -132,10 +146,8 @@ class Advertisement(BaseServiceInterface):
 
         await interface.call_unregister_advertisement(self.export_path)  # type: ignore
         self._adapter = None
-        self.unexport()
 
-        if self._release_callback is not None:
-            self._release_callback()
+        self.unexport()
 
     @dbus_property(PropertyAccess.READ, "Type")
     def _get_type(self) -> "s":  # type: ignore

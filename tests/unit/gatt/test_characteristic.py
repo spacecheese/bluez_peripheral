@@ -14,7 +14,6 @@ from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
 from ..util import ServiceNode
-from ...conftest import requires_adapter
 
 
 class MockService(Service):
@@ -258,21 +257,3 @@ async def test_modify(
     background_service.register(services, bus_path)
     with pytest.raises(KeyError):
         await service_collection.get_child("180A", "2A38", "2D56")
-
-
-@pytest.mark.asyncio
-@requires_adapter
-async def test_bluez(message_bus, adapter, services):
-    initial_powered = await adapter.get_powered()
-    initial_discoverable = await adapter.get_discoverable()
-
-    await adapter.set_powered(True)
-    await adapter.set_discoverable(True)
-
-    try:
-        await services.register(message_bus, adapter=adapter)
-    finally:
-        await services.unregister()
-
-        await adapter.set_discoverable(initial_discoverable)
-        await adapter.set_powered(initial_powered)

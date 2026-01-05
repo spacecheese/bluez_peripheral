@@ -39,3 +39,11 @@ async def test_base_agent_capability():
     await agent.unregister()
     mock_interface.call_unregister_agent.assert_awaited_once_with(bus_path)
     assert len(mock_interface.mock_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_illegal_unregister():
+    agent = BaseAgent(AgentCapability.KEYBOARD_DISPLAY)
+
+    with pytest.raises(ValueError):
+        await agent.unregister()
