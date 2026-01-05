@@ -206,46 +206,26 @@ async def test_args_service_data(message_bus, bus_name, bus_path, background_adv
 
 @pytest.mark.asyncio
 async def test_default_path(message_bus, bus_name, background_advert):
-    advert0 = Advertisement(
-        "Attribs Test1",
-        ["180A", "180D"],
-        appearance=0x0340,
-    )
-    background_advert(advert0)
-
-    advert1 = Advertisement(
-        "Attribs Test2",
-        ["180A", "180D"],
-        appearance=0x0340,
-    )
-    background_advert(advert1)
-
-    advert2 = Advertisement(
-        "Attribs Test3",
-        ["180A", "180D"],
-        appearance=0x0340,
-    )
-    background_advert(advert2)
+    adverts = [
+        Advertisement(
+            f"Attribs Test{i}",
+            ["180A", "180D"],
+            appearance=0x0340,
+        )
+        for i in range(0, 11)
+    ]
+    for a in adverts:
+        background_advert(a)
 
     # Make sure that adverts do not clash with each other and all interfaces are visible.
-    assert advert0.export_path != advert1.export_path
-    assert advert0.export_path != advert2.export_path
-    assert advert1.export_path != advert2.export_path
+    paths = {a.export_path for a in adverts}
+    assert len(paths) == len(adverts)
 
-    introspection = await message_bus.introspect(bus_name, advert0.export_path)
-    proxy_object = message_bus.get_proxy_object(
-        bus_name, advert0.export_path, introspection
-    )
-    _ = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+    for a in adverts:
+        assert a.export_path is not None
 
-    introspection = await message_bus.introspect(bus_name, advert1.export_path)
-    proxy_object = message_bus.get_proxy_object(
-        bus_name, advert1.export_path, introspection
-    )
-    _ = proxy_object.get_interface("org.bluez.LEAdvertisement1")
-
-    introspection = await message_bus.introspect(bus_name, advert2.export_path)
-    proxy_object = message_bus.get_proxy_object(
-        bus_name, advert2.export_path, introspection
-    )
-    _ = proxy_object.get_interface("org.bluez.LEAdvertisement1")
+        introspection = await message_bus.introspect(bus_name, a.export_path)
+        proxy_object = message_bus.get_proxy_object(
+            bus_name, a.export_path, introspection
+        )
+        _ = proxy_object.get_interface("org.bluez.LEAdvertisement1")
