@@ -89,7 +89,9 @@ class Service(HierarchicalServiceInterface):
         You may only use this if the service was registered using :class:`Service.register()`
         """
         if self._collection is None:
-            return
+            raise ValueError(
+                "Cannot unregister a service which has not been registered"
+            )
 
         await self._collection.unregister()
         self._collection = None
@@ -163,7 +165,8 @@ class ServiceCollection(HierarchicalServiceInterface):
     async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""
         if not self.is_exported:
-            return
+            raise ValueError("Cannot unexport a component which is not exported")
+
         assert self._bus is not None
         assert self._adapter is not None
 

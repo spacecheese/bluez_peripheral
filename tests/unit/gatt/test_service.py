@@ -5,7 +5,7 @@ import pytest
 
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
-from ..util import ServiceNode
+from ..util import ServiceNode, make_adapter_mock
 
 
 class MockService1(Service):
@@ -146,3 +146,18 @@ async def test_default_path(message_bus, background_service, bus_name):
         _ = await ServiceNode.from_service_collection(
             message_bus, bus_name, c.export_path
         )
+
+
+@pytest.mark.asyncio
+async def test_service_register(message_bus, service1):
+    await service1.register(message_bus, adapter=make_adapter_mock())
+    await service1.unregister()
+
+
+@pytest.mark.asyncio
+async def test_illegal_unregister(service1, services):
+    with pytest.raises(ValueError):
+        await service1.unregister()
+
+    with pytest.raises(ValueError):
+        await services.unregister()
