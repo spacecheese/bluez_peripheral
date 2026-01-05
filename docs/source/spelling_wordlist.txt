@@ -21,6 +21,7 @@ dbus
 gatt
 util
 asyncio
+async
 multithreading
 linux
 subpackages
