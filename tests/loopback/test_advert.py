@@ -22,17 +22,13 @@ async def test_advertisement(message_bus, unpaired_adapters):
         duration=5,
     )
     await advert.register(message_bus, adapter=adapters[0])
-
-    await adapters[1].start_discovery()
-    devices = await adapters[1].get_devices()
+    devices = [device async for device in adapters[1].discover_devices(duration=1.0)]
 
     assert len(devices) == 1
     assert await devices[0].get_alias() == "Heart Monitor"
     assert await devices[0].get_appearance() == 0x0340
     uuids = set(await devices[0].get_uuids())
     assert uuids == set([UUID16("180D"), UUID16("1234")])
-
-    await adapters[1].stop_discovery()
 
 
 @pytest.mark.asyncio
