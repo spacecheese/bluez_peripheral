@@ -69,7 +69,7 @@ class Service(HierarchicalServiceInterface):
         self,
         bus: MessageBus,
         *,
-        path: str,
+        path: Optional[str] = None,
         adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this service as a standalone service.
@@ -119,6 +119,7 @@ class ServiceCollection(HierarchicalServiceInterface):
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
     _INTERFACE = "org.spacecheese.ServiceCollection1"
+    _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/service_collection"
 
     def __init__(self, services: Optional[List[Service]] = None):
         """Create a service collection populated with the specified list of services.
@@ -138,7 +139,7 @@ class ServiceCollection(HierarchicalServiceInterface):
         self,
         bus: MessageBus,
         *,
-        path: str = "/com/spacecheese/bluez_peripheral",
+        path: Optional[str] = None,
         adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this collection of services with the bluez service manager.
@@ -173,3 +174,14 @@ class ServiceCollection(HierarchicalServiceInterface):
 
         self._adapter = None
         self._bus = None
+
+    def export(
+        self, bus: MessageBus, *, num: Optional[int] = None, path: Optional[str] = None
+    ) -> None:
+        """
+        Export this ServiceCollection on the specified message bus.
+        """
+        if path is None:
+            path = self._get_unique_export_path()
+
+        super().export(bus, num=num, path=path)

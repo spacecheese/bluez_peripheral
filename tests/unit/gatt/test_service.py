@@ -128,3 +128,21 @@ async def test_include_modify(
     assert set(includes) == set(
         [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
     )
+
+
+@pytest.mark.asyncio
+async def test_default_path(message_bus, background_service, bus_name):
+    services = [MockService2() for i in range(0, 11)]
+    collections = [ServiceCollection([s]) for s in services]
+    for c in collections:
+        background_service(c)
+
+    paths = {c.export_path for c in collections}
+    assert len(paths) == len(collections)
+
+    for c in collections:
+        assert c.export_path is not None
+
+        _ = await ServiceNode.from_service_collection(
+            message_bus, bus_name, c.export_path
+        )
