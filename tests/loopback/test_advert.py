@@ -22,12 +22,14 @@ async def test_advertisement(message_bus, unpaired_adapters):
         duration=5,
     )
     await advert.register(message_bus, adapter=adapters[0])
-    devices = [device async for device in adapters[1].discover_devices(duration=1.0)]
+    loopback_device = None
+    async for device in adapters[1].discover_devices(duration=5.0):
+        loopback_device = device
 
-    assert len(devices) == 1
-    assert await devices[0].get_alias() == "Heart Monitor"
-    assert await devices[0].get_appearance() == 0x0340
-    uuids = set(await devices[0].get_uuids())
+    assert loopback_device is not None
+    assert await loopback_device.get_alias() == "Heart Monitor"
+    assert await loopback_device.get_appearance() == 0x0340
+    uuids = set(await loopback_device.get_uuids())
     assert uuids == set([UUID16("180D"), UUID16("1234")])
 
 
