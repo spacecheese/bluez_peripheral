@@ -202,7 +202,11 @@ class Adapter:
         def _interface_added(path: str, intfs_and_props: Dict[str, Dict[str, Variant]]):  # type: ignore
             queue.put_nowait((path, intfs_and_props))
 
-        object_manager_interface = self._proxy.get_interface(
+        introspection = await self._adapter_interface.bus.introspect("org.bluez", "/")
+        proxy = self._adapter_interface.bus.get_proxy_object(
+            "org.bluez", "/", introspection
+        )
+        object_manager_interface = proxy.get_interface(
             "org.freedesktop.DBus.ObjectManager"
         )
         object_manager_interface.on_interfaces_added(_interface_added)  # type: ignore
@@ -218,6 +222,7 @@ class Adapter:
         if duration > 0:
             stop_task = asyncio.create_task(_stop_discovery())
 
+        adapter_path = self._adapter_interface.path
         while not self._discovery_stopped.is_set():
             if stop_task is not None:
                 queue_task = asyncio.create_task(queue.get())
@@ -239,7 +244,11 @@ class Adapter:
             else:
                 path, intfs_and_props = await queue.get()
 
-            if path in yielded_paths or "org.bluez.Device1" not in intfs_and_props:
+            if (
+                path.startswith(adapter_path)
+                and path in yielded_paths
+                or "org.bluez.Device1" not in intfs_and_props
+            ):
                 continue
 
             yield await self._get_device(path)
