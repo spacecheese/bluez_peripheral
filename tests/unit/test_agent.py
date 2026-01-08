@@ -1,6 +1,4 @@
 import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
 
 from bluez_peripheral.agent import AgentCapability, BaseAgent
 
@@ -16,13 +14,18 @@ async def test_base_agent_capability():
 
     agent = BaseAgent(AgentCapability.KEYBOARD_DISPLAY)
 
-    await agent.register(mock_bus, path=bus_path)
+    await agent.register(mock_bus, path=bus_path, default=False)
     mock_interface.call_register_agent.assert_awaited_once_with(
         bus_path, "KeyboardDisplay"
     )
-    await agent.unregister()
-
+    assert len(mock_interface.mock_calls) == 1
     mock_bus.reset_mock()
+
+    await agent.unregister()
+    mock_interface.call_unregister_agent.assert_awaited_once_with(bus_path)
+    assert len(mock_interface.mock_calls) == 1
+    mock_bus.reset_mock()
+
     agent = BaseAgent(AgentCapability.NO_INPUT_NO_OUTPUT)
 
     await agent.register(mock_bus, path=bus_path, default=True)
@@ -30,6 +33,17 @@ async def test_base_agent_capability():
         bus_path, "NoInputNoOutput"
     )
     mock_interface.call_request_default_agent.assert_awaited_once_with(bus_path)
-    await agent.unregister()
+    assert len(mock_interface.mock_calls) == 2
+    mock_bus.reset_mock()
 
+    await agent.unregister()
     mock_interface.call_unregister_agent.assert_awaited_once_with(bus_path)
+    assert len(mock_interface.mock_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_illegal_unregister():
+    agent = BaseAgent(AgentCapability.KEYBOARD_DISPLAY)
+
+    with pytest.raises(ValueError):
+        await agent.unregister()

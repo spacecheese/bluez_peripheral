@@ -1,12 +1,16 @@
-from typing import Collection, Dict, Tuple, List
+import asyncio
+from typing import Collection, Dict, Tuple, List, AsyncIterator
 
+from dbus_fast import Variant
 from dbus_fast.aio import MessageBus, ProxyInterface
 from dbus_fast.aio.proxy_object import ProxyObject
 from dbus_fast import InvalidIntrospectionError, InterfaceNotFoundError
+from dbus_fast.errors import DBusError
 
 from .util import _kebab_to_shouting_snake
 from .flags import AdvertisingIncludes
 from .uuid16 import UUID16, UUIDLike
+from .error import BluezNotAvailableError, bluez_error_wrapper
 
 
 class Device:
@@ -27,12 +31,14 @@ class Device:
 
     async def pair(self) -> None:
         """Attempts to pair the parent adapter with this device."""
-        await self._device_interface.call_pair()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._device_interface.call_pair()  # type: ignore
 
     async def remove(self, adapter: "Adapter") -> None:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
-        await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
+        async with bluez_error_wrapper():
+            await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
 
     async def get_name(self) -> str:
         """Returns the display name of this device (use alias instead to get the display name)."""
@@ -75,6 +81,7 @@ class Adapter:
     def __init__(self, proxy: ProxyObject):
         self._proxy = proxy
         self._adapter_interface = proxy.get_interface(self._INTERFACE)
+        self._discovery_stopped = asyncio.Event()
 
     def get_adapter_interface(self) -> ProxyInterface:
         """Returns the org.bluez.Adapter associated with this adapter."""
@@ -161,13 +168,105 @@ class Adapter:
             flags |= inc
         return flags
 
+    async def get_discovering(self) -> bool:
+        """Returns true if the adapter is discovering. False otherwise."""
+        return await self._adapter_interface.get_discovering()  # type: ignore
+
     async def start_discovery(self) -> None:
         """Start searching for other bluetooth devices."""
-        await self._adapter_interface.call_start_discovery()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._adapter_interface.call_start_discovery()  # type: ignore
+        self._discovery_stopped.clear()
 
     async def stop_discovery(self) -> None:
         """Stop searching for other bluetooth devices."""
-        await self._adapter_interface.call_stop_discovery()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._adapter_interface.call_stop_discovery()  # type: ignore
+        self._discovery_stopped.set()
+
+    async def _get_device(self, path: str) -> Device:
+        bus = self._adapter_interface.bus
+
+        introspection = await bus.introspect("org.bluez", path)
+        proxy = bus.get_proxy_object("org.bluez", path, introspection)
+        proxy.get_interface("org.bluez.Device1")
+        return Device(proxy)
+
+    async def discover_devices(self, duration: float = 10.0) -> AsyncIterator[Device]:
+        """
+        Asynchronously search for other bluetooth devices.
+
+        Args:
+            duration: The number of seconds to perform the discovery scan. Defaults to 10.0 seconds.
+        """
+        queue: asyncio.Queue[Tuple[str, Dict[str, Dict[str, Variant]]]] = (
+            asyncio.Queue()
+        )
+
+        def _interface_added(path: str, intfs_and_props: Dict[str, Dict[str, Variant]]):  # type: ignore
+            queue.put_nowait((path, intfs_and_props))
+
+        introspection = await self._adapter_interface.bus.introspect("org.bluez", "/")
+        proxy = self._adapter_interface.bus.get_proxy_object(
+            "org.bluez", "/", introspection
+        )
+        object_manager_interface = proxy.get_interface(
+            "org.freedesktop.DBus.ObjectManager"
+        )
+        object_manager_interface.on_interfaces_added(_interface_added)  # type: ignore
+
+        yielded_paths = set()
+
+        async def _stop_discovery() -> None:
+            await asyncio.sleep(duration)
+            await self.stop_discovery()
+
+        await self.start_discovery()
+        stop_task = None
+        if duration > 0:
+            stop_task = asyncio.create_task(_stop_discovery())
+
+        adapter_path = self._adapter_interface.path
+        while not self._discovery_stopped.is_set():
+            if stop_task is not None:
+                queue_task = asyncio.create_task(queue.get())
+
+                done, _ = await asyncio.wait(
+                    [queue_task, stop_task],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                if stop_task in done and queue_task not in done:
+                    queue_task.cancel()
+                    try:
+                        await queue_task
+                    except asyncio.CancelledError:
+                        pass
+                    break
+
+                path, intfs_and_props = queue_task.result()
+            else:
+                path, intfs_and_props = await queue.get()
+
+            if (
+                path.startswith(adapter_path)
+                and path in yielded_paths
+                or "org.bluez.Device1" not in intfs_and_props
+            ):
+                continue
+
+            yield await self._get_device(path)
+            yielded_paths.add(path)
+
+        if stop_task is not None and stop_task.done():
+            stop_task.cancel()
+            try:
+                await stop_task
+            except asyncio.CancelledError:
+                pass
+
+        object_manager_interface.off_interfaces_added(_interface_added)  # type: ignore
+        return
 
     async def get_devices(self) -> List[Device]:
         """Returns a list of devices which have been discovered by this adapter."""
@@ -182,17 +281,8 @@ class Adapter:
         for node in device_nodes:
             if node.name is None:
                 continue
-            try:
-                introspection = await bus.introspect(
-                    "org.bluez", path + "/" + node.name
-                )
-                proxy = bus.get_proxy_object(
-                    "org.bluez", path + "/" + node.name, introspection
-                )
-                devices.append(Device(proxy))
-            except InvalidIntrospectionError:
-                pass
 
+            devices.append(await self._get_device(path + "/" + node.name))
         return devices
 
     @classmethod
@@ -205,7 +295,10 @@ class Adapter:
         Returns:
             A list of available bluetooth adapters.
         """
-        adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
+        try:
+            adapter_nodes = (await bus.introspect("org.bluez", "/org/bluez")).nodes
+        except DBusError as e:
+            raise BluezNotAvailableError("org.bluez could not be introspected") from e
 
         adapters = []
         for node in adapter_nodes:

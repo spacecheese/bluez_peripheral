@@ -19,9 +19,20 @@ repos:
     rev: v4.0.4
     hooks:
       - id: pylint
+        name: pylint-bluez
         additional_dependencies:
           - dbus_fast
         files: ^bluez_peripheral/
+
+      - id: pylint
+        name: pylint-tests
+        additional_dependencies:
+          - dbus_fast       
+          - pytest
+          - pytest-asyncio
+        files: ^tests/unit
+        args:
+          - --rcfile=tests/.pylintrc
 
   - repo: local
     hooks:

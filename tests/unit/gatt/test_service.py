@@ -2,11 +2,10 @@ import re
 from typing import Collection
 
 import pytest
-import pytest_asyncio
 
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
-from ..util import ServiceNode
+from ..util import ServiceNode, make_adapter_mock
 
 
 class MockService1(Service):
@@ -55,7 +54,9 @@ def bus_path():
 
 
 @pytest.mark.asyncio
-async def test_structure(message_bus, background_service, bus_name, bus_path):
+async def test_structure(message_bus, background_service, services, bus_name, bus_path):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -82,6 +83,8 @@ async def test_include_modify(
     bus_path,
     background_service,
 ):
+    service_manager = background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -94,9 +97,9 @@ async def test_include_modify(
         [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
     )
 
-    background_service.unregister()
+    service_manager.unregister()
     services.remove_child(service3)
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
 
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
@@ -110,9 +113,9 @@ async def test_include_modify(
     with pytest.raises(KeyError):
         await service_collection.get_child("180C")
 
-    background_service.unregister()
+    service_manager.unregister()
     services.add_child(service3)
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
 
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
@@ -125,3 +128,36 @@ async def test_include_modify(
     assert set(includes) == set(
         [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
     )
+
+
+@pytest.mark.asyncio
+async def test_default_path(message_bus, background_service, bus_name):
+    services = [MockService2() for i in range(0, 11)]
+    collections = [ServiceCollection([s]) for s in services]
+    for c in collections:
+        background_service(c)
+
+    paths = {c.export_path for c in collections}
+    assert len(paths) == len(collections)
+
+    for c in collections:
+        assert c.export_path is not None
+
+        _ = await ServiceNode.from_service_collection(
+            message_bus, bus_name, c.export_path
+        )
+
+
+@pytest.mark.asyncio
+async def test_service_register(message_bus, service1):
+    await service1.register(message_bus, adapter=make_adapter_mock())
+    await service1.unregister()
+
+
+@pytest.mark.asyncio
+async def test_illegal_unregister(service1, services):
+    with pytest.raises(ValueError):
+        await service1.unregister()
+
+    with pytest.raises(ValueError):
+        await services.unregister()

@@ -2,7 +2,6 @@ import asyncio
 import re
 
 import pytest
-import pytest_asyncio
 
 from dbus_fast import Variant
 
@@ -14,11 +13,7 @@ from bluez_peripheral.gatt.characteristic import (
 from bluez_peripheral.gatt.descriptor import descriptor
 from bluez_peripheral.gatt.service import Service, ServiceCollection
 
-from ..util import (
-    ServiceNode,
-    get_first_adapter_or_skip,
-    bluez_available_or_skip,
-)
+from ..util import ServiceNode
 
 
 class MockService(Service):
@@ -86,7 +81,9 @@ def bus_path():
 
 
 @pytest.mark.asyncio
-async def test_structure(message_bus, background_service, bus_name, bus_path):
+async def test_structure(message_bus, services, background_service, bus_name, bus_path):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -106,7 +103,10 @@ async def test_structure(message_bus, background_service, bus_name, bus_path):
 
 
 @pytest.mark.asyncio
-async def test_read(message_bus, service, background_service, bus_name, bus_path):
+async def test_read(
+    message_bus, service, services, background_service, bus_name, bus_path
+):
+    background_service(services, path=bus_path)
     opts = {
         "offset": Variant("q", 0),
         "mtu": Variant("q", 128),
@@ -135,7 +135,10 @@ async def test_read(message_bus, service, background_service, bus_name, bus_path
 
 
 @pytest.mark.asyncio
-async def test_write(message_bus, service, background_service, bus_name, bus_path):
+async def test_write(
+    message_bus, service, services, background_service, bus_name, bus_path
+):
+    background_service(services, path=bus_path)
     opts = {
         "offset": Variant("q", 10),
         "type": Variant("s", "request"),
@@ -156,7 +159,7 @@ async def test_write(message_bus, service, background_service, bus_name, bus_pat
     assert service.last_opts.mtu == 128
     assert service.last_opts.device == "blablabla/.hmm"
     assert service.last_opts.link == "yuyuyuy"
-    assert service.last_opts.prepare_authorize == False
+    assert not service.last_opts.prepare_authorize
 
     assert service.val.decode("utf-8") == "Test Write Value"
 
@@ -168,24 +171,32 @@ async def test_write(message_bus, service, background_service, bus_name, bus_pat
 
 @pytest.mark.asyncio
 async def test_notify_no_start(
-    message_bus, service, background_service, bus_name, bus_path
+    message_bus, services, background_service, bus_name, bus_path
 ):
+    background_service(services, path=bus_path)
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
     char = await service_collection.get_child("180A", "2A38")
     prop_interface = char.proxy.get_interface("org.freedesktop.DBus.Properties")
 
+    foreground_loop = asyncio.get_running_loop()
+    properties_changed = foreground_loop.create_future()
+
     def on_properties_changed(_0, _1, _2):
-        property_changed.set()
+        properties_changed.set()
 
     prop_interface.on_properties_changed(on_properties_changed)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(properties_changed, timeout=0.1)
 
 
 @pytest.mark.asyncio
 async def test_notify_start_stop(
-    message_bus, service, background_service, bus_name, bus_path
+    message_bus, service, services, background_service, bus_name, bus_path
 ):
+    background_service(services, path=bus_path)
+
     service_collection = await ServiceNode.from_service_collection(
         message_bus, bus_name, bus_path
     )
@@ -227,6 +238,8 @@ async def test_notify_start_stop(
 async def test_modify(
     message_bus, service, services, background_service, bus_name, bus_path
 ):
+    service_manager = background_service(services, path=bus_path)
+
     opts = {
         "offset": Variant("q", 0),
         "mtu": Variant("q", 128),
@@ -240,40 +253,20 @@ async def test_modify(
     with pytest.raises(KeyError):
         await service_collection.get_child("180A", "2A38", "2D56")
 
-    background_service.unregister()
+    service_manager.unregister()
 
     @descriptor("2D56", service.write_notify_char)
     def some_desc(service, opts):
         return bytes("Some Test Value", "utf-8")
 
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
     desc = await service_collection.get_child("180A", "2A38", "2D56")
     resp = await desc.attr_interface.call_read_value(opts)
     assert resp.decode("utf-8") == "Some Test Value"
 
-    background_service.unregister()
+    service_manager.unregister()
     service.write_notify_char.remove_child(some_desc)
 
-    background_service.register(services, bus_path)
+    service_manager.register(services, path=bus_path)
     with pytest.raises(KeyError):
         await service_collection.get_child("180A", "2A38", "2D56")
-
-
-@pytest.mark.asyncio
-async def test_bluez(message_bus, services):
-    await bluez_available_or_skip(message_bus)
-    adapter = await get_first_adapter_or_skip(message_bus)
-
-    initial_powered = await adapter.get_powered()
-    initial_discoverable = await adapter.get_discoverable()
-
-    await adapter.set_powered(True)
-    await adapter.set_discoverable(True)
-
-    try:
-        await services.register(message_bus, adapter=adapter)
-    finally:
-        await services.unregister()
-
-        await adapter.set_discoverable(initial_discoverable)
-        await adapter.set_powered(initial_powered)

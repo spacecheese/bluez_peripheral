@@ -1,6 +1,6 @@
-from typing import Collection, Dict, Callable, Optional, Union, List, Tuple
+import inspect
+from typing import Collection, Dict, Callable, Optional, Union, Awaitable
 import struct
-from uuid import UUID
 
 from dbus_fast import Variant
 from dbus_fast.constants import PropertyAccess
@@ -13,6 +13,7 @@ from .adapter import Adapter
 from .flags import AdvertisingIncludes
 from .flags import AdvertisingPacketType
 from .base import BaseServiceInterface
+from .error import bluez_error_wrapper
 
 
 class Advertisement(BaseServiceInterface):
@@ -34,7 +35,7 @@ class Advertisement(BaseServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        release_callback: A function to call when the advert release function is called.
+        release_callback: A function to call when the advert release function is called. The default release callback will unexport the advert.
     """
 
     _INTERFACE = "org.bluez.LEAdvertisement1"
@@ -51,10 +52,12 @@ class Advertisement(BaseServiceInterface):
         packet_type: AdvertisingPacketType = AdvertisingPacketType.PERIPHERAL,
         manufacturer_data: Optional[Dict[int, bytes]] = None,
         solicit_uuids: Optional[Collection[UUIDLike]] = None,
-        service_data: Optional[List[Tuple[UUIDLike, bytes]]] = None,
+        service_data: Optional[Dict[UUIDLike, bytes]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: int = 2,
-        release_callback: Optional[Callable[[], None]] = None,
+        release_callback: Optional[
+            Union[Callable[[], None], Callable[[], Awaitable[None]]]
+        ] = None,
     ):
         self._type = packet_type
         # Convert any string uuids to uuid16.
@@ -69,24 +72,32 @@ class Advertisement(BaseServiceInterface):
 
         if manufacturer_data is None:
             manufacturer_data = {}
-        self._manufacturer_data = {}
-        for key, value in manufacturer_data.items():
-            self._manufacturer_data[key] = Variant("ay", value)
+        self._manufacturer_data = {
+            k: Variant("ay", v) for k, v in manufacturer_data.items()
+        }
 
         if solicit_uuids is None:
             solicit_uuids = []
         self._solicit_uuids = [UUID16.parse_uuid(uuid) for uuid in solicit_uuids]
 
         if service_data is None:
-            service_data = []
-        self._service_data: List[Tuple[UUID16 | UUID, Variant]] = []
-        for i, dat in service_data:
-            self._service_data.append((UUID16.parse_uuid(i), Variant("ay", dat)))
+            service_data = {}
+        self._service_data = {
+            UUID16.parse_uuid(k): Variant("ay", v) for k, v in service_data.items()
+        }
 
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
-        self._release_callback = release_callback
+
+        def _default_release_callback() -> None:
+            self.unexport()
+
+        self._release_callback: Union[Callable[[], None], Callable[[], Awaitable[None]]]
+        if release_callback is None:
+            self._release_callback = _default_release_callback
+        else:
+            self._release_callback = release_callback
 
         self._adapter: Optional[Adapter] = None
 
@@ -114,28 +125,32 @@ class Advertisement(BaseServiceInterface):
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
-        await interface.call_register_advertisement(self.export_path, {})  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_register_advertisement(self.export_path, {})  # type: ignore
 
         self._adapter = adapter
 
     @method("Release")
-    def _release(self):  # type: ignore
-        self.unexport()
+    async def _release(self):  # type: ignore
+        if inspect.iscoroutinefunction(self._release_callback):
+            await self._release_callback()
+        else:
+            self._release_callback()
 
     async def unregister(self) -> None:
         """
         Unregister this advertisement from bluez to stop advertising.
         """
-        if not self._adapter:
+        if not self._adapter or not self.is_exported:
             raise ValueError("This advertisement is not registered")
 
         interface = self._adapter.get_advertising_manager()
 
-        await interface.call_unregister_advertisement(self._export_path)  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_unregister_advertisement(self.export_path)  # type: ignore
         self._adapter = None
 
-        if self._release_callback is not None:
-            self._release_callback()
+        self.unexport()
 
     @dbus_property(PropertyAccess.READ, "Type")
     def _get_type(self) -> "s":  # type: ignore
@@ -167,7 +182,7 @@ class Advertisement(BaseServiceInterface):
 
     @dbus_property(PropertyAccess.READ, "ServiceData")
     def _get_service_data(self) -> "a{sv}":  # type: ignore
-        return dict((str(key), val) for key, val in self._service_data)
+        return {str(key): val for key, val in self._service_data.items()}
 
     @dbus_property(PropertyAccess.READ, "Discoverable")
     def _get_discoverable(self) -> "b":  # type: ignore

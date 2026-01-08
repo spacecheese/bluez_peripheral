@@ -14,7 +14,7 @@ class BaseServiceInterface(ServiceInterface):
     The dbus interface name implemented by this component.
     """
 
-    _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral"
+    _DEFAULT_PATH_PREFIX: Optional[str] = None
     """
     The default prefix to use when a bus path is not specified for this interface during export.
     """
@@ -27,9 +27,14 @@ class BaseServiceInterface(ServiceInterface):
     def __init__(self) -> None:
         super().__init__(name=self._INTERFACE)
 
-    @property
-    def _default_export_path(self) -> str:
-        return self._DEFAULT_PATH_PREFIX + str(type(self)._default_path_count)
+    def _get_unique_export_path(self) -> str:
+        if self._DEFAULT_PATH_PREFIX is None:
+            raise NotImplementedError()
+
+        res = self._DEFAULT_PATH_PREFIX + str(type(self)._default_path_count)
+        type(self)._default_path_count += 1
+
+        return res
 
     def export(self, bus: MessageBus, *, path: Optional[str] = None) -> None:
         """
@@ -40,8 +45,7 @@ class BaseServiceInterface(ServiceInterface):
             raise NotImplementedError()
 
         if path is None:
-            path = self._default_export_path
-            type(self)._default_path_count += 1
+            path = self._get_unique_export_path()
 
         bus.export(path, self)
         self._export_path = path

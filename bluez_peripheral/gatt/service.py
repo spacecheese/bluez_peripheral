@@ -9,6 +9,7 @@ from .base import HierarchicalServiceInterface
 from .characteristic import characteristic
 from ..uuid16 import UUID16, UUIDLike
 from ..adapter import Adapter
+from ..error import bluez_error_wrapper
 
 
 class Service(HierarchicalServiceInterface):
@@ -69,7 +70,7 @@ class Service(HierarchicalServiceInterface):
         self,
         bus: MessageBus,
         *,
-        path: str,
+        path: Optional[str] = None,
         adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this service as a standalone service.
@@ -89,7 +90,9 @@ class Service(HierarchicalServiceInterface):
         You may only use this if the service was registered using :class:`Service.register()`
         """
         if self._collection is None:
-            return
+            raise ValueError(
+                "Cannot unregister a service which has not been registered"
+            )
 
         await self._collection.unregister()
         self._collection = None
@@ -119,6 +122,7 @@ class ServiceCollection(HierarchicalServiceInterface):
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
     _INTERFACE = "org.spacecheese.ServiceCollection1"
+    _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/service_collection"
 
     def __init__(self, services: Optional[List[Service]] = None):
         """Create a service collection populated with the specified list of services.
@@ -138,7 +142,7 @@ class ServiceCollection(HierarchicalServiceInterface):
         self,
         bus: MessageBus,
         *,
-        path: str = "/com/spacecheese/bluez_peripheral",
+        path: Optional[str] = None,
         adapter: Optional[Adapter] = None,
     ) -> None:
         """Register this collection of services with the bluez service manager.
@@ -155,21 +159,35 @@ class ServiceCollection(HierarchicalServiceInterface):
         self.export(bus, path=path)
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_register_application(self.export_path, {})  # type: ignore
+        async with bluez_error_wrapper():
+            await manager.call_register_application(self.export_path, {})  # type: ignore
 
         self._bus = bus
 
     async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""
         if not self.is_exported:
-            return
+            raise ValueError("Cannot unexport a component which is not exported")
+
         assert self._bus is not None
         assert self._adapter is not None
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_unregister_application(self.export_path)  # type: ignore
+        async with bluez_error_wrapper():
+            await manager.call_unregister_application(self.export_path)  # type: ignore
 
         self.unexport()
 
         self._adapter = None
         self._bus = None
+
+    def export(
+        self, bus: MessageBus, *, num: Optional[int] = None, path: Optional[str] = None
+    ) -> None:
+        """
+        Export this ServiceCollection on the specified message bus.
+        """
+        if path is None:
+            path = self._get_unique_export_path()
+
+        super().export(bus, num=num, path=path)

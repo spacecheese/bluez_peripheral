@@ -1,0 +1,13 @@
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-few-public-methods,
+    redefined-outer-name,
+    protected-access,
+    unused-argument,
+    unused-variable,
+    duplicate-code

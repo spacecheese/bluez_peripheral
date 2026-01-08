@@ -6,7 +6,7 @@ from dbus_fast.aio.message_bus import MessageBus
 from dbus_fast.aio.proxy_object import ProxyInterface
 
 from .util import _snake_to_pascal
-from .error import RejectedError
+from .error import RejectedError, bluez_error_wrapper
 from .base import BaseServiceInterface
 
 
@@ -58,7 +58,7 @@ class BaseAgent(BaseServiceInterface):
         pass
 
     @method("Cancel")
-    def _cancle(self):  # type: ignore
+    def _cancel(self):  # type: ignore
         pass
 
     def _get_capability(self) -> str:
@@ -84,10 +84,12 @@ class BaseAgent(BaseServiceInterface):
         self.export(bus, path=path)
 
         interface = await self._get_manager_interface(bus)
-        await interface.call_register_agent(path, self._get_capability())  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_register_agent(path, self._get_capability())  # type: ignore
 
         if default:
-            await interface.call_request_default_agent(self.export_path)  # type: ignore
+            async with bluez_error_wrapper():
+                await interface.call_request_default_agent(self.export_path)  # type: ignore
 
     async def unregister(self) -> None:
         """Unregister this agent with bluez and remove it from the specified message bus.
@@ -100,7 +102,8 @@ class BaseAgent(BaseServiceInterface):
         assert self._export_bus is not None
 
         interface = await self._get_manager_interface(self._export_bus)
-        await interface.call_unregister_agent(self.export_path)  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_unregister_agent(self.export_path)  # type: ignore
 
         self.unexport()
 
