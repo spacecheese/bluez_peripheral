@@ -13,6 +13,7 @@ from .adapter import Adapter
 from .flags import AdvertisingIncludes
 from .flags import AdvertisingPacketType
 from .base import BaseServiceInterface
+from .error import bluez_error_wrapper
 
 
 class Advertisement(BaseServiceInterface):
@@ -124,7 +125,8 @@ class Advertisement(BaseServiceInterface):
 
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
-        await interface.call_register_advertisement(self.export_path, {})  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_register_advertisement(self.export_path, {})  # type: ignore
 
         self._adapter = adapter
 
@@ -144,7 +146,8 @@ class Advertisement(BaseServiceInterface):
 
         interface = self._adapter.get_advertising_manager()
 
-        await interface.call_unregister_advertisement(self.export_path)  # type: ignore
+        async with bluez_error_wrapper():
+            await interface.call_unregister_advertisement(self.export_path)  # type: ignore
         self._adapter = None
 
         self.unexport()

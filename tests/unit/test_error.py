@@ -18,3 +18,6 @@ async def test_wrapper():
             raise DBusError("org.bluez.Error.Failed", "test2")
 
     assert e.value.text == "test2"
+
+    async with bluez_error_wrapper():
+        pass

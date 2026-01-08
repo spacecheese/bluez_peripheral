@@ -9,6 +9,7 @@ from .base import HierarchicalServiceInterface
 from .characteristic import characteristic
 from ..uuid16 import UUID16, UUIDLike
 from ..adapter import Adapter
+from ..error import bluez_error_wrapper
 
 
 class Service(HierarchicalServiceInterface):
@@ -158,7 +159,8 @@ class ServiceCollection(HierarchicalServiceInterface):
         self.export(bus, path=path)
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_register_application(self.export_path, {})  # type: ignore
+        async with bluez_error_wrapper():
+            await manager.call_register_application(self.export_path, {})  # type: ignore
 
         self._bus = bus
 
@@ -171,7 +173,8 @@ class ServiceCollection(HierarchicalServiceInterface):
         assert self._adapter is not None
 
         manager = self._adapter.get_gatt_manager()
-        await manager.call_unregister_application(self.export_path)  # type: ignore
+        async with bluez_error_wrapper():
+            await manager.call_unregister_application(self.export_path)  # type: ignore
 
         self.unexport()
 

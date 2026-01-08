@@ -10,7 +10,7 @@ from dbus_fast.errors import DBusError
 from .util import _kebab_to_shouting_snake
 from .flags import AdvertisingIncludes
 from .uuid16 import UUID16, UUIDLike
-from .error import BluezNotAvailableError
+from .error import BluezNotAvailableError, bluez_error_wrapper
 
 
 class Device:
@@ -31,12 +31,14 @@ class Device:
 
     async def pair(self) -> None:
         """Attempts to pair the parent adapter with this device."""
-        await self._device_interface.call_pair()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._device_interface.call_pair()  # type: ignore
 
     async def remove(self, adapter: "Adapter") -> None:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
-        await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
+        async with bluez_error_wrapper():
+            await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
 
     async def get_name(self) -> str:
         """Returns the display name of this device (use alias instead to get the display name)."""
@@ -172,12 +174,14 @@ class Adapter:
 
     async def start_discovery(self) -> None:
         """Start searching for other bluetooth devices."""
-        await self._adapter_interface.call_start_discovery()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._adapter_interface.call_start_discovery()  # type: ignore
         self._discovery_stopped.clear()
 
     async def stop_discovery(self) -> None:
         """Stop searching for other bluetooth devices."""
-        await self._adapter_interface.call_stop_discovery()  # type: ignore
+        async with bluez_error_wrapper():
+            await self._adapter_interface.call_stop_discovery()  # type: ignore
         self._discovery_stopped.set()
 
     async def _get_device(self, path: str) -> Device:

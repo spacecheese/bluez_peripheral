@@ -112,6 +112,7 @@ class NotReadyError(BluezDBusErrorBase):
 
     ERROR_TYPE = "org.bluez.Error.NotReady"
 
+
 class InvalidArgumentsError(BluezDBusErrorBase):
     """Indicates that an object has invalid or conflicting properties."""
 
