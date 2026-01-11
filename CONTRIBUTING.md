@@ -24,4 +24,4 @@ You can then run all pre-commit checks manually:
 pre-commit run --hook-stage manual --all-files
 ```
 
-For instructions on running tests locally please consult the respective markdown files- this process more more complex since bluez, dbus and the hci_vhci kernel module are required.
+For instructions on running tests locally please consult the respective markdown files- these require some specific environment setup.
