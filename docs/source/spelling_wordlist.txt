@@ -33,3 +33,4 @@ unexported
 LEAdvertisingManager
 GattManager
 unpairs
+Mixin

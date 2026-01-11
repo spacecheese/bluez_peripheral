@@ -1,5 +1,4 @@
 from uuid import UUID
-import asyncio
 import pytest
 
 from dbus_fast import Variant
@@ -61,7 +60,9 @@ async def test_includes_empty(bus_name, bus_path, message_bus, background_advert
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
     interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
-    assert await interface.get_includes() == []
+
+    with pytest.raises(AttributeError):
+        await interface.get_includes()
 
 
 @pytest.mark.asyncio
@@ -95,70 +96,27 @@ async def test_illegal_unregister():
 
 
 @pytest.mark.asyncio
-async def test_default_release(message_bus, bus_name, bus_path, background_advert):
+async def test_release(message_bus, bus_name, bus_path, background_advert):
     advert = Advertisement(
         "Attribs Test", ["180A", "180D"], appearance=0x0340, timeout=2
     )
-    background_advert(advert, path=bus_path)
-
-    introspection = await message_bus.introspect(bus_name, bus_path)
-    proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
-    interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
-    await interface.call_release()
-
-    assert not advert.is_exported
-
-
-@pytest.mark.asyncio
-async def test_custom_sync_release(message_bus, bus_name, bus_path, background_advert):
-    foreground_loop = asyncio.get_running_loop()
-    released = foreground_loop.create_future()
-
-    def _release_callback():
-        foreground_loop.call_soon_threadsafe(released.set_result, ())
-
-    advert = Advertisement(
-        "Attribs Test",
-        ["180A", "180D"],
-        appearance=0x0340,
-        timeout=2,
-        release_callback=_release_callback,
+    background_manager = background_advert(advert, path=bus_path)
+    mock_advertising_manager = (
+        background_manager.adapter.get_advertising_manager.return_value
     )
-    background_advert(advert, path=bus_path)
+
+    mock_advertising_manager.reset_mock()
 
     introspection = await message_bus.introspect(bus_name, bus_path)
     proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
     interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
     await interface.call_release()
-    await asyncio.wait_for(released, timeout=0.1)
 
-    assert advert.is_exported
-
-
-@pytest.mark.asyncio
-async def test_custom_async_release(message_bus, bus_name, bus_path, background_advert):
-    foreground_loop = asyncio.get_running_loop()
-    released = foreground_loop.create_future()
-
-    async def _release_callback():
-        foreground_loop.call_soon_threadsafe(released.set_result, ())
-
-    advert = Advertisement(
-        "Attribs Test",
-        ["180A", "180D"],
-        appearance=0x0340,
-        timeout=2,
-        release_callback=_release_callback,
-    )
-    background_advert(advert, path=bus_path)
+    assert mock_advertising_manager.call_register_advertisement.await_count == 0
+    assert mock_advertising_manager.call_unregister_advertisement.await_count == 0
 
     introspection = await message_bus.introspect(bus_name, bus_path)
-    proxy_object = message_bus.get_proxy_object(bus_name, bus_path, introspection)
-    interface = proxy_object.get_interface("org.bluez.LEAdvertisement1")
-    await interface.call_release()
-    await asyncio.wait_for(released, timeout=0.1)
-
-    assert advert.is_exported
+    assert "org.bluez.LEAdvertisement1" not in introspection.interfaces
 
 
 @pytest.mark.asyncio
