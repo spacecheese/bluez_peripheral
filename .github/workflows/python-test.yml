@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        image_id: ["ubuntu-24.04-bluez-5.64", "ubuntu-24.04-bluez-5.66", "ubuntu-24.04-bluez-5.70"]
+        image_id: ["ubuntu-18.04-bluez-5.50", "ubuntu-24.04-bluez-5.64", "ubuntu-24.04-bluez-5.66", "ubuntu-24.04-bluez-5.70"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
