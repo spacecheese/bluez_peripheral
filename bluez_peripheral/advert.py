@@ -25,7 +25,7 @@ class Advertisement(UniquePathMixin):
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
             See the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_ (Search for "Appearance Values")
-        timeout: The time from registration until this advert is removed (defaults to zero meaning never timeout).
+        timeout: The time from registration until this advert is removed (defaults to None meaning never timeout).
         discoverable: Whether or not the device this advert should be generally discoverable.
         packetType: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
@@ -34,7 +34,6 @@ class Advertisement(UniquePathMixin):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        release_callback: A function to call when the advert release function is called. The default release callback will unexport the advert.
     """
 
     _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/advert"
