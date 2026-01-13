@@ -35,7 +35,7 @@ Characteristics may operate in a number of modes depending on their purpose. By 
 
 ## Usage
 
-When using this library please remember that services are not implicitly threaded. **The thread used to register your service must regularly yeild otherwise your service will not work** (particularly notifications). Therefore you must frequently yield to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
+When using this library please remember that services are not implicitly threaded. **The thread used to register your service must regularly yield otherwise your service will not work** (particularly notifications). Therefore you must frequently yield to the asyncio event loop (for example using asyncio.sleep) and ideally use multithreading.
 
 The easiest way to use the library is to create a class describing the service that you wish to provide.
 
