@@ -15,7 +15,7 @@ rsync -a --progress --rsync-path="sudo rsync" \
   --exclude docs/ \
   --exclude serial.log \
   --exclude='*.venv*' \
-  --exclude='*/__pycache__/*' \
+  --exclude='*/__pycache__*' \
   . tester@localhost:/bluez_peripheral
 
 ssh -i tests/loopback/assets/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2244 -L 5678:localhost:5678 tester@localhost "
