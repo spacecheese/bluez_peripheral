@@ -135,5 +135,8 @@ class UUID16:
     def __str__(self) -> str:
         return self.hex
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}('{self.hex}')"
+
     def __hash__(self) -> builtins.int:
         return hash(self.uuid)
