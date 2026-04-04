@@ -13,14 +13,14 @@ from .flags import AdvertisingIncludes, AdvertisingPacketType
 from .util import _snake_to_kebab
 from .uuid16 import UUID16, UUIDLike
 
-# BlueZ src/advertising.c parse_min_interval / parse_max_interval: HCI slot = ms / 0.625,
+# bluez src/advertising.c parse_min_interval / parse_max_interval: HCI slot = ms / 0.625,
 # valid slots 0x20 .. 0xFFFFFF (see doc/org.bluez.LEAdvertisement.rst).
 _ADV_INTERVAL_SLOT_MIN = 0x20
 _ADV_INTERVAL_SLOT_MAX = 0xFFFFFF
 
 
 def _adv_interval_ms_to_slot(ms: int) -> int:
-    """Convert advertising interval from milliseconds to HCI units (matches BlueZ C division)."""
+    """Convert advertising interval from milliseconds to HCI units (matches bluez C division)."""
     return int(ms / 0.625)
 
 
@@ -29,12 +29,12 @@ def _validate_advertising_intervals_ms(min_ms: int, max_ms: int) -> None:
     max_slot = _adv_interval_ms_to_slot(max_ms)
     if min_slot < _ADV_INTERVAL_SLOT_MIN or min_slot > _ADV_INTERVAL_SLOT_MAX:
         raise ValueError(
-            "min_advertising_interval_ms is out of range for BlueZ LE advertising "
+            "min_advertising_interval_ms is out of range for bluez LE advertising "
             f"(HCI slot {min_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
         )
     if max_slot < _ADV_INTERVAL_SLOT_MIN or max_slot > _ADV_INTERVAL_SLOT_MAX:
         raise ValueError(
-            "max_advertising_interval_ms is out of range for BlueZ LE advertising "
+            "max_advertising_interval_ms is out of range for bluez LE advertising "
             f"(HCI slot {max_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
         )
     if min_slot > max_slot:
@@ -63,9 +63,9 @@ class Advertisement(UniquePathMixin):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        min_advertising_interval_ms: Optional minimum advertising interval (ms); must be set together with max.
-        max_advertising_interval_ms: Optional maximum advertising interval (ms); must be set together with min.
-            See ``MinInterval`` / ``MaxInterval`` in the BlueZ LEAdvertisement documentation.
+        min_advertising_interval_ms: Optional minimum advertising interval in milliseconds; must be set together with max.
+        max_advertising_interval_ms: Optional maximum advertising interval in milliseconds; must be set together with min.
+            See ``MinInterval`` / ``MaxInterval`` in the bluez LEAdvertisement documentation.
     """
 
     _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/advert"
