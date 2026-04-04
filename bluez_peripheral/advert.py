@@ -1,18 +1,47 @@
-from typing import Collection, Dict, Optional, Union, Any
 import struct
+from typing import Any, Collection, Dict, Optional, Union
 
 from dbus_fast import Variant
-from dbus_fast.constants import PropertyAccess
-from dbus_fast.service import method, dbus_property
 from dbus_fast.aio.message_bus import MessageBus
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import dbus_property, method
 
-from .uuid16 import UUID16, UUIDLike
-from .util import _snake_to_kebab
 from .adapter import Adapter
-from .flags import AdvertisingIncludes
-from .flags import AdvertisingPacketType
 from .base import BaseServiceInterface, UniquePathMixin
 from .error import bluez_error_wrapper
+from .flags import AdvertisingIncludes, AdvertisingPacketType
+from .util import _snake_to_kebab
+from .uuid16 import UUID16, UUIDLike
+
+# BlueZ src/advertising.c parse_min_interval / parse_max_interval: HCI slot = ms / 0.625,
+# valid slots 0x20 .. 0xFFFFFF (see doc/org.bluez.LEAdvertisement.rst).
+_ADV_INTERVAL_SLOT_MIN = 0x20
+_ADV_INTERVAL_SLOT_MAX = 0xFFFFFF
+
+
+def _adv_interval_ms_to_slot(ms: int) -> int:
+    """Convert advertising interval from milliseconds to HCI units (matches BlueZ C division)."""
+    return int(ms / 0.625)
+
+
+def _validate_advertising_intervals_ms(min_ms: int, max_ms: int) -> None:
+    min_slot = _adv_interval_ms_to_slot(min_ms)
+    max_slot = _adv_interval_ms_to_slot(max_ms)
+    if min_slot < _ADV_INTERVAL_SLOT_MIN or min_slot > _ADV_INTERVAL_SLOT_MAX:
+        raise ValueError(
+            "min_advertising_interval_ms is out of range for BlueZ LE advertising "
+            f"(HCI slot {min_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
+        )
+    if max_slot < _ADV_INTERVAL_SLOT_MIN or max_slot > _ADV_INTERVAL_SLOT_MAX:
+        raise ValueError(
+            "max_advertising_interval_ms is out of range for BlueZ LE advertising "
+            f"(HCI slot {max_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
+        )
+    if min_slot > max_slot:
+        raise ValueError(
+            "min_advertising_interval_ms must be <= max_advertising_interval_ms "
+            f"(HCI slots {min_slot} > {max_slot})"
+        )
 
 
 class Advertisement(UniquePathMixin):
@@ -34,6 +63,9 @@ class Advertisement(UniquePathMixin):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
+        min_advertising_interval_ms: Optional minimum advertising interval (ms); must be set together with max.
+        max_advertising_interval_ms: Optional maximum advertising interval (ms); must be set together with min.
+            See ``MinInterval`` / ``MaxInterval`` in the BlueZ LEAdvertisement documentation.
     """
 
     _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/advert"
@@ -140,6 +172,22 @@ class Advertisement(UniquePathMixin):
             def _get_duration(self) -> "q":  # type: ignore
                 return advert._duration
 
+            @dbus_property(
+                PropertyAccess.READ,
+                "MinInterval",
+                disabled=(advert._min_advertising_interval_ms is None),
+            )
+            def _get_min_interval(self) -> "u":  # type: ignore
+                return advert._min_advertising_interval_ms
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "MaxInterval",
+                disabled=(advert._max_advertising_interval_ms is None),
+            )
+            def _get_max_interval(self) -> "u":  # type: ignore
+                return advert._max_advertising_interval_ms
+
         return _AdvertService()
 
     def __init__(
@@ -156,6 +204,8 @@ class Advertisement(UniquePathMixin):
         service_data: Optional[Dict[UUIDLike, bytes]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
         duration: Optional[int] = 2,
+        min_advertising_interval_ms: Optional[int] = None,
+        max_advertising_interval_ms: Optional[int] = None,
     ):
         self._type = packet_type
         # Convert any string uuids to uuid16.
@@ -189,6 +239,24 @@ class Advertisement(UniquePathMixin):
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
+
+        self._min_advertising_interval_ms: Optional[int] = None
+        self._max_advertising_interval_ms: Optional[int] = None
+        if (min_advertising_interval_ms is not None) ^ (
+            max_advertising_interval_ms is not None
+        ):
+            raise ValueError(
+                "min_advertising_interval_ms and max_advertising_interval_ms must "
+                "both be set or both be omitted"
+            )
+        if min_advertising_interval_ms is not None:
+            assert max_advertising_interval_ms is not None
+            _validate_advertising_intervals_ms(
+                min_advertising_interval_ms,
+                max_advertising_interval_ms,
+            )
+            self._min_advertising_interval_ms = min_advertising_interval_ms
+            self._max_advertising_interval_ms = max_advertising_interval_ms
 
         self._adapter: Optional[Adapter] = None
         self._service = self._advert_service_factory()
