@@ -59,8 +59,8 @@ class Device:
 
     async def get_manufacturer_data(self) -> Dict[int, bytes]:
         """Returns the manufacturer data."""
-        data = await self._device_interface.get_manufacturer_data()
-        return {k: v.value for k, v in data.items()}  # type: ignore
+        data = await self._device_interface.get_manufacturer_data()  # type: ignore
+        return {k: v.value for k, v in data.items()}
 
     async def get_service_data(self) -> Dict[UUIDLike, bytes]:
         """Returns the service data."""
@@ -204,24 +204,30 @@ class Adapter:
             asyncio.Queue()
         )
 
+        adapter_path = self._adapter_interface.path
+        bus = self._adapter_interface.bus
+
         def _interface_added(path: str, intfs_and_props: Dict[str, Dict[str, Variant]]):  # type: ignore
             queue.put_nowait((path, intfs_and_props))
 
-        introspection = await self._adapter_interface.bus.introspect("org.bluez", "/")
-        proxy = self._adapter_interface.bus.get_proxy_object(
-            "org.bluez", "/", introspection
-        )
+        introspection = await bus.introspect("org.bluez", "/")
+        proxy = bus.get_proxy_object("org.bluez", "/", introspection)
         object_manager_interface = proxy.get_interface(
             "org.freedesktop.DBus.ObjectManager"
         )
         object_manager_interface.on_interfaces_added(_interface_added)  # type: ignore
 
-        # Yield any devices which are already present.
-        devs = await self.get_devices()
-        yielded_paths = set(devs)
+        yielded_paths = set()
 
-        for d in devs:
-            yield d
+        # Yield any devices which are already present.
+        device_nodes = (await bus.introspect("org.bluez", adapter_path)).nodes
+        for node in device_nodes:
+            if node.name is None:
+                continue
+
+            node_path = adapter_path + "/" + node.name
+            yield await self._get_device(node_path)
+            yielded_paths.add(node_path)
 
         async def _stop_discovery() -> None:
             await asyncio.sleep(duration)

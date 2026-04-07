@@ -31,6 +31,7 @@ async def test_advertisement(message_bus, unpaired_adapters):
     assert await loopback_device.get_appearance() == 0x0340
     assert {UUID16("180D"), UUID16("1234")}.issubset(await loopback_device.get_uuids())
 
+
 @pytest.mark.asyncio
 async def test_advanced_data(message_bus, unpaired_adapters):
     adapters = unpaired_adapters
@@ -56,6 +57,7 @@ async def test_advanced_data(message_bus, unpaired_adapters):
     assert await loopback_device.get_appearance() == 0x0340
     assert {UUID16("180A"), UUID16("180D")}.issubset(await loopback_device.get_uuids())
     assert await loopback_device.get_service_data() == {UUID16("180A"): b"\0x01\0x02"}
+
 
 @pytest.mark.asyncio
 async def test_manufacturer_data(message_bus, unpaired_adapters):
