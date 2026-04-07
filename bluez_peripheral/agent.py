@@ -12,7 +12,7 @@ from .base import BaseServiceInterface, UniquePathMixin
 
 class AgentCapability(Enum):
     """The IO Capabilities of the local device supported by the agent.
-    See Tables 5.5 and 5.7 of the `Bluetooth Core Spec Part C. <https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=478726>`_
+    See Tables 5.5 and 5.7 of the `Bluetooth Core Spec Part C. <https://www.bluetooth.com/specifications/specs/core-specification-5-2/>`_
     """
 
     KEYBOARD_DISPLAY = 0
