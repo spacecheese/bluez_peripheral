@@ -2,6 +2,9 @@ name: Test Python Package
 
 on: [ pull_request, workflow_dispatch ]
 
+permissions:
+  contents: read
+
 jobs:
   test-docs:
     runs-on: ubuntu-24.04
