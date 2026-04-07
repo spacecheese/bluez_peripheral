@@ -60,7 +60,7 @@ class Device:
     async def get_manufacturer_data(self) -> Dict[int, bytes]:
         """Returns the manufacturer data."""
         data = await self._device_interface.get_manufacturer_data()
-        return {k: v.value for k, v in data.items()} # type: ignore
+        return {k: v.value for k, v in data.items()}  # type: ignore
 
     async def get_service_data(self) -> Dict[UUIDLike, bytes]:
         """Returns the service data."""
@@ -255,7 +255,7 @@ class Adapter:
                     break
 
                 path, intfs_and_props = queue_task.result()
-                
+
             if (
                 path.startswith(adapter_path)
                 and path in yielded_paths
@@ -266,7 +266,7 @@ class Adapter:
             yield await self._get_device(path)
             yielded_paths.add(path)
 
-        # Cancel the timeout task if it's still pending (discovery must have been cancelled by someone else). 
+        # Cancel the timeout task if it's still pending (discovery must have been cancelled by someone else).
         if timeout_task is not None and not timeout_task.done():
             timeout_task.cancel()
             try:
