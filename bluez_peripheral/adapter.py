@@ -38,7 +38,7 @@ class Device:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
         async with bluez_error_wrapper():
-            await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
+            await interface.call_remove_device(self._device_interface.path)  # type: ignore  # pylint: disable=protected-access
 
     async def get_name(self) -> str:
         """Returns the display name of this device (use alias instead to get the display name)."""
