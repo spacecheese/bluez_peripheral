@@ -113,8 +113,6 @@ class Service(HierarchicalServiceInterface):
             if not service.export_path is None:
                 paths.append(service.export_path)
 
-        if not self.export_path is None:
-            paths.append(self.export_path)
         return paths
 
 

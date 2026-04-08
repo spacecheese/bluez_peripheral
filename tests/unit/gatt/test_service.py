@@ -93,9 +93,7 @@ async def test_include_modify(
     service3_node = await service_collection.get_child("180C")
 
     includes = await service1_node.attr_interface.get_includes()
-    assert set(includes) == set(
-        [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
-    )
+    assert set(includes) == set([service2_node.bus_path, service3_node.bus_path])
 
     service_manager.unregister()
     services.remove_child(service3)
@@ -108,7 +106,7 @@ async def test_include_modify(
     service2_node = await service_collection.get_child("180B")
 
     includes = await service1_node.attr_interface.get_includes()
-    assert set(includes) == set([service1_node.bus_path, service2_node.bus_path])
+    assert set(includes) == set([service2_node.bus_path])
 
     with pytest.raises(KeyError):
         await service_collection.get_child("180C")
@@ -125,9 +123,7 @@ async def test_include_modify(
     service3_node = await service_collection.get_child("180C")
 
     includes = await service1_node.attr_interface.get_includes()
-    assert set(includes) == set(
-        [service1_node.bus_path, service2_node.bus_path, service3_node.bus_path]
-    )
+    assert set(includes) == set([service2_node.bus_path, service3_node.bus_path])
 
 
 @pytest.mark.asyncio
