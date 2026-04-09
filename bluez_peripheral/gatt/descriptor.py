@@ -5,7 +5,8 @@ from dbus_fast import Variant
 from dbus_fast.service import dbus_property
 from dbus_fast.constants import PropertyAccess
 
-from .base import HierarchicalServiceInterface, ServiceAttribute
+from ..base import HierarchicalServiceInterface
+from .base import ServiceAttribute
 from ..uuid16 import UUID16, UUIDLike
 from ..util import _snake_to_kebab, _getattr_variant
 

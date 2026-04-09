@@ -5,7 +5,7 @@ from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import dbus_property
 from dbus_fast.aio.message_bus import MessageBus
 
-from .base import HierarchicalServiceInterface
+from ..base import HierarchicalServiceInterface, UniquePathMixin
 from .characteristic import characteristic
 from ..uuid16 import UUID16, UUIDLike
 from ..adapter import Adapter
@@ -113,12 +113,10 @@ class Service(HierarchicalServiceInterface):
             if not service.export_path is None:
                 paths.append(service.export_path)
 
-        if not self.export_path is None:
-            paths.append(self.export_path)
         return paths
 
 
-class ServiceCollection(HierarchicalServiceInterface):
+class ServiceCollection(UniquePathMixin, HierarchicalServiceInterface):
     """A collection of services that are registered with the bluez GATT manager as a group."""
 
     _INTERFACE = "org.spacecheese.ServiceCollection1"
@@ -135,7 +133,6 @@ class ServiceCollection(HierarchicalServiceInterface):
             for s in services:
                 self.add_child(s)
 
-        self._bus: Optional[MessageBus] = None
         self._adapter: Optional[Adapter] = None
 
     async def register(
@@ -155,39 +152,20 @@ class ServiceCollection(HierarchicalServiceInterface):
             adapter: The adapter that should be used to deliver the collection of services.
         """
         self._adapter = await Adapter.get_first(bus) if adapter is None else adapter
-
-        self.export(bus, path=path)
+        self._export(bus, path=path)
 
         manager = self._adapter.get_gatt_manager()
         async with bluez_error_wrapper():
             await manager.call_register_application(self.export_path, {})  # type: ignore
 
-        self._bus = bus
-
     async def unregister(self) -> None:
         """Unregister this service using the bluez service manager."""
-        if not self.is_exported:
-            raise ValueError("Cannot unexport a component which is not exported")
-
-        assert self._bus is not None
-        assert self._adapter is not None
+        if self._adapter is None:
+            raise ValueError("Cannot unregister a component which is not registered")
 
         manager = self._adapter.get_gatt_manager()
         async with bluez_error_wrapper():
             await manager.call_unregister_application(self.export_path)  # type: ignore
 
-        self.unexport()
-
+        self._unexport()
         self._adapter = None
-        self._bus = None
-
-    def export(
-        self, bus: MessageBus, *, num: Optional[int] = None, path: Optional[str] = None
-    ) -> None:
-        """
-        Export this ServiceCollection on the specified message bus.
-        """
-        if path is None:
-            path = self._get_unique_export_path()
-
-        super().export(bus, num=num, path=path)

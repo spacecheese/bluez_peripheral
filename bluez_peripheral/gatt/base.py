@@ -16,84 +16,11 @@ from typing import (
 from dbus_fast import Variant, DBusError
 from dbus_fast.constants import PropertyAccess
 from dbus_fast.service import method, dbus_property
-from dbus_fast.aio.message_bus import MessageBus
 
 from ..error import FailedError, NotSupportedError
-from ..base import BaseServiceInterface
 
 if TYPE_CHECKING:
     from .service import Service
-
-
-class HierarchicalServiceInterface(BaseServiceInterface):
-    """
-    Base class for a member of a hierarchy of ServiceInterfaces which should be exported and unexported as a group.
-    """
-
-    _BUS_PREFIX = ""
-    """
-    The prefix used by default when exporting this ServiceInterface as a child of another component.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self._parent: Optional["HierarchicalServiceInterface"] = None
-        self._children: list["HierarchicalServiceInterface"] = []
-
-    def add_child(self, child: "HierarchicalServiceInterface") -> None:
-        """
-        Adds a child service interface.
-        """
-        if self.is_exported:
-            raise ValueError("Registered components cannot be modified")
-
-        self._children.append(child)
-        child._parent = self  # pylint: disable=protected-access
-
-    def remove_child(self, child: "HierarchicalServiceInterface") -> None:
-        """
-        Removes a child service interface.
-        """
-        if self.is_exported:
-            raise ValueError("Registered components cannot be modified")
-
-        self._children.remove(child)
-        child._parent = None  # pylint: disable=protected-access
-
-    def export(
-        self, bus: MessageBus, *, num: Optional[int] = 0, path: Optional[str] = None
-    ) -> None:
-        """
-        Attempts to export this component and all registered children. Either ``num`` or ``path`` must be provided.
-
-        Args:
-            bus: The message bus to export this and all children on.
-            num: An optional index of this component within it's parent.
-            path: An optional absolute path indicating where this component should be exported.
-                If no ``path`` is specified then this component must have been registered using another components :class:`HierarchicalServiceInterface.add_child()` method.
-        """
-        if path is None:
-            if self._parent is not None:
-                path = f"{self._parent.export_path}/{self._BUS_PREFIX}{num}"
-            else:
-                raise ValueError("path or parent must be specified")
-
-        super().export(bus, path=path)
-        for i, c in enumerate(self._children):
-            c.export(bus, num=i)
-
-    def unexport(self) -> None:
-        """
-        Attempts to unexport this component and all registered children from the specified message bus.
-        """
-        if not self.is_exported:
-            raise ValueError("Cannot unexport a component which is not exported")
-
-        for c in self._children:
-            c.unexport()
-
-        super().unexport()
 
 
 ReadOptionsT = TypeVar("ReadOptionsT")

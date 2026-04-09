@@ -7,12 +7,12 @@ from dbus_fast.aio.proxy_object import ProxyInterface
 
 from .util import _snake_to_pascal
 from .error import RejectedError, bluez_error_wrapper
-from .base import BaseServiceInterface
+from .base import BaseServiceInterface, UniquePathMixin
 
 
 class AgentCapability(Enum):
     """The IO Capabilities of the local device supported by the agent.
-    See Tables 5.5 and 5.7 of the `Bluetooth Core Spec Part C. <https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=478726>`_
+    See Tables 5.5 and 5.7 of the `Bluetooth Core Spec Part C. <https://www.bluetooth.com/specifications/specs/core-specification-5-2/>`_
     """
 
     KEYBOARD_DISPLAY = 0
@@ -32,7 +32,7 @@ class AgentCapability(Enum):
     """
 
 
-class BaseAgent(BaseServiceInterface):
+class BaseAgent(UniquePathMixin, BaseServiceInterface):
     """The abstract base agent for all bluez agents. Subclass this if one of the existing agents does not meet your requirements.
     Alternatively bluez supports several built in agents which can be selected using the bluetoothctl cli.
     Represents an `org.bluez.Agent1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.Agent.rst>`_ instance.
@@ -50,12 +50,12 @@ class BaseAgent(BaseServiceInterface):
         capability: AgentCapability,
     ):
         self._capability: AgentCapability = capability
-
+        self._registered = False
         super().__init__()
 
     @method("Release")
     def _release(self):  # type: ignore
-        pass
+        self._unexport()
 
     @method("Cancel")
     def _cancel(self):  # type: ignore
@@ -81,7 +81,7 @@ class BaseAgent(BaseServiceInterface):
                 The invoking process requires superuser if this is true.
             path: The path to expose this message bus on.
         """
-        self.export(bus, path=path)
+        self._export(bus, path=path)
 
         interface = await self._get_manager_interface(bus)
         async with bluez_error_wrapper():
@@ -91,13 +91,15 @@ class BaseAgent(BaseServiceInterface):
             async with bluez_error_wrapper():
                 await interface.call_request_default_agent(self.export_path)  # type: ignore
 
+        self._registered = True
+
     async def unregister(self) -> None:
         """Unregister this agent with bluez and remove it from the specified message bus.
 
         Args:
             bus: The message bus used to expose the agent.
         """
-        if not self.is_exported:
+        if not self._registered:
             raise ValueError("agent has not been registered")
         assert self._export_bus is not None
 
@@ -105,7 +107,8 @@ class BaseAgent(BaseServiceInterface):
         async with bluez_error_wrapper():
             await interface.call_unregister_agent(self.export_path)  # type: ignore
 
-        self.unexport()
+        self._unexport()
+        self._registered = False
 
 
 class TestAgent(BaseAgent):

@@ -60,6 +60,8 @@ rsync -a --progress --rsync-path="sudo rsync" \
   --exclude tests/loopback/assets/ \
   --exclude docs/ \
   --exclude serial.log \
+  --exclude='*.venv*' \
+  --exclude='*/__pycache__*' \
   $PROJ_ROOT tester@localhost:/bluez_peripheral
 
 $SSH -p 2244 tester@localhost "

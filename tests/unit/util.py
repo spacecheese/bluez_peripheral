@@ -256,9 +256,7 @@ class BackgroundServiceManager(BackgroundBusTask):
         if path is None:
             path = services.export_path
         gatt_manager.call_register_application.assert_awaited_with(path, {})
-        if services.is_exported:
-            # If the export didn't fail.
-            assert services.export_path == path
+        assert services.export_path == path
         assert len(gatt_manager.mock_calls) == before_calls + 1
         assert gatt_manager.call_register_application.await_count == before_awaits + 1
 
@@ -281,7 +279,7 @@ class BackgroundServiceManager(BackgroundBusTask):
         self._services = None
 
     async def cleanup(self):
-        if self._services is not None and self._services.is_exported:
+        if self._services is not None and self._services.export_path is not None:
             self.unregister()
 
 
@@ -308,8 +306,8 @@ class BackgroundAdvertManager(BackgroundBusTask):
         if path is None:
             path = advert.export_path
         advertising_manager.call_register_advertisement.assert_awaited_with(path, {})
-        if advert.is_exported:
-            assert advert.export_path == path
+
+        assert advert.export_path == path
         assert len(advertising_manager.mock_calls) == before_calls + 1
         assert (
             advertising_manager.call_register_advertisement.await_count
@@ -342,5 +340,5 @@ class BackgroundAdvertManager(BackgroundBusTask):
         self._advert = None
 
     async def cleanup(self):
-        if self._advert is not None and self._advert.is_exported:
+        if self._advert is not None and self._advert.export_path is not None:
             self.unregister()

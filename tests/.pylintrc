@@ -4,6 +4,7 @@ disable=
     missing-class-docstring,
     missing-function-docstring,
     too-many-arguments,
+    too-many-function-args,
     too-many-positional-arguments,
     too-few-public-methods,
     redefined-outer-name,

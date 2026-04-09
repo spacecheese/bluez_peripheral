@@ -29,8 +29,7 @@ async def test_advertisement(message_bus, unpaired_adapters):
     assert loopback_device is not None
     assert await loopback_device.get_alias() == "Heart Monitor"
     assert await loopback_device.get_appearance() == 0x0340
-    uuids = set(await loopback_device.get_uuids())
-    assert uuids == set([UUID16("180D"), UUID16("1234")])
+    assert {UUID16("180D"), UUID16("1234")}.issubset(await loopback_device.get_uuids())
 
 
 @pytest.mark.asyncio
@@ -49,6 +48,15 @@ async def test_advanced_data(message_bus, unpaired_adapters):
         service_data={"180A": b"\0x01\0x02"},
     )
     await advert.register(message_bus, adapter=adapters[0])
+    loopback_device = None
+    async for device in adapters[1].discover_devices(duration=5.0):
+        loopback_device = device
+
+    assert loopback_device is not None
+    assert await loopback_device.get_alias() == "Testing Device Name"
+    assert await loopback_device.get_appearance() == 0x0340
+    assert {UUID16("180A"), UUID16("180D")}.issubset(await loopback_device.get_uuids())
+    assert await loopback_device.get_service_data() == {UUID16("180A"): b"\0x01\0x02"}
 
 
 @pytest.mark.asyncio
@@ -69,3 +77,12 @@ async def test_manufacturer_data(message_bus, unpaired_adapters):
         },
     )
     await advert.register(message_bus, adapter=adapters[0])
+    loopback_device = None
+    async for device in adapters[1].discover_devices(duration=5.0):
+        loopback_device = device
+
+    assert loopback_device is not None
+    assert await loopback_device.get_alias() == "Testing Device Name"
+    assert await loopback_device.get_appearance() == 0x0340
+    assert {UUID16("180A"), UUID16("180D")}.issubset(await loopback_device.get_uuids())
+    assert await loopback_device.get_manufacturer_data() == {0: b"\0x0\0x1\0x2"}

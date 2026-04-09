@@ -38,7 +38,7 @@ class Device:
         """Disconnects and unpairs from this device."""
         interface = adapter.get_adapter_interface()
         async with bluez_error_wrapper():
-            await interface.call_remove_device(self._device_interface._path)  # type: ignore  # pylint: disable=protected-access
+            await interface.call_remove_device(self._device_interface.path)  # type: ignore  # pylint: disable=protected-access
 
     async def get_name(self) -> str:
         """Returns the display name of this device (use alias instead to get the display name)."""
@@ -59,12 +59,13 @@ class Device:
 
     async def get_manufacturer_data(self) -> Dict[int, bytes]:
         """Returns the manufacturer data."""
-        return await self._device_interface.get_manufacturer_data()  # type: ignore
+        data = await self._device_interface.get_manufacturer_data()  # type: ignore
+        return {k: v.value for k, v in data.items()}
 
-    async def get_service_data(self) -> List[Tuple[UUIDLike, bytes]]:
+    async def get_service_data(self) -> Dict[UUIDLike, bytes]:
         """Returns the service data."""
         data = await self._device_interface.get_service_data()  # type: ignore
-        return [(UUID16.parse_uuid(u), d) for u, d in data]
+        return {UUID16.parse_uuid(k): v.value for k, v in data.items()}
 
 
 class Adapter:
@@ -203,13 +204,14 @@ class Adapter:
             asyncio.Queue()
         )
 
+        adapter_path = self._adapter_interface.path
+        bus = self._adapter_interface.bus
+
         def _interface_added(path: str, intfs_and_props: Dict[str, Dict[str, Variant]]):  # type: ignore
             queue.put_nowait((path, intfs_and_props))
 
-        introspection = await self._adapter_interface.bus.introspect("org.bluez", "/")
-        proxy = self._adapter_interface.bus.get_proxy_object(
-            "org.bluez", "/", introspection
-        )
+        introspection = await bus.introspect("org.bluez", "/")
+        proxy = bus.get_proxy_object("org.bluez", "/", introspection)
         object_manager_interface = proxy.get_interface(
             "org.freedesktop.DBus.ObjectManager"
         )
@@ -217,26 +219,40 @@ class Adapter:
 
         yielded_paths = set()
 
+        # Yield any devices which are already present.
+        device_nodes = (await bus.introspect("org.bluez", adapter_path)).nodes
+        for node in device_nodes:
+            if node.name is None:
+                continue
+
+            node_path = adapter_path + "/" + node.name
+            yield await self._get_device(node_path)
+            yielded_paths.add(node_path)
+
         async def _stop_discovery() -> None:
             await asyncio.sleep(duration)
             await self.stop_discovery()
 
         await self.start_discovery()
-        stop_task = None
+        timeout_task = None
         if duration > 0:
-            stop_task = asyncio.create_task(_stop_discovery())
+            timeout_task = asyncio.create_task(_stop_discovery())
 
         adapter_path = self._adapter_interface.path
         while not self._discovery_stopped.is_set():
-            if stop_task is not None:
+            if timeout_task is None:
+                path, intfs_and_props = await queue.get()
+            else:
                 queue_task = asyncio.create_task(queue.get())
 
+                # Block until either a timeout or we find a device.
                 done, _ = await asyncio.wait(
-                    [queue_task, stop_task],
+                    [queue_task, timeout_task],
                     return_when=asyncio.FIRST_COMPLETED,
                 )
 
-                if stop_task in done and queue_task not in done:
+                # Break out if we timed out and didn't find a device.
+                if timeout_task in done and queue_task not in done:
                     queue_task.cancel()
                     try:
                         await queue_task
@@ -245,8 +261,6 @@ class Adapter:
                     break
 
                 path, intfs_and_props = queue_task.result()
-            else:
-                path, intfs_and_props = await queue.get()
 
             if (
                 path.startswith(adapter_path)
@@ -258,10 +272,11 @@ class Adapter:
             yield await self._get_device(path)
             yielded_paths.add(path)
 
-        if stop_task is not None and stop_task.done():
-            stop_task.cancel()
+        # Cancel the timeout task if it's still pending (discovery must have been cancelled by someone else).
+        if timeout_task is not None and not timeout_task.done():
+            timeout_task.cancel()
             try:
-                await stop_task
+                await timeout_task
             except asyncio.CancelledError:
                 pass
 

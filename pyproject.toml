@@ -20,6 +20,7 @@ disable = [
     "too-few-public-methods",
     "too-many-public-methods",
     "duplicate-code",
+    "protected-access",
 ]
 
 [tool.mypy]

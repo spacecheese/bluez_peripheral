@@ -142,7 +142,7 @@ Note that IO Capability is not the only factor in selecting a pairing algorithm.
         `Part 2 <https://www.bluetooth.com/blog/bluetooth-pairing-part-2-key-generation-methods/>`_
         `Part 3 <https://www.bluetooth.com/blog/bluetooth-pairing-passkey-entry/>`_
 
-    `Bluetooth Core Spec v5.2 <https://www.bluetooth.org/docman/handlers/downloaddoc.ashx?doc_id=478726>`_
+    `Bluetooth Core Spec v5.2 <https://www.bluetooth.com/specifications/specs/core-specification-5-2/>`_
         Vol 3, Part H, Table 2.8 (source of :ref:`pairing-io`)
 
     Bluez Documentation

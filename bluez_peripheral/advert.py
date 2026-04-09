@@ -1,22 +1,50 @@
-import inspect
-from typing import Collection, Dict, Callable, Optional, Union, Awaitable
 import struct
+from typing import Any, Collection, Dict, Optional, Union
 
 from dbus_fast import Variant
-from dbus_fast.constants import PropertyAccess
-from dbus_fast.service import method, dbus_property
 from dbus_fast.aio.message_bus import MessageBus
+from dbus_fast.constants import PropertyAccess
+from dbus_fast.service import dbus_property, method
 
-from .uuid16 import UUID16, UUIDLike
-from .util import _snake_to_kebab
 from .adapter import Adapter
-from .flags import AdvertisingIncludes
-from .flags import AdvertisingPacketType
-from .base import BaseServiceInterface
+from .base import BaseServiceInterface, UniquePathMixin
 from .error import bluez_error_wrapper
+from .flags import AdvertisingIncludes, AdvertisingPacketType
+from .util import _snake_to_kebab
+from .uuid16 import UUID16, UUIDLike
+
+# bluez src/advertising.c parse_min_interval / parse_max_interval: HCI slot = ms / 0.625,
+# valid slots 0x20 .. 0xFFFFFF (see doc/org.bluez.LEAdvertisement.rst).
+_ADV_INTERVAL_SLOT_MIN = 0x20
+_ADV_INTERVAL_SLOT_MAX = 0xFFFFFF
 
 
-class Advertisement(BaseServiceInterface):
+def _adv_interval_ms_to_slot(ms: int) -> int:
+    """Convert advertising interval from milliseconds to HCI units (matches bluez C division)."""
+    return int(ms / 0.625)
+
+
+def _validate_advertising_intervals_ms(min_ms: int, max_ms: int) -> None:
+    min_slot = _adv_interval_ms_to_slot(min_ms)
+    max_slot = _adv_interval_ms_to_slot(max_ms)
+    if min_slot < _ADV_INTERVAL_SLOT_MIN or min_slot > _ADV_INTERVAL_SLOT_MAX:
+        raise ValueError(
+            "min_advertising_interval_ms is out of range for bluez LE advertising "
+            f"(HCI slot {min_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
+        )
+    if max_slot < _ADV_INTERVAL_SLOT_MIN or max_slot > _ADV_INTERVAL_SLOT_MAX:
+        raise ValueError(
+            "max_advertising_interval_ms is out of range for bluez LE advertising "
+            f"(HCI slot {max_slot} not in [{_ADV_INTERVAL_SLOT_MIN:#x}, {_ADV_INTERVAL_SLOT_MAX:#x}])"
+        )
+    if min_slot > max_slot:
+        raise ValueError(
+            "min_advertising_interval_ms must be <= max_advertising_interval_ms "
+            f"(HCI slots {min_slot} > {max_slot})"
+        )
+
+
+class Advertisement(UniquePathMixin):
     """
     An advertisement for a particular service or collection of services that can be registered and broadcast to nearby devices.
     Represents an `org.bluez.LEAdvertisement1 <https://raw.githubusercontent.com/bluez/bluez/refs/heads/master/doc/org.bluez.LEAdvertisement.rst>`_ instance.
@@ -26,7 +54,7 @@ class Advertisement(BaseServiceInterface):
         serviceUUIDs: A list of service UUIDs advertise.
         appearance: The appearance value to advertise.
             See the `Bluetooth SIG Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>`_ (Search for "Appearance Values")
-        timeout: The time from registration until this advert is removed (defaults to zero meaning never timeout).
+        timeout: The time from registration until this advert is removed (defaults to None meaning never timeout).
         discoverable: Whether or not the device this advert should be generally discoverable.
         packetType: The type of advertising packet requested.
         manufacturerData: Any manufacturer specific data to include in the advert.
@@ -35,33 +63,155 @@ class Advertisement(BaseServiceInterface):
         includes: Fields that can be optionally included in the advertising packet.
             Only the :class:`bluez_peripheral.flags.AdvertisingIncludes.TX_POWER` flag seems to work correctly with bluez.
         duration: Duration of the advert when multiple adverts are ongoing.
-        release_callback: A function to call when the advert release function is called. The default release callback will unexport the advert.
+        min_advertising_interval_ms: Optional minimum advertising interval in milliseconds; must be set together with max.
+        max_advertising_interval_ms: Optional maximum advertising interval in milliseconds; must be set together with min.
+            See ``MinInterval`` / ``MaxInterval`` in the bluez LEAdvertisement documentation.
     """
 
-    _INTERFACE = "org.bluez.LEAdvertisement1"
     _DEFAULT_PATH_PREFIX = "/com/spacecheese/bluez_peripheral/advert"
+
+    def _advert_service_factory(self) -> "BaseServiceInterface":
+        advert = self
+
+        class _AdvertService(BaseServiceInterface):
+            _INTERFACE = "org.bluez.LEAdvertisement1"
+
+            def _get_default_path(self, **_: Any) -> str:
+                raise NotImplementedError()
+
+            @method("Release")
+            async def _release(self):  # type: ignore
+                await advert._release()
+
+            @dbus_property(PropertyAccess.READ, "Type")
+            def _get_type(self) -> "s":  # type: ignore
+                return advert._type.name.lower()
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "ServiceUUIDs",
+                disabled=(advert._service_uuids is None),
+            )
+            def _get_service_uuids(self) -> "as":  # type: ignore
+                if advert._service_uuids is None:
+                    raise NotImplementedError()
+
+                return [str(id) for id in advert._service_uuids]
+
+            @dbus_property(
+                PropertyAccess.READ, "LocalName", disabled=(advert._local_name is None)
+            )
+            def _get_local_name(self) -> "s":  # type: ignore
+                return advert._local_name
+
+            @dbus_property(
+                PropertyAccess.READ, "Appearance", disabled=(advert._appearance is None)
+            )
+            def _get_appearance(self) -> "q":  # type: ignore
+                return advert._appearance
+
+            @dbus_property(
+                PropertyAccess.READ, "Timeout", disabled=(advert._timeout is None)
+            )
+            def _get_timeout(self) -> "q":  # type: ignore
+                return advert._timeout
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "ManufacturerData",
+                disabled=(advert._manufacturer_data is None),
+            )
+            def _get_manufacturer_data(self) -> "a{qv}":  # type: ignore
+                return advert._manufacturer_data
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "SolicitUUIDs",
+                disabled=(advert._solicit_uuids is None),
+            )
+            def _get_solicit_uuids(self) -> "as":  # type: ignore
+                if advert._solicit_uuids is None:
+                    raise NotImplementedError()
+
+                return [str(key) for key in advert._solicit_uuids]
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "ServiceData",
+                disabled=(advert._service_data is None),
+            )
+            def _get_service_data(self) -> "a{sv}":  # type: ignore
+                if advert._service_data is None:
+                    raise NotImplementedError()
+
+                return {str(key): val for key, val in advert._service_data.items()}
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "Discoverable",
+                disabled=(advert._discoverable is None),
+            )
+            def _get_discoverable(self) -> "b":  # type: ignore
+                return advert._discoverable
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "Includes",
+                disabled=(advert._includes == AdvertisingIncludes.NONE),
+            )
+            def _get_includes(self) -> "as":  # type: ignore
+                return [
+                    _snake_to_kebab(inc.name)
+                    for inc in AdvertisingIncludes
+                    if advert._includes & inc and inc.name is not None
+                ]
+
+            @dbus_property(
+                PropertyAccess.READ, "Duration", disabled=(advert._duration is None)
+            )
+            def _get_duration(self) -> "q":  # type: ignore
+                return advert._duration
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "MinInterval",
+                disabled=(advert._min_advertising_interval_ms is None),
+            )
+            def _get_min_interval(self) -> "u":  # type: ignore
+                return advert._min_advertising_interval_ms
+
+            @dbus_property(
+                PropertyAccess.READ,
+                "MaxInterval",
+                disabled=(advert._max_advertising_interval_ms is None),
+            )
+            def _get_max_interval(self) -> "u":  # type: ignore
+                return advert._max_advertising_interval_ms
+
+        return _AdvertService()
 
     def __init__(
         self,
-        local_name: str,
-        service_uuids: Collection[UUIDLike],
+        local_name: Optional[str] = None,
+        service_uuids: Optional[Collection[UUIDLike]] = None,
         *,
-        appearance: Union[int, bytes],
-        timeout: int = 0,
-        discoverable: bool = True,
+        appearance: Optional[Union[int, bytes]] = None,
+        timeout: Optional[int] = None,
+        discoverable: Optional[bool] = None,
         packet_type: AdvertisingPacketType = AdvertisingPacketType.PERIPHERAL,
         manufacturer_data: Optional[Dict[int, bytes]] = None,
         solicit_uuids: Optional[Collection[UUIDLike]] = None,
         service_data: Optional[Dict[UUIDLike, bytes]] = None,
         includes: AdvertisingIncludes = AdvertisingIncludes.NONE,
-        duration: int = 2,
-        release_callback: Optional[
-            Union[Callable[[], None], Callable[[], Awaitable[None]]]
-        ] = None,
+        duration: Optional[int] = 2,
+        min_advertising_interval_ms: Optional[int] = None,
+        max_advertising_interval_ms: Optional[int] = None,
     ):
         self._type = packet_type
         # Convert any string uuids to uuid16.
-        self._service_uuids = [UUID16.parse_uuid(uuid) for uuid in service_uuids]
+        self._service_uuids = None
+        if service_uuids is not None:
+            self._service_uuids = [UUID16.parse_uuid(uuid) for uuid in service_uuids]
         self._local_name = local_name
         # Convert the appearance to a uint16 if it isn't already an int.
         if isinstance(appearance, bytes):
@@ -70,38 +220,50 @@ class Advertisement(BaseServiceInterface):
             self._appearance = appearance
         self._timeout = timeout
 
-        if manufacturer_data is None:
-            manufacturer_data = {}
-        self._manufacturer_data = {
-            k: Variant("ay", v) for k, v in manufacturer_data.items()
-        }
+        self._manufacturer_data = None
+        if manufacturer_data is not None:
+            self._manufacturer_data = {
+                k: Variant("ay", v) for k, v in manufacturer_data.items()
+            }
 
-        if solicit_uuids is None:
-            solicit_uuids = []
-        self._solicit_uuids = [UUID16.parse_uuid(uuid) for uuid in solicit_uuids]
+        self._solicit_uuids = None
+        if solicit_uuids is not None:
+            self._solicit_uuids = [UUID16.parse_uuid(uuid) for uuid in solicit_uuids]
 
-        if service_data is None:
-            service_data = {}
-        self._service_data = {
-            UUID16.parse_uuid(k): Variant("ay", v) for k, v in service_data.items()
-        }
+        self._service_data = None
+        if service_data is not None:
+            self._service_data = {
+                UUID16.parse_uuid(k): Variant("ay", v) for k, v in service_data.items()
+            }
 
         self._discoverable = discoverable
         self._includes = includes
         self._duration = duration
 
-        def _default_release_callback() -> None:
-            self.unexport()
-
-        self._release_callback: Union[Callable[[], None], Callable[[], Awaitable[None]]]
-        if release_callback is None:
-            self._release_callback = _default_release_callback
-        else:
-            self._release_callback = release_callback
+        self._min_advertising_interval_ms: Optional[int] = None
+        self._max_advertising_interval_ms: Optional[int] = None
+        if (min_advertising_interval_ms is not None) ^ (
+            max_advertising_interval_ms is not None
+        ):
+            raise ValueError(
+                "min_advertising_interval_ms and max_advertising_interval_ms must "
+                "both be set or both be omitted"
+            )
+        if min_advertising_interval_ms is not None:
+            assert max_advertising_interval_ms is not None
+            _validate_advertising_intervals_ms(
+                min_advertising_interval_ms,
+                max_advertising_interval_ms,
+            )
+            self._min_advertising_interval_ms = min_advertising_interval_ms
+            self._max_advertising_interval_ms = max_advertising_interval_ms
 
         self._adapter: Optional[Adapter] = None
+        self._service = self._advert_service_factory()
 
-        super().__init__()
+    async def _release(self) -> None:
+        self._adapter = None
+        self._service._unexport()
 
     async def register(
         self,
@@ -117,8 +279,9 @@ class Advertisement(BaseServiceInterface):
             adapter: The adapter to use.
             path: The dbus path to use for registration.
         """
-
-        self.export(bus, path=path)
+        if path is None:
+            path = self._get_default_path()
+        self._service._export(bus, path=path)
 
         if adapter is None:
             adapter = await Adapter.get_first(bus)
@@ -126,76 +289,27 @@ class Advertisement(BaseServiceInterface):
         # Get the LEAdvertisingManager1 interface for the target adapter.
         interface = adapter.get_advertising_manager()
         async with bluez_error_wrapper():
-            await interface.call_register_advertisement(self.export_path, {})  # type: ignore
-
+            await interface.call_register_advertisement(self._service.export_path, {})  # type: ignore
         self._adapter = adapter
-
-    @method("Release")
-    async def _release(self):  # type: ignore
-        if inspect.iscoroutinefunction(self._release_callback):
-            await self._release_callback()
-        else:
-            self._release_callback()
 
     async def unregister(self) -> None:
         """
         Unregister this advertisement from bluez to stop advertising.
         """
-        if not self._adapter or not self.is_exported:
+        if self._adapter is None:
             raise ValueError("This advertisement is not registered")
 
         interface = self._adapter.get_advertising_manager()
 
         async with bluez_error_wrapper():
-            await interface.call_unregister_advertisement(self.export_path)  # type: ignore
+            await interface.call_unregister_advertisement(self._service.export_path)  # type: ignore
         self._adapter = None
 
-        self.unexport()
+        self._service._unexport()
 
-    @dbus_property(PropertyAccess.READ, "Type")
-    def _get_type(self) -> "s":  # type: ignore
-        return self._type.name.lower()
-
-    @dbus_property(PropertyAccess.READ, "ServiceUUIDs")
-    def _get_service_uuids(self) -> "as":  # type: ignore
-        return [str(id) for id in self._service_uuids]
-
-    @dbus_property(PropertyAccess.READ, "LocalName")
-    def _get_local_name(self) -> "s":  # type: ignore
-        return self._local_name
-
-    @dbus_property(PropertyAccess.READ, "Appearance")
-    def _get_appearance(self) -> "q":  # type: ignore
-        return self._appearance
-
-    @dbus_property(PropertyAccess.READ, "Timeout")
-    def _get_timeout(self) -> "q":  # type: ignore
-        return self._timeout
-
-    @dbus_property(PropertyAccess.READ, "ManufacturerData")
-    def _get_manufacturer_data(self) -> "a{qv}":  # type: ignore
-        return self._manufacturer_data
-
-    @dbus_property(PropertyAccess.READ, "SolicitUUIDs")
-    def _get_solicit_uuids(self) -> "as":  # type: ignore
-        return [str(key) for key in self._solicit_uuids]
-
-    @dbus_property(PropertyAccess.READ, "ServiceData")
-    def _get_service_data(self) -> "a{sv}":  # type: ignore
-        return {str(key): val for key, val in self._service_data.items()}
-
-    @dbus_property(PropertyAccess.READ, "Discoverable")
-    def _get_discoverable(self) -> "b":  # type: ignore
-        return self._discoverable
-
-    @dbus_property(PropertyAccess.READ, "Includes")
-    def _get_includes(self) -> "as":  # type: ignore
-        return [
-            _snake_to_kebab(inc.name)
-            for inc in AdvertisingIncludes
-            if self._includes & inc and inc.name is not None
-        ]
-
-    @dbus_property(PropertyAccess.READ, "Duration")
-    def _get_duration(self) -> "q":  # type: ignore
-        return self._duration
+    @property
+    def export_path(self) -> Optional[str]:
+        """
+        Returns the message bus path that the advert is exported on or None.
+        """
+        return self._service.export_path

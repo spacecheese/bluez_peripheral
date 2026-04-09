@@ -61,12 +61,11 @@ async def unpaired_adapters(message_bus):
     assert adapter0 is not None
     assert adapter1 is not None
 
+    yield adapter0, adapter1
+
     for adapter in [adapter0, adapter1]:
         for device in await adapter.get_devices():
-            if await device.get_paired():
-                await device.remove(adapters[1])
-
-    yield adapter0, adapter1
+            await device.remove(adapter)
 
 
 @pytest_asyncio.fixture
